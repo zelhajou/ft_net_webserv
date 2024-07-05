@@ -137,6 +137,8 @@
 			1. Create a socket using the `socket()` system call.
 			2. Send and receive data using the `sendto()` and `recvfrom()` system calls.
 
+
 	- [Sockets in Operating System](https://youtu.be/uagKTbohimU)
 	- [Socket Programming in C/C++ - GeeksforGeeks](https://www.geeksforgeeks.org/socket-programming-cc/)
 	- [Socket Programming in C - Tutorialspoint](https://www.tutorialspoint.com/unix_sockets/socket_server_example.htm)
+	- [Sockets and Pipes Look Like Files (Unix/fdopen)](https://youtu.be/il4N6KjVQ-s)

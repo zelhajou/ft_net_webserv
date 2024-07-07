@@ -16,7 +16,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 ## Team Members and Roles
 
 - **Hassan Sobane** (hsobane):
-- **Bilal Eddinaoui** (beddinao): 
+- **Bilal Eddinaoui** (beddinao):
 - **Zakaria Elhajoui** (zelhajou):
 
 ## Project Timeline

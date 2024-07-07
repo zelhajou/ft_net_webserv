@@ -33,6 +33,63 @@ Testing |Week 7-8 |Unit testing, integration testing, stress testing.
 - **Development Tools**: Git, Make, GCC, Valgrind
 - **Testing Tools**: Tool for stress testing
 
+## Directory Structure
+
+```
+webserv/
+│
+├── src/                     # Source files for the server
+│   ├── main.cpp             # Main application entry point
+│   │
+│   ├── server/              # Core server functionalities
+│   │   ├── Server.cpp       # Implementation of the server class
+│   │   └── Server.hpp       # Definition of the server class
+│   │
+│   ├── http/                # HTTP protocol handling
+│   │   ├── RequestHandler.cpp   # Handles HTTP requests
+│   │   ├── RequestHandler.hpp   # Definition of request handler
+│   │   ├── Request.cpp          # HTTP request parsing and handling
+│   │   ├── Request.hpp          # Definitions for HTTP request
+│   │   ├── Response.cpp         # Constructs HTTP responses
+│   │   └── Response.hpp         # Definitions for HTTP response
+│   │
+│   ├── network/             # Networking and socket management
+│   │   ├── Socket.cpp       # Socket class implementation
+│   │   ├── Socket.hpp       # Socket class definition
+│   │   ├── Connection.cpp   # Manages individual connections
+│   │   └── Connection.hpp   # Connection class definition
+│   │
+│   ├── config/              # Server configuration management
+│   │   ├── ConfigParser.cpp # Parses configuration files
+│   │   └── ConfigParser.hpp # Definitions for the config parser
+│   │
+│   └── utils/               # Utility functions and classes
+|
+├── tests/                   # Unit and integration tests
+│   ├── test_main.cpp        # Main file for running tests
+│   └── ServerTest.cpp       # Tests for server functionalities
+│
+├── config/                  # Configuration files for the server
+│   ├── server.conf          # Server configuration settings
+│   └── mime.types           # MIME types for response headers
+│
+├── docs/                    # Documentation files
+│   ├── architecture.md      # Detailed architecture description
+│   └── setup.md             # Setup and installation instructions
+│
+├── include/                 # Global header files
+│   └── common.hpp           # Common header file for global definitions
+│
+├── assets/                  # Static files served by the server
+│   ├── index.html           # Homepage
+│   ├── style.css            # CSS for the homepage
+│   └── script.js            # JavaScript for client-side logic
+│
+├── Makefile                 # Makefile for compiling the project
+└── README.md                # Project overview and setup instructions
+```
+
+
 ## Topics
 
 **Web server**: A computer program that serves requested HTML pages or files.

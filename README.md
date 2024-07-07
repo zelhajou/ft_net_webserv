@@ -1,7 +1,37 @@
 # 42cursus-webserv
 
-## Introduction
+## Overview
 
+This project involves developing a robust HTTP server in C++98, designed to handle basic web traffic and serve static content. Our server will conform to HTTP/1.1 standards and utilize non-blocking I/O operations for efficient resource management.
+
+
+## Project Goals
+
+- Implement core HTTP methods: GET, POST, DELETE.
+- Support non-blocking I/O and socket multiplexing.
+- Serve static content (HTML, CSS, JS).
+- Ensure robust error handling and generate default error pages.
+- Create a customizable configuration system.
+
+## Team Members and Roles
+
+- **Hassan Sobane** (hsobane):
+- **Bilal Eddinaoui** (beddinao): 
+- **Zakaria Elhajoui** (zelhajou):
+
+## Project Timeline
+
+|Phase|Timeline|Objectives
+|---|---|---|
+Planning | Week 1 |Define scope, architecture design, task breakdown.
+Development	| Week 2-6 |Core functionality implementation.
+Testing |Week 7-8 |Unit testing, integration testing, stress testing.
+
+## Technical Requirements
+
+- **Programming Language**: C++98
+- **Development Tools**: Git, Make, GCC, Valgrind
+- **Testing Tools**: Tool for stress testing
 
 ## Topics
 

@@ -457,6 +457,8 @@ webserv/
 
 5. **HTTP Protocol**: A protocol that allows web browsers and servers to communicate over the internet.
 
+- [Everything you need to know about HTTP](https://cs.fyi/guide/http-in-depth)
+
 	- **Request Methods**:
 		- **GET**:
 			- Requests data from a server.
@@ -681,51 +683,6 @@ webserv/
 			- Allows the server to redirect the client to a different URL.
 		- **Error Handling**:
 			- Allows the server to send error messages to the client.
-		- **Security**:
-			- Allows the server to enforce security policies.
-	- **HTTP/2**:
-		- **Binary Protocol**:
-			- Allows data to be sent in binary format.
-		- **Multiplexing**:
-			- Allows multiple requests and responses to be sent over a single connection.
-		- **Header Compression**:
-			- Allows headers to be compressed before sending them to the client.
-		- **Server Push**:
-			- Allows the server to push resources to the client before they are requested.
-		- **Stream Prioritization**:
-			- Allows the client to prioritize streams.
-		- **Flow Control**:
-			- Allows the client to control the flow of data.
-		- **Security**:
-			- Allows the server to enforce security policies.
-	- **HTTP/3**:
-		- **QUIC Protocol**:
-			- Allows data to be sent over UDP.
-		- **Multiplexing**:
-			- Allows multiple requests and responses to be sent over a single connection.
-		- **Header Compression**:
-			- Allows headers to be compressed before sending them to the client.
-		- **Server Push**:
-			- Allows the server to push resources to the client before they are requested.
-		- **Stream Prioritization**:
-			- Allows the client to prioritize streams.
-		- **Flow Control**:
-			- Allows the client to control the flow of data.
-		- **Security**:
-			- Allows the server to enforce security policies.
-	- **HTTP/4**:
-		- **Future Protocol**:
-			- Allows data to be sent over a new protocol.
-		- **Multiplexing**:
-			- Allows multiple requests and responses to be sent over a single connection.
-		- **Header Compression**:
-			- Allows headers to be compressed before sending them to the client.
-		- **Server Push**:
-			- Allows the server to push resources to the client before they are requested.
-		- **Stream Prioritization**:
-			- Allows the client to prioritize streams.
-		- **Flow Control**:
-			- Allows the client to control the flow of data.
 		- **Security**:
 			- Allows the server to enforce security policies.
 

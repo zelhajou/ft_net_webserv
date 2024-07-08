@@ -305,9 +305,9 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ### Requirements from Subject:
 
-The server must take a configuration file as an argument or use a default path.
-Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
-Implement a robust logging mechanism to aid in monitoring and debugging.
+- The server must take a configuration file as an argument or use a default path.
+- Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
+- Implement a robust logging mechanism to aid in monitoring and debugging.
 
 
 ## Project Timeline

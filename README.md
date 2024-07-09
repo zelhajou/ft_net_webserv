@@ -328,11 +328,22 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 </details>
 
 
-
-
 ## Configuration Management and Logging
 
-### Task 1: Design and Implement Configuration Management
+### Requirements from Subject:
+
+- The server must take a configuration file as an argument or use a default path.
+- Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
+- Implement a robust logging mechanism to aid in monitoring and debugging. (**Optional**)
+ 
+
+<details>
+
+<summary>
+
+<h3>Task 1: Design and Implement Configuration Management</h3>
+
+</summary>
 
 **Objective**: Develop a system to read, parse, and apply configuration settings from external files to control server behavior, such as listening ports, server root, and other operational parameters.
 
@@ -351,7 +362,16 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Integrate the configuration settings into the server’s startup sequence.
 	- Ensure that the server behaves according to the settings specified in the configuration file, such as starting on the correct port and serving files from the specified document root.
 
-### Task 2: Logging as an Optional Enhancement
+</details>
+
+
+<details>
+
+<summary>
+
+<h3>Task 2: Logging as an Optional Enhancement</h3>
+
+</summary>
 
 **Objective**: Set up a logging system to record important server events, errors, and operational data to aid in troubleshooting and monitoring server performance.
 
@@ -370,7 +390,17 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Integrate logging calls throughout the server code, particularly at critical operations like starting up, shutting down, handling requests, and catching exceptions.
 	- Log all exceptions and significant state changes within the server to provide a clear trace of what happens during operation.
 
-### Task 3: Testing and Validation
+</details>
+
+
+
+<details>
+
+<summary>
+
+<h3>Task 3: Testing and Validation</h3>
+
+</summary>
 
 - **Objective**: Ensure the configuration and logging functionalities are robust, perform as expected, and do not introduce overhead or complexities that could impact the server's performance.
 
@@ -385,12 +415,9 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 3. **Performance Evaluation**:
 	- Assess the impact of logging on server performance, especially under high load, and optimize as necessary.
 
+</details>
 
-### Requirements from Subject:
 
-- The server must take a configuration file as an argument or use a default path.
-- Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
-- Implement a robust logging mechanism to aid in monitoring and debugging.
 
 
 ## Project Timeline

@@ -250,15 +250,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 1. **Understanding Configuration Requirements**:
 	- Determine which server aspects should be configurable, including IP binding, port numbers, document root, default error pages, and security settings like maximum allowed connections and timeouts.
 2. **Configuration File Format**:
-	- Decide on a configuration file format (e.g., INI, JSON, YAML). For simplicity and ease of parsing, a basic INI-like format might be sufficient.
-	- Example format:
-		```ini
-		[server]
-		port = 8080
-		document_root = /var/www/html
-		max_connections=100
-		```
-
+	- Decide on a configuration file format like Nginx’s `nginx.conf`
 3. **Implement Configuration Parser**:
 	- Create a `ConfigParser` class that reads and parses the configuration file.
 	- Use standard file I/O to read the configuration file and parse it into a structured format that the server can use.
@@ -373,7 +365,6 @@ webserv/
 ├── Makefile                 # Makefile for compiling the project
 └── README.md                # Project overview and setup instructions
 ```
-
 
 ## Topics
 
@@ -592,7 +583,15 @@ webserv/
 		4. Client sends an ACK packet to the server.
 	- **Connection Establishment**:
 		1. Client sends a SYN packet to the server.
-		2. Server sends a SYN-ACK packet to the client.
+		2. Server sends 1. **Unit Testing**:
+	- Write tests for the configuration parsing to handle various edge cases and malformed configurations.
+	- Test the logging system for correct log level handling and file rotation.
+2. **Integration Testing**:
+	- Verify that configuration settings are correctly applied during server startup.
+	- Ensure that log messages accurately reflect server operations and states under different scenarios.
+3. **Performance Evaluation**:
+	- Assess the impact of logging on server performance, especially under high load, and optimize as necessary.
+a SYN-ACK packet to the client.
 		3. Client sends an ACK packet to the server.
 	- **Connection Termination**:
 		1. Client sends a FIN packet to the server.

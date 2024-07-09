@@ -154,12 +154,18 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ## HTTP Protocol Handling
 
+### Requirements from Subject:
+
+- Must support GET, POST, and DELETE methods.
+- Must serve static websites.
+- Must have default error pages.
+- Must handle file uploads.
 
 <details>
 
 <summary>
 
-### Task 1: Design and Implement HTTP Request Parsing
+<h3>Task 1: Design and Implement HTTP Request Parsing </h3>
 
 </summary>
 
@@ -182,8 +188,13 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 </details>
 
 
+<details>
 
-### Task 2: Implement HTTP Response Generation
+<summary>
+
+<h3>Task 2: Implement HTTP Response Generation</h3>
+
+</summary>
 
 **Objective**: Construct HTTP responses based on the server's handling of the request, including generating headers and the appropriate body content.
 
@@ -200,7 +211,17 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 3. **Content-Type Handling**:
 	- Implement a mechanism to correctly identify and set the `Content-Type` header based on the file requested or data being served.
 
-### Task 3: Serve Static Content
+</details>
+
+
+<details>
+
+<summary>
+
+<h3>Task 3: Serve Static Content</h3>
+
+</summary>
+
 
 **Objective**: Handle requests for static files like HTML, CSS, and images stored in the server's file system.
 
@@ -213,7 +234,15 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Set up a MIME type dictionary that maps file extensions to their corresponding MIME types, ensuring that the server responds with the correct `Content-Type`.
 	- Use this dictionary when constructing the headers for static content responses.
 
-### Task 4: Implement Support for Different HTTP Methods
+</details>
+
+<details>
+
+<summary>
+
+<h3>Task 4: Implement Support for Different HTTP Methods</h3>
+
+</summary>
 
 **Objective**: Support multiple HTTP methods, initially focusing on GET, POST, and DELETE.
 
@@ -227,9 +256,16 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 3. **DELETE Method**:
 	- Implement DELETE requests that allow clients to request the deletion of a resource. Ensure proper permissions and conditions are checked before deletion.
+</details>
 
 
-### Testing and Validation
+<details>
+
+<summary>
+
+<h3>Testing and Validation</h3>
+
+</summary>
 
 **Objective**: Ensure the HTTP handling components function correctly and robustly across a range of expected and edge-case scenarios.
 
@@ -241,13 +277,10 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Test the integration of HTTP handling with the networking code to ensure that requests are correctly received, processed, and responded to.
 3. **Functional Testing**:
 	- Use tools like Postman or curl to test the server’s response to various HTTP requests, checking for correctness in headers, status codes, and body content.
+</details>
 
-### Requirements from Subject:
 
-- Must support GET, POST, and DELETE methods.
-- Must serve static websites.
-- Must have default error pages.
-- Must handle file uploads.
+
 
 ## Configuration Management and Logging
 

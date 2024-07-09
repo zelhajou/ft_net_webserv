@@ -82,14 +82,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ## Network Infrastructure and Server Setup
 
-**Requirements from Subject**
-
-- Must not crash under any circumstances.
-- Must handle configuration files.
-- Must be non-blocking and use one poll() (or equivalent) for all I/O operations.
-- Ensure resilience and continuous availability under stress tests.
-
-
 <details>
 
 <summary>
@@ -214,15 +206,16 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 </details>
 
+**Requirements from Subject**
+
+- Must not crash under any circumstances.
+- Must handle configuration files.
+- Must be non-blocking and use one poll() (or equivalent) for all I/O operations.
+- Ensure resilience and continuous availability under stress tests.
+
+
 
 ## HTTP Protocol Handling
-
-**Requirements from Subject:**
-
-- Must support GET, POST, and DELETE methods.
-- Must serve static websites.
-- Must have default error pages.
-- Must handle file uploads.
 
 <details>
 
@@ -342,15 +335,14 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Use tools like Postman or curl to test the server’s response to various HTTP requests, checking for correctness in headers, status codes, and body content.
 </details>
 
-
-## Configuration Management and Logging
-
 **Requirements from Subject:**
 
-- The server must take a configuration file as an argument or use a default path.
-- Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
-- Implement a robust logging mechanism to aid in monitoring and debugging. (**Optional**)
- 
+- Must support GET, POST, and DELETE methods.
+- Must serve static websites.
+- Must have default error pages.
+- Must handle file uploads.
+
+## Configuration Management and Logging
 
 <details>
 
@@ -408,7 +400,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 </details>
 
 
-
 <details>
 
 <summary>
@@ -431,6 +422,14 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Assess the impact of logging on server performance, especially under high load, and optimize as necessary.
 
 </details>
+
+**Requirements from Subject:**
+
+- The server must take a configuration file as an argument or use a default path.
+- Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
+- Implement a robust logging mechanism to aid in monitoring and debugging. (**Optional**)
+ 
+
 
 
 

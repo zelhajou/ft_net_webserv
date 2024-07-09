@@ -4,6 +4,21 @@
 
 This project involves developing a robust HTTP server in C++98, designed to handle basic web traffic and serve static content. Our server will conform to HTTP/1.1 standards and utilize non-blocking I/O operations for efficient resource management.
 
+## Table of Contents
+
+- [Project Description](#project-description)
+- [Features](#features)
+- [Technical Requirements](#technical-requirements)
+- [Team Members and Roles](#team-members-and-roles)
+- [Task Assignments](#task-assignments)
+- [Team Composition and Initial Assignments](#team-composition-and-initial-assignments)
+- [Network Infrastructure and Server Setup](#network-infrastructure-and-server-setup)
+- [HTTP Protocol Handling](#http-protocol-handling)
+- [Configuration Management and Logging](#configuration-management-and-logging)
+- [Project Timeline](#project-timeline)
+- [Directory Structure](#directory-structure)
+- [Topics](#topics)
+
 ## Features
 
 - **HTTP Protocol Support**: Implements essential features of the HTTP/1.1 protocol, including methods such as **GET**, **POST**, and **DELETE**.
@@ -67,7 +82,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ## Network Infrastructure and Server Setup
 
-### Requirements from Subject
+**Requirements from Subject**
 
 - Must not crash under any circumstances.
 - Must handle configuration files.
@@ -202,7 +217,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ## HTTP Protocol Handling
 
-### Requirements from Subject:
+**Requirements from Subject:**
 
 - Must support GET, POST, and DELETE methods.
 - Must serve static websites.
@@ -330,7 +345,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ## Configuration Management and Logging
 
-### Requirements from Subject:
+**Requirements from Subject:**
 
 - The server must take a configuration file as an argument or use a default path.
 - Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.

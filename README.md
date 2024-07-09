@@ -67,7 +67,21 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ## Network Infrastructure and Server Setup
 
-### Task 1: Setup Basic Server Framework
+### Requirements from Subject
+
+- Must not crash under any circumstances.
+- Must handle configuration files.
+- Must be non-blocking and use one poll() (or equivalent) for all I/O operations.
+- Ensure resilience and continuous availability under stress tests.
+
+
+<details>
+
+<summary>
+
+<h3>Task 1: Setup Basic Server Framework</h3>
+
+</summary>
 
 **Objective**: Establish a basic server framework that can handle TCP connections.
 
@@ -81,7 +95,17 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Design a `Server` class that encapsulates all server-related functionalities.
 	- Implement constructors and destructors, considering resource management for network connections.
 
-### Task 2: Implement Socket Programming
+</details>
+
+
+<details>
+
+<summary>
+
+<h3>Task 2: Implement Socket Programming</h3>
+
+</summary>
+
 **Objective**: Develop the socket programming foundation that will allow the server to accept and manage client connections.
 
 **Steps**:
@@ -99,7 +123,17 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Set the socket to listen for incoming connections with `listen()`.
 	- Define the backlog queue length, which determines how many pending connections can queue up.
 
-### Task 3: Accept and Manage Connections
+</details>
+
+
+<details>
+
+<summary>
+
+<h3>Task 3: Accept and Manage Connections</h3>
+
+</summary>
+
 
 **Objective**: Efficiently accept incoming client connections and manage these using either blocking or non-blocking sockets.
 
@@ -113,7 +147,17 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Set sockets to non-blocking mode using `fcntl()` to prevent the server from being stalled by I/O operations.
 	- This is essential for implementing an event-driven model that uses `select()`, `poll()`, or `epoll()` to handle multiple connections efficiently.
 
-### Task 4: Use of Multiplexing for Handling Connections
+</details>
+
+
+
+<details>
+
+<summary>
+
+<h3>Task 4: Use of Multiplexing for Handling Connections</h3>
+
+</summary>
 
 **Objective**: Implement I/O multiplexing to handle multiple connections simultaneously without using multiple threads for each connection.
 
@@ -129,7 +173,16 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- If performance under `select()` is limiting, consider using more scalable methods like `epoll()` on Linux or `kqueue()` on BSD systems, which handle large numbers of simultaneous connections more efficiently.
 	- Implement these systems in a modular way so that the underlying multiplexing mechanism can be switched based on the deployment environment or configuration settings.
 
-### Testing and Validation
+</details>
+
+
+<details>
+
+<summary>
+
+<h3>Testing and Validation</h3>
+
+</summary>
 
 **Objective**: Ensure the network infrastructure is robust and can handle various network conditions.
 
@@ -144,12 +197,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 3. **Stress Testing**:
 	- Use a tool like `siege` or `ab` (Apache Bench) to stress test the server with a large number of concurrent connections. 
 
-### Requirements from Subject
-
-- Must not crash under any circumstances.
-- Must handle configuration files.
-- Must be non-blocking and use one poll() (or equivalent) for all I/O operations.
-- Ensure resilience and continuous availability under stress tests.
+</details>
 
 
 ## HTTP Protocol Handling

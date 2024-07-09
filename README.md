@@ -154,7 +154,14 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ## HTTP Protocol Handling
 
+
+<details>
+
+<summary>
+
 ### Task 1: Design and Implement HTTP Request Parsing
+
+</summary>
 
 **Objective**: Develop a system to correctly parse incoming HTTP requests and extract vital information such as the method, URI, version, headers, and body.
 
@@ -172,6 +179,9 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 3. **Error Handling in Parsing**:
 	- Implement error checking during parsing to handle malformed requests.
 	- Generate appropriate error responses for bad requests, such as `400 Bad Request`.
+</details>
+
+
 
 ### Task 2: Implement HTTP Response Generation
 

@@ -20,7 +20,7 @@ public:
 	~Sockets();
 
 	void						run();
-	void						startServer(mit it);
+	void						startServers();
 	void						accept();
 	void						recvFrom();
 	void						sendTo();

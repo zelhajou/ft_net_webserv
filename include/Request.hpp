@@ -7,10 +7,11 @@
 # include <sys/socket.h>
 # include <unistd.h>
 # include "util.h"
+# include "Location.hpp"
 
 class Request {
 public:
-	Request();
+	Request(Location& location);
 	~Request();
 
 	void	recvRequest();
@@ -18,6 +19,7 @@ public:
 	void	parse_first_line();
 	void	parse_headers();
 	void	parse_body();
+	void	check_uri();
 
 private:
 	int					_fd;
@@ -32,6 +34,7 @@ private:
 	bool				_has_body;
 	bool				_chunked;
 	size_t				_content_length;
+	Location&			_location;
 };
 
 #endif

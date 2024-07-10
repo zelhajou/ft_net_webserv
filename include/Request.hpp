@@ -19,12 +19,12 @@ public:
 	void	parse_first_line();
 	void	parse_headers();
 	void	parse_body();
-	e_parses_state	get_parser_status( void );
+	e_parser_state	get_parser_status( void );
 	e_status		get_status_code( void );
 	void	check_uri();
 
 private:
-	e_parser_stat	_state;
+	e_parser_state	_state;
 	e_status		_status;
 	bool				_has_body;
 	int					_fd;

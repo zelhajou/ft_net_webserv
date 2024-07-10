@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 14:11:47 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/10 17:36:05 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/07/10 18:14:30 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 # include <string>
 # include <vector>
 # include <map>
-# include <unordered_map>
+
 
 // Structure to represent a location block in the configuration
 struct LocationConfig
@@ -31,7 +31,7 @@ struct LocationConfig
     std::string					fastcgi_pass;
     std::string					fastcgi_index;
     std::string					include;
-	bool auto_index = false;
+	bool						auto_index;
 };
 
 // Structure to represent the main server configuration
@@ -39,9 +39,9 @@ struct ServerConfig {
     int												listen_port;
 	std::string										host;
 	std::string										server_name;
-	std::unordered_map<int std::string>				error_pages;
+	std::map<int, std::string>						error_pages;
     std::string										client_max_body_size;
-    std::unordered_map<std::string, LocationConfig>	locations;
+    std::map<std::string, LocationConfig>			locations;
 };
 
 // Main configuration structure to hold multiple server blocks

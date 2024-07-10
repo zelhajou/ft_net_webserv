@@ -33,7 +33,7 @@ public:
 	void						accept();
 	void						recvFrom();
 	void						sendTo();
-	void						closeCon();
+	void						closeConn(int fd);
 	void						cleanUp();
 	void						kqueueLoop();
 

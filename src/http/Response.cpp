@@ -6,23 +6,38 @@ Response::Response(): status(FIRST_LINE), _fd(-1), _has_body(false) {
 }
 Response::~Response() {}
 
+size_t	Response::get_file_size() {
+	std::streampos	fpos = this->_file.tellg();
+	this->_file.seekg(0, std::ios::end);
+	return (this->_file.tellg()-fpos);
+}
+
 void	Response::_initiate_response(Request &req) {
 	this->_request = req;
 	if (req.get_status() == OK && req._first_line.method == "GET")
+	{
 		this->_has_body = true;
+		this->_file.open( req._first_line, std::ios::in | std::ios::binary );
+		if (!this->_file)
+		{
+			this->_request._status = 500;
+			this->_has_body = false;
+		}
+		else	this->_file_size = this->get_file_size();
+	}
 }
 
 e_parser_status	Response::get_status() { return this->status; }
 
-static	size_t	form_headers(std::string &headers, Request &request, Server *server) {
+size_t	Response::form_headers(Server *server) {
 	// form them
-	return headers.size();
+	return this->header.size();
 }
 
 void	Response::sendResponse(int sock_fd, Server *server) {
 	if (this->status == FIRST_LINE)
 	{
-		this->_sent[1] = form_headers(this->headers, this->_request, server);
+		this->_sent[1] = this->form_headers(server);
 		this->status = HEADER;
 		return ;
 	}
@@ -34,7 +49,7 @@ void	Response::sendResponse(int sock_fd, Server *server) {
 		else	this->_sent[0] += sent_res;
 
 		if (this->_sent[0] >= this->_sent[1]) {
-			if (this->_request._has_body) {
+			if (this->_has_body) {
 				this->_sent[0] = 0;
 				this->_sent[1] = 0;
 				this->status = BODY;
@@ -45,9 +60,9 @@ void	Response::sendResponse(int sock_fd, Server *server) {
 	}
 	else if (this->status == BODY)
 	{
-		if (!this->_sent[1]) {
-			this->
-		}
+		if (!this->_sent[1])
+			this->_sent[1] = this->_file_size;
+		this->_sent[0] += send();
 	}
 }
 

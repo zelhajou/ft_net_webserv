@@ -13,6 +13,8 @@ public:
 
 	void		_initiate_response(Request &req);
 	void		sendResponse(int, Server*);
+	e_parser_status	form_headers(Server*);
+	size_t		get_file_size();
 	e_parser_status	get_status();
 	void		GET();
 	void		DELETE();
@@ -20,6 +22,7 @@ public:
 private:
 	int			_fd;
 	std::ifstream		_file;
+	size_t			_file_size;
 	std::vector<size_t>		_sent;
 	Request			&_request;
 	e_parser_status		status;

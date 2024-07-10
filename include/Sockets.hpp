@@ -12,6 +12,7 @@
 # include "KQueue.hpp"
 # include "Parser.hpp"
 # include "util.h"
+# include "ConfigStructures.hpp"
 
 # define RED "\033[31m"
 # define GREEN "\033[32m"

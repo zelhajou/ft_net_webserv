@@ -82,13 +82,22 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ## Network Infrastructure and Server Setup
 
+
 <details>
 
-<summary>
+<summary><b>Requirements from Subject</b></summary>
 
-<h3>Task 1: Setup Basic Server Framework</h3>
+- Must not crash under any circumstances.
+- Must handle configuration files.
+- Must be non-blocking and use one poll() (or equivalent) for all I/O operations.
+- Ensure resilience and continuous availability under stress tests.
+</details>
 
-</summary>
+
+
+<details>
+
+<summary><b>Task 1: Setup Basic Server Framework</b></summary>
 
 **Objective**: Establish a basic server framework that can handle TCP connections.
 
@@ -107,11 +116,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 2: Implement Socket Programming</h3>
-
-</summary>
+<summary><b>Task 2: Implement Socket Programming</b></summary>
 
 **Objective**: Develop the socket programming foundation that will allow the server to accept and manage client connections.
 
@@ -135,11 +140,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 3: Accept and Manage Connections</h3>
-
-</summary>
+<summary><b>Task 3: Accept and Manage Connections</b></summary>
 
 
 **Objective**: Efficiently accept incoming client connections and manage these using either blocking or non-blocking sockets.
@@ -160,11 +161,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 4: Use of Multiplexing for Handling Connections</h3>
-
-</summary>
+<summary><b>Task 4: Use of Multiplexing for Handling Connections</b></summary>
 
 **Objective**: Implement I/O multiplexing to handle multiple connections simultaneously without using multiple threads for each connection.
 
@@ -185,11 +182,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Testing and Validation</h3>
-
-</summary>
+<summary><b>Task 5: Testing and Validation</b></summary>
 
 **Objective**: Ensure the network infrastructure is robust and can handle various network conditions.
 
@@ -205,14 +198,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Use a tool like `siege` or `ab` (Apache Bench) to stress test the server with a large number of concurrent connections. 
 
 </details>
-
-**Requirements from Subject**
-
-- Must not crash under any circumstances.
-- Must handle configuration files.
-- Must be non-blocking and use one poll() (or equivalent) for all I/O operations.
-- Ensure resilience and continuous availability under stress tests.
-
 
 
 ## HTTP Protocol Handling

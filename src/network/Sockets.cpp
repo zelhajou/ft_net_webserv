@@ -1,5 +1,25 @@
 #include "Sockets.hpp"
 
+Sockets::Sockets(Parser& parser) : _parser(parser) {}
+
+Sockets::~Sockets() {}
+
+void	Sockets::accept() {} // TODO
+
+void	Sockets::recvFrom() {} // TODO
+
+void	Sockets::sendTo() {} // TODO
+
+void	Sockets::closeConn(int fd) {
+	close(fd);
+	this->_fd_to_server[fd]->closeConn(fd);
+	this->_fd_to_server.erase(fd);
+}
+
+void	Sockets::cleanUp() {} // TODO
+
+void	Sockets::kqueueLoop() {} // TODO
+
 static void initAddInfo(struct addrinfo& ai) {
 	memset(&ai, 0, sizeof(struct addrinfo));
 	ai.ai_family = AF_UNSPEC;
@@ -7,14 +27,17 @@ static void initAddInfo(struct addrinfo& ai) {
 	ai.ai_flags = AI_PASSIVE;
 }
 
-static void getAddrInfo(struct addrinfo *hints, struct addrinfo **res, mit it) {
+static int getAddrInfo(struct addrinfo *hints, struct addrinfo **res, sit it) {
 	int					rval;
 
-	if ((rval = getaddrinfo(it->second->getHost().c_str(), it->second->getPort().c_str(), hints, res)) != 0)
-		throw std::runtime_error(std::string("Error: getaddinfo: ") + gai_strerror(rval));
+	if ((rval = getaddrinfo((*it)->getHost().c_str(), (*it)->getPort().c_str(), hints, res)) != 0) {
+		std::cerr << YELLOW << "server: " << (*it)->getHost() << ":" << (*it)->getPort() << " is enable to start." << RESET << std::endl;
+		return (-1);
+	}
+	return (0);
 }
 
-static int createSocket(struct addrinfo *res) {
+static int createSocket(struct addrinfo *res, sit it) {
 	struct addrinfo		*tmp;
 	int					sock;
 	int					yes = 1;
@@ -31,22 +54,34 @@ static int createSocket(struct addrinfo *res) {
 		}
 		tmp = tmp->ai_next;
 	}
-	throw std::runtime_error(std::string("Error: Server is enable to start."));
+	std::cerr << YELLOW << "server: " << (*it)->getHost() << ":" << (*it)->getPort() << " is enable to start." << RESET << std::endl;
 	return (-1);
 }
 
-void	Sockets::start() {
+void	Sockets::startServers() {
 	struct addrinfo		hints;
 	struct addrinfo		*res;
 	int					sock;
+	int					nbr = 0;
 
-	for (mit it = this->_fd_to_server.begin(); it != this->_fd_to_server.end(); it++) {
+	for (sit it = this->_parser.getServers().begin(); it != this->_parser.getServers().end(); it++) {
 		initAddInfo(hints);
-		getAddrInfo(&hints, &res, it);
-		sock = createSocket(res);
+		if (getAddrInfo(&hints, &res, it) < 0)
+			continue;
+		if ((sock = createSocket(res, it)) < 0)
+			continue;
 		freeaddrinfo(res);
 		if (listen(sock, 100) < 0)
-			throw std::runtime_error(std::string("Error: Server is enable to start."));
-		// this->_kqueue.addEvent(sock, EVFILT_READ, EV_ADD, 0, 0, it->second);
+			std::cerr << YELLOW << "server: " << (*it)->getHost() << ":" << (*it)->getPort() << " is enable to start." << RESET << std::endl;
+		this->_kqueue.SET_QUEUE(sock, EVFILT_READ, EV_ADD);
+		this->_fd_to_server[sock] = *it;
+		nbr++;
 	}
+	if (nbr == 0)
+		throw std::runtime_error(RED + std::string("No server started") + RESET);
+}
+
+void	Sockets::run() {
+	this->startServers();
+	this->kqueueLoop();
 }

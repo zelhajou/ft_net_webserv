@@ -59,7 +59,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Apply Configuration Settings
 	- Logging System
 
-## Team Composition and Initial Assignments
+<!-- ## Team Composition and Initial Assignments
 
 1. **hsobane : Network Infrastructure and Server Setup**
 	- **Task**: Set up the basic networking infrastructure.
@@ -78,10 +78,9 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- **Task**: Set up the server configuration management and logging.
 		- Create a configuration file parser to read server settings (like port and document root) from a file.
 		- Implement a basic logging system to help with debugging and server monitoring. (**Optional**)
-	- **Goal**: Enable server configuration through a file and log essential events.
+	- **Goal**: Enable server configuration through a file and log essential events. -->
 
-## Network Infrastructure and Server Setup
-
+### 1. Network Infrastructure and Server Setup
 
 <details>
 
@@ -200,7 +199,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 </details>
 
 
-## HTTP Protocol Handling
+### 2. HTTP Protocol Handling
 
 <details>
 
@@ -312,7 +311,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 </details>
 
 
-## Configuration Management and Logging
+### 3. Configuration Management and Logging
 
 <details>
 

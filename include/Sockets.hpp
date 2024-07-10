@@ -19,7 +19,8 @@ public:
 	Sockets();
 	~Sockets();
 
-	void						start();
+	void						run();
+	void						startServer(mit it);
 	void						accept();
 	void						recvFrom();
 	void						sendTo();

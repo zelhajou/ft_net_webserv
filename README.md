@@ -80,6 +80,8 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 		- Implement a basic logging system to help with debugging and server monitoring. (**Optional**)
 	- **Goal**: Enable server configuration through a file and log essential events. -->
 
+## Team Composition and Initial Assignments
+
 ### 1. Network Infrastructure and Server Setup
 
 <details>
@@ -198,6 +200,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 </details>
 
+---
 
 ### 2. HTTP Protocol Handling
 
@@ -234,7 +237,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Generate appropriate error responses for bad requests, such as `400 Bad Request`.
 </details>
 
-
 <details>
 
 <summary><b>Task 2: Implement HTTP Response Generation</b></summary>
@@ -255,7 +257,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Implement a mechanism to correctly identify and set the `Content-Type` header based on the file requested or data being served.
 
 </details>
-
 
 <details>
 
@@ -310,6 +311,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Use tools like Postman or curl to test the server’s response to various HTTP requests, checking for correctness in headers, status codes, and body content.
 </details>
 
+---
 
 ### 3. Configuration Management and Logging
 

@@ -219,11 +219,18 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
+<summary><b>Requirements from Subject</b></summary>
 
-<h3>Task 1: Design and Implement HTTP Request Parsing </h3>
+- Must support GET, POST, and DELETE methods.
+- Must serve static websites.
+- Must have default error pages.
+- Must handle file uploads.
 
-</summary>
+</details>
+
+<details>
+
+<summary><b>Task 1: Design and Implement HTTP Request Parsing </b></summary>
 
 **Objective**: Develop a system to correctly parse incoming HTTP requests and extract vital information such as the method, URI, version, headers, and body.
 
@@ -246,11 +253,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 2: Implement HTTP Response Generation</h3>
-
-</summary>
+<summary><b>Task 2: Implement HTTP Response Generation</b></summary>
 
 **Objective**: Construct HTTP responses based on the server's handling of the request, including generating headers and the appropriate body content.
 
@@ -272,11 +275,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 3: Serve Static Content</h3>
-
-</summary>
+<summary><b>Task 3: Serve Static Content</b></summary>
 
 
 **Objective**: Handle requests for static files like HTML, CSS, and images stored in the server's file system.
@@ -294,11 +293,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 4: Implement Support for Different HTTP Methods</h3>
-
-</summary>
+<summary><b>Task 4: Implement Support for Different HTTP Methods</b></summary>
 
 **Objective**: Support multiple HTTP methods, initially focusing on GET, POST, and DELETE.
 
@@ -317,11 +312,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Testing and Validation</h3>
-
-</summary>
+<summary><b>Task 5: Testing and Validation</b></summary>
 
 **Objective**: Ensure the HTTP handling components function correctly and robustly across a range of expected and edge-case scenarios.
 
@@ -335,22 +326,12 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Use tools like Postman or curl to test the server’s response to various HTTP requests, checking for correctness in headers, status codes, and body content.
 </details>
 
-**Requirements from Subject:**
-
-- Must support GET, POST, and DELETE methods.
-- Must serve static websites.
-- Must have default error pages.
-- Must handle file uploads.
 
 ## Configuration Management and Logging
 
 <details>
 
-<summary>
-
-<h3>Task 1: Design and Implement Configuration Management</h3>
-
-</summary>
+<summary><b>Task 1: Design and Implement Configuration Management</b></summary>
 
 **Objective**: Develop a system to read, parse, and apply configuration settings from external files to control server behavior, such as listening ports, server root, and other operational parameters.
 
@@ -374,11 +355,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 2: Logging as an Optional Enhancement</h3>
-
-</summary>
+<summary><b>Task 2: Logging as an Optional Enhancement</b> </summary>
 
 **Objective**: Set up a logging system to record important server events, errors, and operational data to aid in troubleshooting and monitoring server performance.
 
@@ -402,11 +379,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 3: Testing and Validation</h3>
-
-</summary>
+<summary><b>Task 3: Testing and Validation</b></summary>
 
 - **Objective**: Ensure the configuration and logging functionalities are robust, perform as expected, and do not introduce overhead or complexities that could impact the server's performance.
 
@@ -429,10 +402,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 - Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
 - Implement a robust logging mechanism to aid in monitoring and debugging. (**Optional**)
  
-
-
-
-
 
 ## Project Timeline
 

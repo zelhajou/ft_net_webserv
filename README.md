@@ -430,10 +430,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 - Implement a robust logging mechanism to aid in monitoring and debugging. (**Optional**)
  
 
-
-
-
-
 ## Project Timeline
 
 |Phase|Timeline|Objectives

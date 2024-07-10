@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 17:07:28 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/10 17:58:33 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/07/10 18:20:45 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,14 +14,14 @@
 
 MainConfig ConfigParser::parse(const std::string& config_file)
 {
-	MainConfig		config;
-	std::ifstream	file(config_file);
+	MainConfig		main_config;
+	std::ifstream file(config_file.c_str());
 	
 	if (!file.is_open())
 	{
 		std::cerr << "Error: could not open configuration file " << config_file << std::endl;
-		exit(1);
-		// return main_config;
+		//exit(1);
+		return main_config;
 	}
 	std::string		line;
 	while (std::getline(file, line))
@@ -30,11 +30,11 @@ MainConfig ConfigParser::parse(const std::string& config_file)
 		if (line.empty() || line[0] == '#')
 			continue;
 		if (line == "server {") {
-			parseServerBlock(file, config);
+			parseServerBlock(file, main_config);
 		}
 	}
 	file.close();
-	return config;
+	return main_config;
 }
 
 void ConfigParser::parseServerBlock(std::ifstream& file, MainConfig& main_config)
@@ -51,6 +51,7 @@ void ConfigParser::parseServerBlock(std::ifstream& file, MainConfig& main_config
 			main_config.servers.push_back(config);
 			break;
 		}
+	}
 
 }
 

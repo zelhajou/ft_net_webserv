@@ -316,6 +316,16 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
+<summary><b>Requirements from Subject</b></summary>
+
+- The server must take a configuration file as an argument or use a default path.
+- Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
+- Implement a robust logging mechanism to aid in monitoring and debugging. (**Optional**)
+ 
+ </details>
+
+<details>
+
 <summary><b>Task 1: Design and Implement Configuration Management</b></summary>
 
 **Objective**: Develop a system to read, parse, and apply configuration settings from external files to control server behavior, such as listening ports, server root, and other operational parameters.
@@ -381,12 +391,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 </details>
 
-**Requirements from Subject:**
 
-- The server must take a configuration file as an argument or use a default path.
-- Allow configuration of ports, server names, default error pages, and other settings as specified in the configuration file.
-- Implement a robust logging mechanism to aid in monitoring and debugging. (**Optional**)
- 
 
 ## Project Timeline
 

@@ -4,6 +4,8 @@
 # include <string>
 # include <map>
 # include <fstream>
+# include <sys/socket.h>
+# include <unistd.h>
 # include "util.h"
 
 class Request {
@@ -11,7 +13,11 @@ public:
 	Request();
 	~Request();
 
+	void	recvRequest();
 	void	POST();
+	void	parse_first_line();
+	void	parse_headers();
+	void	parse_body();
 
 private:
 	int					_fd;
@@ -23,8 +29,9 @@ private:
 	e_parser_state		_state;
 	e_status			_status;
 	size_t				_timeout;
-	
-
+	bool				_has_body;
+	bool				_chunked;
+	size_t				_content_length;
 };
 
 #endif

@@ -6,8 +6,6 @@
 # include "util.h"
 # include "Request.hpp"
 
-# define BUFFER_SIZE 4096
-
 class	Response {
 public:
 	Response(Request &req);

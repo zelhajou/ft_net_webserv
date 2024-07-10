@@ -294,11 +294,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 4: Implement Support for Different HTTP Methods</h3>
-
-</summary>
+<summary><b>Task 4: Implement Support for Different HTTP Methods</b></summary>
 
 **Objective**: Support multiple HTTP methods, initially focusing on GET, POST, and DELETE.
 
@@ -317,11 +313,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Testing and Validation</h3>
-
-</summary>
+<summary><b>Testing and Validation</b></summary>
 
 **Objective**: Ensure the HTTP handling components function correctly and robustly across a range of expected and edge-case scenarios.
 
@@ -346,11 +338,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 1: Design and Implement Configuration Management</h3>
-
-</summary>
+<summary><b>Task 1: Design and Implement Configuration Management</b></summary>
 
 **Objective**: Develop a system to read, parse, and apply configuration settings from external files to control server behavior, such as listening ports, server root, and other operational parameters.
 
@@ -398,11 +386,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 3: Testing and Validation</h3>
-
-</summary>
+<summary><b>Task 3: Testing and Validation</b></summary>
 
 - **Objective**: Ensure the configuration and logging functionalities are robust, perform as expected, and do not introduce overhead or complexities that could impact the server's performance.
 

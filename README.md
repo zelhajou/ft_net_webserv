@@ -219,7 +219,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary><b>Requirements from Subject:**</b></summary>
+<summary><b>Requirements from Subject</b></summary>
 
 - Must support GET, POST, and DELETE methods.
 - Must serve static websites.

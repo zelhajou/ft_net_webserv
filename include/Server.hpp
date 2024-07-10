@@ -16,6 +16,8 @@ public:
 
 	std::string		getHost() const;
 	std::string		getPort() const;
+
+	void			closeConn(int fd);
 	/*Parse Methods Start */
 
 	/*Parse Methods End */

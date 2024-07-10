@@ -8,7 +8,7 @@
 class Location {
 public:
 	Location();
-	~Location();
+	virtual ~Location();
 
 protected:
 	std::string					_location;
@@ -18,7 +18,6 @@ protected:
 	std::string					_index;
 	bool						_autoindex;
 	int							_return_code;
-
 };
 
 #endif

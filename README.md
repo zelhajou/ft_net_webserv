@@ -374,11 +374,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<b>Task 2: Logging as an Optional Enhancement</b>
-
-</summary>
+<summary><b>Task 2: Logging as an Optional Enhancement</b> </summary>
 
 **Objective**: Set up a logging system to record important server events, errors, and operational data to aid in troubleshooting and monitoring server performance.
 

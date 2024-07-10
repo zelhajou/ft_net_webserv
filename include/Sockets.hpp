@@ -30,10 +30,11 @@ public:
 
 	void						run();
 	void						startServers();
-	void						accept();
-	void						recvFrom();
-	void						sendTo();
-	void						closeConn(int fd);
+	void						accept(int);
+	void						recvFrom(int);
+	void						sendTo(int);
+	void						closeConn(int);
+	void						resetConn(int);
 	void						cleanUp();
 	void						kqueueLoop();
 

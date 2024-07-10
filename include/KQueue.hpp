@@ -9,10 +9,13 @@ public:
 	KQueue();
 	~KQueue();
 	void	SET_QUEUE(int fd, short filter, u_short flags);
-	void	CHECK_QUEUE(struct kevent *events, int size);
+	int	CHECK_QUEUE(struct kevent *events);
+	int	get_current_events();
 
 private:
 	int		_kq;
+	struct	kevent	event;
+	int		current_events;
 };
 
 

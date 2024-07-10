@@ -104,3 +104,12 @@ void	Request::recvRequest() {
 	this->_body.append(buffer, ret);
 
 }
+
+
+e_status	Request::get_status_code( void ) {
+	return this->_status;
+}
+
+e_parser_status	Request::get_parser_status( void ) {
+	return	this->_state;
+}

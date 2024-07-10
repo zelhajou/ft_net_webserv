@@ -7,16 +7,25 @@
 # include <netdb.h>
 # include <unistd.h>
 # include <fcntl.h>
+# include <iostream>
 # include "Server.hpp"
 # include "KQueue.hpp"
 # include "Parser.hpp"
 # include "util.h"
 
+# define RED "\033[31m"
+# define GREEN "\033[32m"
+# define YELLOW "\033[33m"
+# define BLUE "\033[34m"
+# define MAGENTA "\033[35m"
+# define CYAN "\033[36m"
+# define RESET "\033[0m"
+
 typedef std::map<int, Server *>::iterator mit;
 
 class Sockets {
 public:
-	Sockets();
+	Sockets(Parser& parser);
 	~Sockets();
 
 	void						run();

@@ -31,13 +31,13 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 - **Programming Language**: C++98
 - **Development Tools**: Git, Make, GCC, Valgrind
-- **Testing Tools**: Tool for stress testing
+- **Testing Tools**: Stress testing with `siege` or `ab` (Apache Bench)
 
 ## Team Members and Roles
 
-- **Hassan Sobane** (hsobane): Network Infrastructure and Server Setup
-- **Bilal Eddinaoui** (beddinao): HTTP Protocol Handling
-- **Zakaria Elhajoui** (zelhajou): Configuration Management and Logging
+- [Hassan Sobane](https://github.com/hsobane) (hsobane): Network Infrastructure and Server Setup
+- [Bilal Eddinaoui](https://github.com/edbilal) (beddinao): HTTP Protocol Handling
+- [Zakaria Elhajoui](https://github.com/zelhajou) (zelhajou): Configuration Management and Logging
 
 ## Task Assignments
 
@@ -59,30 +59,11 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Apply Configuration Settings
 	- Logging System
 
-<!-- ## Team Composition and Initial Assignments
-
-1. **hsobane : Network Infrastructure and Server Setup**
-	- **Task**: Set up the basic networking infrastructure.
-		- Create the main function and server initialization logic.
-		- Implement socket programming basics: socket creation, binding, listening, and accepting connections.
-		- Research and decide on the use of non-blocking I/O or multiplexing (e.g., `select`, `poll`, `epoll`, `kqueue`) suitable for the project's needs.
-	- **Goal**: Establish a basic server that can accept incoming connections.
-
-2. **beddinao : HTTP Protocol Handling**
-	- **Task**: Begin implementing HTTP request and response handling.
-		- Design and implement the HTTP Request parser to handle incoming request data.
-		- Start with implementing the GET method to serve static content.
-		- Sketch the structure for handling other methods like POST and DELETE.
-	- **Goal**: Serve static content and respond to basic GET requests.
-3. **zelhajou : Configuration Management and Logging**
-	- **Task**: Set up the server configuration management and logging.
-		- Create a configuration file parser to read server settings (like port and document root) from a file.
-		- Implement a basic logging system to help with debugging and server monitoring. (**Optional**)
-	- **Goal**: Enable server configuration through a file and log essential events. -->
-
 ## Team Composition and Initial Assignments
 
 ### 1. Network Infrastructure and Server Setup
+
+The network infrastructure and server setup are crucial components of the project, as they form the foundation for handling incoming connections and managing client requests.
 
 <details>
 
@@ -93,8 +74,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 - Must be non-blocking and use one poll() (or equivalent) for all I/O operations.
 - Ensure resilience and continuous availability under stress tests.
 </details>
-
-
 
 <details>
 
@@ -113,7 +92,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Implement constructors and destructors, considering resource management for network connections.
 
 </details>
-
 
 <details>
 
@@ -137,7 +115,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Define the backlog queue length, which determines how many pending connections can queue up.
 
 </details>
-
 
 <details>
 
@@ -203,6 +180,8 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 ---
 
 ### 2. HTTP Protocol Handling
+
+The HTTP protocol handling component is responsible for parsing incoming HTTP requests, generating appropriate responses, and serving static content to clients.
 
 <details>
 
@@ -315,6 +294,8 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 ### 3. Configuration Management and Logging
 
+The configuration management and logging component are responsible for reading and applying server settings from external files and providing detailed logs for monitoring and debugging purposes.
+
 <details>
 
 <summary><b>Requirements from Subject</b></summary>
@@ -372,7 +353,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 </details>
 
-
 <details>
 
 <summary><b>Task 3: Testing and Validation</b></summary>
@@ -391,6 +371,54 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Assess the impact of logging on server performance, especially under high load, and optimize as necessary.
 
 </details>
+
+#### Configuration File Format
+
+We used a format inspired by Nginx's nginx.conf.
+
+```nginx
+# server.conf
+
+server {
+    listen 8080;                    # Port number to listen on
+    server_name localhost;          # Server name
+
+    root /var/www/html;             # Root directory for serving files
+
+    error_page 404 /404.html;       # Default error page for 404 errors
+    client_max_body_size 1M;        # Maximum allowed size for client request bodies
+
+    location / {
+        index index.html;           # Default file to serve
+    }
+
+    location /upload {
+        allow_methods POST;         # Allow only POST method for uploads
+        upload_store /var/www/uploads; # Directory to store uploaded files
+    }
+
+    location /redirect {
+        return 301 http://example.com; # Redirect to another URL
+    }
+}
+```
+
+#### Configuration File Parsing
+
+Our team has developed a configuration file parser that reads and interprets a specific configuration format. This parser converts the configuration file into a structured format that our server can utilize.
+
+**Implementation Steps:**
+	
+1. **Defining the Configuration Data Structures**: We created data structures to hold the configuration values.
+
+2. **Implementing the Configuration Parser**: We developed a parser that reads the configuration file and populates the data structures with the appropriate values.
+
+<!-- 3. **Applying the Configuration**: We modified the server code to effectively utilize the configuration values. -->
+
+
+#### Step 1: Defining the Configuration Data Structures
+
+Our team defined a set of classes to represent the configuration settings
 
 
 

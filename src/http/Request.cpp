@@ -108,8 +108,6 @@ void	Request::recvRequest() {
 		(this->_state = DONE); return ;
 	this->_recv += ret;
 	this->_body.append(buffer, ret);
-<<<<<<< HEAD
-
 }
 
 
@@ -119,9 +117,7 @@ e_status	Request::get_status_code( void ) {
 
 e_parser_status	Request::get_parser_status( void ) {
 	return	this->_state;
-=======
 	parse_first_line();
 	parse_headers();
 	parse_body();
->>>>>>> 07910ebe1dcf7aeca81b67383b19ee1255695fb8
 }

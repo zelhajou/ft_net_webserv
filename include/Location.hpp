@@ -1,7 +1,6 @@
 #ifndef __LOCATION_HPP__
 # define __LOCATION_HPP__
 
-# include "CGI.hpp"
 # include <vector>
 # include <string>
 

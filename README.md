@@ -376,7 +376,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <summary>
 
-**Task 2: Logging as an Optional Enhancement**
+<b>Task 2: Logging as an Optional Enhancement</b>
 
 </summary>
 

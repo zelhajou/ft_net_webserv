@@ -5,10 +5,14 @@
 # include <string>
 # include <vector>
 
+typedef std::vector<Server *>::iterator sit;
+
 class Parser {
 public:
 	Parser(std::string config_file);
 	~Parser();
+
+	std::vector<Server *>		getServers() const;
 
 private:
 	std::vector<Server *>		_servers;

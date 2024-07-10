@@ -1,8 +1,12 @@
 #include "Request.hpp"
 
-Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false) {}
+Request::Request(Location& location) : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false), _location(location) {}
 
 Request::~Request() {}
+
+void	Request::check_uri() {
+	
+}
 
 void Request::parse_first_line() {
 	if (this->_state != FIRST_LINE) return ;
@@ -22,6 +26,7 @@ void Request::parse_first_line() {
 	if ((pos = this->_body.find("\r\n")) == std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.version = this->_body.substr(0, pos);
+
 	if (this->_first_line.method != "GET" && this->_first_line.method != "POST" && this->_first_line.method != "DELETE")
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
 	if (this->_first_line.version != "HTTP/1.1")
@@ -29,6 +34,7 @@ void Request::parse_first_line() {
 	if (this->_first_line.uri.find("..") != std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_state = HEADERS;
+	check_uri();
 }
 
 void Request::parse_headers() {
@@ -44,10 +50,10 @@ void Request::parse_headers() {
 		if (line.empty())
 			{this->_state = BODY; break;}
 		this->_body = this->_body.substr(pos + 2);
-		if ((pos = line.find(" ")) == std::string::npos)
+		if ((pos = line.find(":")) == std::string::npos)
 			{this->_status = BAD_REQUEST; this->_state = ERROR; return ;}
 		key = line.substr(0, pos);
-		value = line.substr(pos + 1);
+		value = line.substr(pos);
 		if (key == "Host")
 			this->_headers.host = value;
 		else if (key == "Connection")
@@ -102,6 +108,7 @@ void	Request::recvRequest() {
 		(this->_state = DONE); return ;
 	this->_recv += ret;
 	this->_body.append(buffer, ret);
+<<<<<<< HEAD
 
 }
 
@@ -112,4 +119,9 @@ e_status	Request::get_status_code( void ) {
 
 e_parser_status	Request::get_parser_status( void ) {
 	return	this->_state;
+=======
+	parse_first_line();
+	parse_headers();
+	parse_body();
+>>>>>>> 07910ebe1dcf7aeca81b67383b19ee1255695fb8
 }

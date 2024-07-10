@@ -393,13 +393,13 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 
 
-## Project Timeline
+<!-- ## Project Timeline
 
 |Phase|Timeline|Objectives
 |---|---|---|
 Planning | Week 1 |Define scope, architecture design, task breakdown.
 Development	| Week 2-6 |Core functionality implementation.
-Testing |Week 7-8 |Unit testing, integration testing, stress testing.
+Testing |Week 7-8 |Unit testing, integration testing, stress testing. -->
 
 ## Directory Structure
 

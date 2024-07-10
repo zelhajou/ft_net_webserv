@@ -219,11 +219,18 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
+<summary><b>Requirements from Subject:**</b></summary>
 
-<h3>Task 1: Design and Implement HTTP Request Parsing </h3>
+- Must support GET, POST, and DELETE methods.
+- Must serve static websites.
+- Must have default error pages.
+- Must handle file uploads.
 
-</summary>
+</details>
+
+<details>
+
+<summary><b>Task 1: Design and Implement HTTP Request Parsing </b></summary>
 
 **Objective**: Develop a system to correctly parse incoming HTTP requests and extract vital information such as the method, URI, version, headers, and body.
 
@@ -246,11 +253,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 2: Implement HTTP Response Generation</h3>
-
-</summary>
+<summary><b>Task 2: Implement HTTP Response Generation</b></summary>
 
 **Objective**: Construct HTTP responses based on the server's handling of the request, including generating headers and the appropriate body content.
 
@@ -272,11 +275,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary>
-
-<h3>Task 3: Serve Static Content</h3>
-
-</summary>
+<summary><b>Task 3: Serve Static Content</b></summary>
 
 
 **Objective**: Handle requests for static files like HTML, CSS, and images stored in the server's file system.
@@ -313,7 +312,7 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 
 <details>
 
-<summary><b>Testing and Validation</b></summary>
+<summary><b>Task 5: Testing and Validation</b></summary>
 
 **Objective**: Ensure the HTTP handling components function correctly and robustly across a range of expected and edge-case scenarios.
 
@@ -327,12 +326,6 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 	- Use tools like Postman or curl to test the server’s response to various HTTP requests, checking for correctness in headers, status codes, and body content.
 </details>
 
-**Requirements from Subject:**
-
-- Must support GET, POST, and DELETE methods.
-- Must serve static websites.
-- Must have default error pages.
-- Must handle file uploads.
 
 ## Configuration Management and Logging
 

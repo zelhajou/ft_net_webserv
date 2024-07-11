@@ -38,6 +38,8 @@ public:
 	void						resetConn(int);
 	void						cleanUp();
 	void						kqueueLoop();
+	//
+	std::string					get_mime_type(std::string);
 
 private:
 	MIME						_mime;

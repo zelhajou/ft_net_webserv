@@ -5,6 +5,7 @@
 # include <fstream>
 # include "util.h"
 # include "Request.hpp"
+# include "Sockets.hpp"
 
 # define	FILE_READ_BUFFER_SIZE	100
 # define	CRLF	"\r\n"
@@ -17,7 +18,7 @@ public:
 	void		_initiate_response(Request &, Sockets &);
 	void		sendResponse(int, Server*);
 	size_t		form_headers(Server*);
-	e_parser_status	get_status();
+	e_parser_state	get_status();
 	size_t		get_file_size();
 	/*void		GET();
 	void		DELETE();*/
@@ -29,7 +30,7 @@ private:
 	std::string		_file_type;
 	std::vector<size_t>		_sent;
 	Request			&_request;
-	e_parser_status		status;
+	e_parser_state		status;
 	std::string		header;
 	bool			_has_body;
 	//t_first_line		_first_line;

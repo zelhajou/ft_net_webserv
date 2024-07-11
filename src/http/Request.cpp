@@ -40,6 +40,7 @@ void	Request::parse_uri() {
 void	Request::check_uri() {
 	if (this->_state != FIRST_LINE) return ;
 
+	struct stat		st;
 	parse_uri();
 	if (this->_state == ERROR) return ;
 	Location*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
@@ -49,8 +50,22 @@ void	Request::check_uri() {
 		{(this->_status = (e_status)loc->getReturnCode(), this->_state = DONE); return ;}
 	if (loc->getMethod().find(this->_first_line.method) == std::string::npos)
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
-	if (loc->getAutoindex() && this->_first_line.uri[this->_first_line.uri.size() - 1] == '/')
+	this->_first_line.uri.replace(0, loc->getLocation().size(), loc->getRoot());
+	if (stat(this->_first_line.uri.c_str(), &st) == -1)
+		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
+	if (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))
+		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
+	if (S_ISDIR(st.st_mode) && loc->getAutoindex() == false && loc->getIndex().empty()) // TODO: check if non of the index files are present
+		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
+	if (loc->getIndex().size() > 0) { // TODO: check if there is a valid index
 		this->_first_line.uri += loc->getIndex();
+		if (stat(this->_first_line.uri.c_str(), &st) == -1)
+			{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
+		if (!S_ISREG(st.st_mode))
+			{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
+		
+	}
+	
 }
 
 void Request::parse_first_line() {

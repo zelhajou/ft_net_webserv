@@ -37,6 +37,7 @@ enum e_status {
 	URI_TOO_LONG = 414,						// The server is refusing to service the request because the Request-URI is longer than the server is willing to interpret.
 	LENGTH_REQUIRED = 411,					// The server refuses to accept the request without a defined Content-Length.
 	REQUEST_TIMEOUT = 408,					// The server did not receive a complete request message within the time that it was prepared to wait.
+	FORBIDDEN = 403,						// The server understood the request, but is refusing to fulfill it.
 };
 
 enum e_parser_state {
@@ -45,6 +46,12 @@ enum e_parser_state {
 	BODY,
 	DONE,
 	ERROR,
+};
+
+enum e_location_type {
+	ROOT,
+	LOCATION,
+	UPLOAD,
 };
 
 struct MIME {

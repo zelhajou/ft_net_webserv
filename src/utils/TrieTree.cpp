@@ -2,9 +2,16 @@
 
 int	cmp (std::string a, std::string b)
 {
-	if (b.find(a) != std::string::npos)
+	int i = 0;
+	if (a.size() == 1)
 		return 0;
-	return 1;
+	if (a.size() > b.size())
+		return 1;
+	for (i = 0; i < a.size(); i++) {
+		if (a[i] != b[i])
+			return 1;
+	}
+	return !(b[i] == '/' || b[i] == '\0');
 }
 
 void setlvl(std::vector<LocationNode *>& root) {
@@ -59,4 +66,19 @@ bool	insert(std::vector<LocationNode *>& root, LocationNode* node, int (*cmp)(st
 	}
 	root.push_back(node);
 	return true;
+}
+
+Location*	search(std::vector<LocationNode *>& root, std::string name, int (*cmp)(std::string, std::string)) {
+	if (root.size() == 0) return NULL;
+	if (cmp(root[0]->name, name) == 0 && root[0]->children.size() == 0)
+		return root[0]->location;
+	for (int i = 0; i < root.size(); i++) {
+		if (cmp(root[i]->name, name) == 0) {
+			Location* loc = search(root[i]->children, name, cmp);
+			if (loc != NULL)
+				return loc;
+			return root[i]->location;
+		}
+	}
+	return NULL;
 }

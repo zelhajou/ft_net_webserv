@@ -15,6 +15,8 @@ std::string		Server::getHost() const {
 std::string		Server::getPort() const {
 	return (this->_port);
 }
+
 void	Server::closeConn(int fd) {
-	this->_requests.erase(fd);
+	std::map<int, std::pair<Request, Response> >::iterator c_fd = this->_requests.find(fd);
+	if (c_fd != this->_requests.end())	this->_requests.erase(c_fd);
 }

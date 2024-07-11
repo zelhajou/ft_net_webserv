@@ -1,6 +1,6 @@
 #include "Response.hpp"
 
-Response::Response(): status(FIRST_LINE), _fd(-1), _has_body(false) {
+Response::Response(): status(FIRST_LINE), _has_body(false) {
 	this->_sent[0] = 0;
 	this->_sent[1] = 0;
 }
@@ -14,23 +14,24 @@ size_t	Response::get_file_size() {
 	return (size);
 }
 
-void	Response::_initiate_response(Request &req, Sockets &sock) {
+void	Response::_initiate_response(Request *req, Sockets &sock) {
 	this->_request = req;
 	if (req.get_status() == OK && req._first_line.method == "GET")
 	{
 		this->_has_body = true;
 		this->_file.open( req._first_line.uri, std::ios::in | std::ios::binary);
 		if (!this->_file) {
-			this->_request._status = 500;
+			this->_request->getStatus() = 500;
 			this->_has_body = false;
 		}
 		else {
 			this->_file_size = this->get_file_size();
-			int	ppos = this->_request._first_line.uri.rfind(".");
-			if (ppos == this->_request._first_line.uri.npos) ppos = 0;
-			this->_file_type = sock.get_mime_type(this->_request._first_line.uri.substr(ppos));
+			int	ppos = this->_request->get_first_line().uri.rfind(".");
+			if (ppos == this->_request->get_first_line().uri.npos) ppos = 0;
+			this->_file_type = sock.get_mime_type(this->_request->get_first_line().uri.substr(ppos));
 		}
 	}
+	this->_connection_type = req->get_headers().connection == "close" ? "close" : "keep-alive";
 }
 
 e_parser_status	Response::get_status() { return this->status; }
@@ -57,15 +58,13 @@ static	std::string	http_code_msg(e_status code)
 }
 
 size_t	Response::form_headers(Server *server) {
-	e_status	req_scode = this->_request.getStatus();
+	e_status	req_scode = this->_request->getStatus();
 	if (this->header.size())	this->header.clear();
 	this->header = "HTTP/1.1 " + std::to_string(req_scode) + " " + http_code_msg(req_scode) + CRLF;
-	this->header.append("Server: " + _server->server_name + CRLF);
-	this->header.append("Connection: keep-alive"CRLF);
-	//
+	this->header.append("Server: " + server->_server_name + CRLF"Connection: " + this->_connection_type + CRLF);
 	if (req_scode == REDIRECT)	this->header.append("Location: "+/**/+CRLF);
-	//
-	if (req_scode == OK) {
+	if (req_scode == OK)
+	{
 		this->header.append("Content-type: " + this->_file_type + CRLF);
 		this->header.append("Content-Length: " + std::string(this->_file_size) + CRLF);
 	}
@@ -101,7 +100,7 @@ void	Response::sendResponse(int sock_fd, Server *server) {
 	else if (this->status == BODY)
 	{
 		char	buffer[FILE_READ_BUFFER_SIZE];
-		int	curr_read;
+		int	read_res;
 
 		std::memset(buffer, 0, sizeof(FILE_RAEAD));
 		if (!this->_sent[1]) {

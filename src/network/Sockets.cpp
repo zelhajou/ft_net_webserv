@@ -38,12 +38,12 @@ void	Sockets::sendTo(int sock_fd) {
 	Server	*serv = this->_fd_to_server.find(sock_fd)->second;
 	std::map<int, std::pair<Request, Response> >::iterator	pai = serv->_requests.find(sock_fd);
 	pai->second.second.sendResponse(sock_fd, serv);
-	if (pai->second.second.get_status() == DONE)
+	if (pai->second.second.get_status() == DONE && this->_connection_type == "keep-alive")
 	{
 		this->_kqueue.QUEUE_SET(sock_fd, EVFILT_READ, EV_ADD);
 		this->resetConn(sock_fd);
 	}
-	else if (pai->second.second.get_status() == ERROR)	this->closeConn(sock_fd);
+	else						this->closeConn(sock_fd);
 }
 
 void	Sockets::closeConn(int sock_fd) {

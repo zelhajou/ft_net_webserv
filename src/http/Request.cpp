@@ -181,3 +181,6 @@ e_status	Request::getStatus( void ) {
 e_parser_state	Request::getState( void ) {
 	return	this->_state;
 }
+
+t_first_line	get_first_line() { return this->_first_line; }
+t_headers		get_headers() { return this->_headers; }

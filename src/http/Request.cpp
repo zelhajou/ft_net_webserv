@@ -182,5 +182,6 @@ e_parser_state	Request::getState( void ) {
 	return	this->_state;
 }
 
-t_first_line	get_first_line() { return this->_first_line; }
-t_headers		get_headers() { return this->_headers; }
+t_first_line	Request::get_first_line() { return this->_first_line; }
+t_headers		Request::get_headers() { return this->_headers; }
+e_location_type	Request::get_location_type() { return this->_location_type; }

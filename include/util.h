@@ -20,6 +20,8 @@ typedef struct s_headers {
 	std::string date;
 	std::string accept;
 	std::string location;
+	std::string cookie;
+	std::string set_cookie;
 }				t_headers;
 
 enum e_status {
@@ -49,9 +51,9 @@ enum e_parser_state {
 };
 
 enum e_location_type {
-	ROOT,
-	LOCATION,
-	UPLOAD,
+	STATIC,
+	CGI,
+	RETURN
 };
 
 struct MIME {

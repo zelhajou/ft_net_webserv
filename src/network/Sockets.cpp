@@ -28,7 +28,7 @@ void	Sockets::recvFrom(int sock_fd) {
 	pai->second.first.recvRequest();
 	if (pai->second.first.get_parser_status() == DONE || pai->second.first.get_parser_status() == ERROR)
 	{
-		pai->second.second._initiate_response(pai->second.first);
+		pai->second.second._initiate_response(pai->second.first, *this);
 		this->_kqueue.QUEUE_SET(sock_fd, EVFILT_WRITE, EV_ADD);
 	}
 }
@@ -146,3 +146,5 @@ void	Sockets::run() {
 	this->startServers();
 	this->kqueueLoop();
 }
+
+std::string	Sockets::get_mime_type(std::string ext) { return	this->_mime.getMIME(ext); }

@@ -1,6 +1,8 @@
 #include "Parser.hpp"
 
-Parser::Parser(std::string config_file) {}
+Parser::Parser(std::string config_file) {
+	(void)config_file;
+}
 
 Parser::~Parser() {}
 

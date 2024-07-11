@@ -6,6 +6,7 @@
 # include <fstream>
 # include <sys/socket.h>
 # include <unistd.h>
+# include <sys/stat.h>
 # include "util.h"
 # include "Location.hpp"
 # include "TrieTree.hpp"

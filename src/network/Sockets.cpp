@@ -27,7 +27,7 @@ void	Sockets::recvFrom(int sock_fd) {
 		return ;
 	}
 	pai->second.first.recvRequest();
-	if (pai->second.first.get_parser_status() == DONE || pai->second.first.get_parser_status() == ERROR)
+	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR)
 	{
 		pai->second.second._initiate_response(pai->second.first, *this);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, EV_ADD);

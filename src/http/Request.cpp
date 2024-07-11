@@ -1,11 +1,56 @@
 #include "Request.hpp"
 
-Request::Request(Location& location) : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false), _location(location) {}
+Request::Request(std::map<std::string, Location>& locations) : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false) {
+	for (std::map<std::string, Location>::iterator it = locations.begin(); it != locations.end(); it++) {
+		LocationNode*	node = new LocationNode;
+		node->name = it->first;
+		node->location = &it->second;
+		::insert(this->_location_tree, node, ::cmp);
+	}
+	setlvl(this->_location_tree);
+}
 
 Request::~Request() {}
 
+void	Request::parse_uri() {
+
+	size_t		pos;
+	int			depth = 0;
+	std::string	uri = this->_first_line.uri;
+	std::string	uri_tmp;
+	std::string simple_uri = "/";
+
+	while ((pos = uri.find("/")) != std::string::npos) {
+		uri_tmp = uri.substr(0, pos);
+		if (uri_tmp == "..") {
+			simple_uri = simple_uri.substr(0, simple_uri.find_last_of("/"));
+			depth--;
+		}
+		else if (uri_tmp != "." && uri_tmp != "")
+			depth++;
+		if (depth < 0)
+			{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
+		uri = uri.substr(pos + 1);
+	}
+	if (pos > 0 && uri != ".." && uri != "." && uri != "")
+		simple_uri += uri;
+	this->_first_line.uri = simple_uri;
+}
+
 void	Request::check_uri() {
-	
+	if (this->_state != FIRST_LINE) return ;
+
+	parse_uri();
+	if (this->_state == ERROR) return ;
+	Location*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
+	if (loc == NULL)
+		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
+	if (loc->getReturnCode() != 0)
+		{(this->_status = (e_status)loc->getReturnCode(), this->_state = DONE); return ;}
+	if (loc->getMethod().find(this->_first_line.method) == std::string::npos)
+		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
+	if (loc->getAutoindex() && this->_first_line.uri[this->_first_line.uri.size() - 1] == '/')
+		this->_first_line.uri += loc->getIndex();
 }
 
 void Request::parse_first_line() {
@@ -33,8 +78,8 @@ void Request::parse_first_line() {
 		{(this->_status = HTTP_VERSION_NOT_SUPPORTED, this->_state = ERROR); return ;}
 	if (this->_first_line.uri.find("..") != std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
-	this->_state = HEADERS;
 	check_uri();
+	this->_state = HEADERS;
 }
 
 void Request::parse_headers() {
@@ -108,16 +153,16 @@ void	Request::recvRequest() {
 		(this->_state = DONE); return ;
 	this->_recv += ret;
 	this->_body.append(buffer, ret);
-}
-
-
-e_status	Request::get_status_code( void ) {
-	return this->_status;
-}
-
-e_parser_status	Request::get_parser_status( void ) {
-	return	this->_state;
 	parse_first_line();
 	parse_headers();
 	parse_body();
+}
+
+
+e_status	Request::getStatus( void ) {
+	return this->_status;
+}
+
+e_parser_state	Request::getState( void ) {
+	return	this->_state;
 }

@@ -57,7 +57,7 @@ static	std::string	http_code_msg(e_status code)
 }
 
 size_t	Response::form_headers(Server *server) {
-	e_status	req_scode = this->_request.get_status_code();
+	e_status	req_scode = this->_request.getStatus();
 	if (this->header.size())	this->header.clear();
 	this->header = "HTTP/1.1 " + std::to_string(req_scode) + " " + http_code_msg(req_scode) + CRLF;
 	this->header.append("Server: " + _server->server_name + CRLF);

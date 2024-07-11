@@ -9,6 +9,14 @@ public:
 	Location();
 	virtual ~Location();
 
+	std::string					getMethod();
+	std::string					getLocation();
+	std::string					getRoot();
+	std::string					getUploadPath();
+	std::string					getIndex();
+	bool						getAutoindex();
+	int							getReturnCode();
+
 protected:
 	std::string					_location;
 	std::string					_root;

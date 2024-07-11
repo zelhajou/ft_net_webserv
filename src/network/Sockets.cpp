@@ -11,14 +11,15 @@ void	Sockets::accept(int sock_fd) {
 	if (new_s_fd < 0)	return ;
 	//
 	Server		*target = this->_fd_to_server.find(sock_fd)->second;
-	//
 	this->_fd_to_server[ new_s_fd ] = target;
+	//
+	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, EV_ADD);
 }
 
 void	Sockets::recvFrom(int sock_fd) {
 	Server	*serv = this->_fd_to_server.find(sock_fd)->second;
-	std::pair<Request, Response>::iterator	pai = serv->_requests.find(sock_fd);
-	if (pai == serv->_requests.end)
+	std::map<int, std::pair<Request, Response> >::iterator	pai = serv->_requests.find(sock_fd);
+	if (pai == serv->_requests.end())
 	{
 		std::pair<Request, Response>	new_pair;
 		serv->_requests[ sock_fd ] = new_pair;
@@ -29,13 +30,13 @@ void	Sockets::recvFrom(int sock_fd) {
 	if (pai->second.first.get_parser_status() == DONE || pai->second.first.get_parser_status() == ERROR)
 	{
 		pai->second.second._initiate_response(pai->second.first, *this);
-		this->_kqueue.QUEUE_SET(sock_fd, EVFILT_WRITE, EV_ADD);
+		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, EV_ADD);
 	}
 }
 
 void	Sockets::sendTo(int sock_fd) {
 	Server	*serv = this->_fd_to_server.find(sock_fd)->second;
-	std::pair<Request, Response>::iterator	pai = serv->_requests.find(sock_fd);
+	std::map<int, std::pair<Request, Response> >::iterator	pai = serv->_requests.find(sock_fd);
 	pai->second.second.sendResponse(sock_fd, serv);
 	if (pai->second.second.get_status() == DONE)
 	{
@@ -58,11 +59,12 @@ void	Sockets::resetConn(int sock_fd) {
 void	Sockets::cleanUp() {} // TODO
 
 void	Sockets::kqueueLoop() {
-	int	n, target;
+	std::map<int, Server*>::iterator	it;
+	int	n;
 	for (;;)
 	{
 		struct	kevent	events[ this->_kqueue.get_current_events() ];
-		n = this->_kqueue.QUEUE_CHECK(events);
+		n = this->_kqueue.CHECK_QUEUE(events);
 		if (n > 0)
 			for (int i=0; i < n; i++)
 			{
@@ -71,8 +73,8 @@ void	Sockets::kqueueLoop() {
 					this->closeConn(events[i].ident);
 				else if (events[i].filter & EVFILT_READ)
 				{
-					target = this->_fd_to_sever.find(events[i].ident);
-					if (target != this->_fd_to_server.end() && target->first == target->second->socket)
+					it = this->_fd_to_sever.find(events[i].ident);
+					if (it != this->_fd_to_server.end() && it->first == it->second->socket)
 						this->accept(events[i].ident);
 					else	this->recvFrom(events[i].ident);
 				}

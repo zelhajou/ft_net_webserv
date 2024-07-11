@@ -26,8 +26,9 @@ void	Response::_initiate_response(Request &req, Sockets &sock) {
 		}
 		else {
 			this->_file_size = this->get_file_size();
-
-			this->_file_type = sock.get_mime_type();
+			int	ppos = this->_request._first_line.uri.rfind(".");
+			if (ppos == this->_request._first_line.uri.npos) ppos = 0;
+			this->_file_type = sock.get_mime_type(this->_request._first_line.uri.substr(ppos));
 		}
 	}
 }
@@ -51,7 +52,7 @@ static	std::string	http_code_msg(e_status code)
 		case URI_TOO_LONG			return "Url Too Long";
 		case LENGTH_REQUIRED		return "Length Required";
 		case REQUEST_TIMEOUT		return "Request Timeout";
-		default				return std::to_string(code);
+		default				return " ";
 	}
 }
 

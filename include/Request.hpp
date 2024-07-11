@@ -25,7 +25,8 @@ public:
 	e_parser_state		getState();
 	e_status			getStatus();
 	void				check_uri();
-
+	t_first_line		get_first_line();
+	t_headers			get_headers();
 private:
 	e_parser_state				_state;
 	e_status					_status;

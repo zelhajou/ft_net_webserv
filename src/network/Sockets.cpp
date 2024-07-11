@@ -49,6 +49,7 @@ void	Sockets::sendTo(int sock_fd) {
 void	Sockets::closeConn(int sock_fd) {
 	this->resetConn(sock_fd);
 	this->_fd_to_server.erase(sock_fd);
+	this->_Cookies.erase(sock_fd);
 	close(sock_fd);
 }
 
@@ -57,6 +58,63 @@ void	Sockets::resetConn(int sock_fd) {
 }
 
 void	Sockets::cleanUp() {} // TODO
+
+void	Sockets::set_Cookies(std::string client, std::string cookie) {
+	std::map<std::string, std::string>	new_cookies;
+	std::stringstream			input(cookie);
+	std::string			buffer, f_half, s_half;
+	//
+	while (input.read(buffer, "; "))
+	{
+		if (!input.gcount() || buffer.empty()) continue ;
+		int	spos = buffer.find('=');
+		if (spos != buffer.npos)
+		{
+			f_half = buffer.substr(0, spos);
+			s_half = buffer.substr(spos + 1);
+			if (f_half.empty() || s_half.empty()
+				|| f_half.find_first_not_of(' ') == f_half.npos
+				|| s_half.find_first_not_of(' ') == s_half.npos)
+				continue ;
+			new_cookies[ f_half ] = s_half;
+		}
+	}
+	//
+	if (new_cookies.size())	this->_Cookies[ client ] = new_cookies;
+}
+
+std::map<std::string, std::map<std::string, std::string> >::iterator	&Sockets::get_Cookies(std::string client) { return this->_Cookies.find( client ); }
+
+std::string	Sockets::get_cookie(std::string client, std::string var) {
+	std::map<std::string, std::map<std::string, std::string> >::iterator it = this->get_Cookies(client);
+	if (it == this->_Cookies.end())	return "";
+	std::map<std::string, std::string>::iterator i = it->second.find(var);
+	if (i == it->second.end())		return "";
+	return i->second;
+}
+
+std::string	Sockets::get_client(std::string name, std::string value) {	// not recommended
+	std::map<std::string, std::map<std::string, std::string> >::iterator it = this->_Cookies.begin();
+	for (; it != this->_Cookies.end(); ++it) {
+		std::map<std::string, std::string>::iterator i = it->second.begin();
+		for (; i!=it->second.end(); ++i)
+			if (i->first == name && i->second == value)	return it->first;
+	}
+	return	"";
+}
+
+static	std::string	clean_up_chars(std::string input, std::string garbage, std::string target) {
+	int				pos;
+	if (input.empty()||!input.size())	return "";
+	for (int i=0; i < garbage.size(); i++)
+		while ((pos = input.find(garbage[i])) != input.end())	input.replace(pos, 1, target[i]);
+}
+
+std::string	Sockets::form_user_name(Request &request, int sock_fd) {
+	std::string	host = clean_up_chars(request._headers.host, ";=", ".:");
+	std::string	user_agent = clean_up_chars(request._headers.user_agent, ";=", ".:");
+	return	(host+user_agent)
+}
 
 void	Sockets::kqueueLoop() {
 	std::map<int, Server*>::iterator	it;

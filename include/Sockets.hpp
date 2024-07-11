@@ -38,16 +38,21 @@ public:
 	void						resetConn(int);
 	void						cleanUp();
 	void						kqueueLoop();
-	//
 	std::string					get_mime_type(std::string);
+	//	cookies managment
+	void							set_Cookies(std::string, std::string);
+	std::map<std::string, std::map<std::string, std::string> >::iterator	&get_Cookies(std::string);
+	//
+	std::string						get_cookie(std::string, std::string);
+	std::string						get_client(std::string, std::string);
+	std::string						form_user_name(Server*, int);
 
 private:
 	MIME						_mime;
 	Parser&						_parser;
 	KQueue						_kqueue;
-	std::map<int, Server *>		_fd_to_server;
-
-
+	std::map<int, Server *>				_fd_to_server;
+	std::map<std::string, std::map<std::string, std::string> >	_Cookies;
 };
 
 #endif

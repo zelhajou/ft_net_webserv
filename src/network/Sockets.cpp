@@ -14,6 +14,8 @@ void	Sockets::accept(int sock_fd) {
 	this->_fd_to_server[ new_s_fd ] = target;
 	//
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, EV_ADD);
+	//	setting cookie test
+	this->set_cookie(this->form_user_name(target, new_s_fd), "cookie=test; ");
 }
 
 void	Sockets::recvFrom(int sock_fd) {
@@ -49,7 +51,7 @@ void	Sockets::sendTo(int sock_fd) {
 void	Sockets::closeConn(int sock_fd) {
 	this->resetConn(sock_fd);
 	this->_fd_to_server.erase(sock_fd);
-	this->_Cookies.erase(sock_fd);
+	this->_Cookies.erase();
 	close(sock_fd);
 }
 
@@ -103,17 +105,26 @@ std::string	Sockets::get_client(std::string name, std::string value) {	// not re
 	return	"";
 }
 
-static	std::string	clean_up_chars(std::string input, std::string garbage, std::string target) {
+static	std::string	clean_up_stuff(std::string input, std::string garbage, std::string target) {
+	if (input.empty()||garbage.empty()||garbage.size() != target.size())	return "";
 	int				pos;
-	if (input.empty()||!input.size())	return "";
+	std::string			shgarbage;
 	for (int i=0; i < garbage.size(); i++)
-		while ((pos = input.find(garbage[i])) != input.end())	input.replace(pos, 1, target[i]);
+	{
+		shgarbage = garbage.substr(i, i+1);
+		while (true) {
+			pos = input.find(shgarbage);
+			if (pos == input.npos)	break;
+			input.replace(pos, 1, target.substr(i, i+1));
+		}
+	}
+	return	input;
 }
 
 std::string	Sockets::form_user_name(Request &request, int sock_fd) {
 	std::string	host = clean_up_chars(request._headers.host, ";=", ".:");
 	std::string	user_agent = clean_up_chars(request._headers.user_agent, ";=", ".:");
-	return	(host+user_agent)
+	return	(host+user_agent+std::to_string(sock_fd));
 }
 
 void	Sockets::kqueueLoop() {

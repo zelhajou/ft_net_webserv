@@ -23,6 +23,7 @@
 # define RESET "\033[0m"
 
 typedef std::map<int, Server *>::iterator mit;
+//typedef std::map<std::string, std::map<std::string, std::string> >::iterator cookie_it;
 
 class Sockets {
 public:
@@ -39,13 +40,16 @@ public:
 	void						cleanUp();
 	void						kqueueLoop();
 	std::string					get_mime_type(std::string);
-	//	cookies managment
+	int						get_current_sessions();
+	int						set_current_sessions(int);
+	//
 	void							set_Cookies(std::string, std::string);
 	std::map<std::string, std::map<std::string, std::string> >::iterator	&get_Cookies(std::string);
-	//
 	std::string						get_cookie(std::string, std::string);
 	std::string						get_client(std::string, std::string);
-	std::string						form_user_name(Server*, int);
+	std::string						form_user_name(Request &);
+	//std::string						xor_encryptor(std::string, std::string);
+	void							check_session(Response &);
 
 private:
 	MIME						_mime;
@@ -53,6 +57,7 @@ private:
 	KQueue						_kqueue;
 	std::map<int, Server *>				_fd_to_server;
 	std::map<std::string, std::map<std::string, std::string> >	_Cookies;
+	int						_sessions;
 };
 
 #endif

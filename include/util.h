@@ -22,6 +22,7 @@ typedef struct s_headers {
 	std::string location;
 	std::string cookie;
 	std::string set_cookie;
+	std::string user_agent;
 }				t_headers;
 
 enum e_status {

@@ -20,12 +20,14 @@ public:
 	size_t		form_headers(Server*);
 	e_parser_state	get_status();
 	size_t		get_file_size();
-
+	void		set_session_id(std::string);
+	bool		_new_session;
 private:
 	std::ifstream		_file;
 	size_t			_file_size;
 	std::string		_file_type;
 	std::string		_connection_type;
+	std::string		_session_id;
 	std::vector<size_t>		_sent;
 	Request			*_request;
 	e_parser_state		status;

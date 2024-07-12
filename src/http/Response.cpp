@@ -1,6 +1,6 @@
 #include "Response.hpp"
 
-Response::Response(): status(FIRST_LINE), _has_body(false) {
+Response::Response(): status(FIRST_LINE), _has_body(false), _new_session(false) {
 	this->_sent[0] = 0;
 	this->_sent[1] = 0;
 }
@@ -32,6 +32,7 @@ void	Response::_initiate_response(Request *req, Sockets &sock) {
 		}
 	}
 	this->_connection_type = req->get_headers().connection == "close" ? "close" : "keep-alive";
+	sock.check_session(*this);
 }
 
 e_parser_status	Response::get_status() { return this->status; }
@@ -63,6 +64,7 @@ size_t	Response::form_headers(Server *server) {
 	this->header = "HTTP/1.1 " + std::to_string(req_scode) + " " + http_code_msg(req_scode) + CRLF;
 	this->header.append("Server: " + server->_server_name + CRLF"Connection: " + this->_connection_type + CRLF);
 	if (req_scode == REDIRECT)	this->header.append("Location: "+/**/+CRLF);
+	if (this->_new_session)	this->header.append("set-cookie: " + this->_session_id + CRLF);
 	if (req_scode == OK)
 	{
 		this->header.append("Content-type: " + this->_file_type + CRLF);

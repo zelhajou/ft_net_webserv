@@ -66,116 +66,101 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 The network infrastructure and server setup are crucial components of the project, as they form the foundation for handling incoming connections and managing client requests.
 
 <details>
-
 <summary><b>Requirements from Subject</b></summary>
 
 - Must not crash under any circumstances.
 - Must handle configuration files.
-- Must be non-blocking and use one poll() (or equivalent) for all I/O operations.
+- Must be non-blocking and use one `poll()` (or equivalent) for all I/O operations.
 - Ensure resilience and continuous availability under stress tests.
 </details>
 
 <details>
-
 <summary><b>Task 1: Setup Basic Server Framework</b></summary>
 
 **Objective**: Establish a basic server framework that can handle TCP connections.
 
-**Step:**
+**Steps:**
 
-1. **Create Main Entry Point:**
-	- Develop `main.cpp`, which includes the main function where the server starts executing.
-	- Set up basic command line parsing to read arguments like configuration file paths or port numbers.
+1. **Creating Main Entry Point:**
+    - Developing `main.cpp`, which includes the main function where the server starts executing.
+    - Setting up basic command line parsing to read arguments like configuration file paths or port numbers.
 
-2. **Initialize Server Class:**
-	- Design a `Server` class that encapsulates all server-related functionalities.
-	- Implement constructors and destructors, considering resource management for network connections.
-
+2. **Initializing Server Class:**
+    - Designing a `Server` class that encapsulates all server-related functionalities.
+    - Implementing constructors and destructors, considering resource management for network connections.
 </details>
 
 <details>
-
-<summary><b>Task 2: Implement Socket Programming</b></summary>
+<summary><b>Task 2: Implementing Socket Programming</b></summary>
 
 **Objective**: Develop the socket programming foundation that will allow the server to accept and manage client connections.
 
-**Steps**:
+**Steps:**
 
 1. **Socket Creation:**
-	- Use the `socket()` system call to create a socket that listens for incoming connections.
-	- Ensure that the socket is set to the Internet domain (AF_INET) and uses TCP (SOCK_STREAM).
+    - Using the `socket()` system call to create a socket that listens for incoming connections.
+    - Ensuring that the socket is set to the Internet domain (AF_INET) and uses TCP (SOCK_STREAM).
 
-2. **Binding Socket**:
-
-- Bind the socket to an IP address and port. Typically, servers bind to `INADDR_ANY` to accept connections on any interface and a specific port from the server configuration.
-- Handle potential errors in binding, such as "Address already in use," with appropriate error messages and retries if necessary.
+2. **Binding Socket:**
+    - Binding the socket to an IP address and port. Typically, servers bind to `INADDR_ANY` to accept connections on any interface and a specific port from the server configuration.
+    - Handling potential errors in binding, such as "Address already in use," with appropriate error messages and retries if necessary.
 
 3. **Listening on Socket:**
-	- Set the socket to listen for incoming connections with `listen()`.
-	- Define the backlog queue length, which determines how many pending connections can queue up.
-
+    - Setting the socket to listen for incoming connections with `listen()`.
+    - Defining the backlog queue length, which determines how many pending connections can queue up.
 </details>
 
 <details>
-
-<summary><b>Task 3: Accept and Manage Connections</b></summary>
-
+<summary><b>Task 3: Accepting and Managing Connections</b></summary>
 
 **Objective**: Efficiently accept incoming client connections and manage these using either blocking or non-blocking sockets.
 
-**Steps**:
-1. **Accepting Connections**:
+**Steps:**
 
-	- Continuously check for incoming connections using `accept()`, which will block until a new connection is made unless non-blocking sockets are used.
-	- For each accepted connection, possibly spawn a new thread or delegate to a worker depending on the concurrency model chosen (e.g., multi-threading, event-driven).
+1. **Accepting Connections:**
+    - Continuously checking for incoming connections using `accept()`, which will block until a new connection is made unless non-blocking sockets are used.
+    - For each accepted connection, possibly spawning a new thread or delegating to a worker depending on the concurrency model chosen (e.g., multi-threading, event-driven).
 
 2. **Non-Blocking I/O:**
-	- Set sockets to non-blocking mode using `fcntl()` to prevent the server from being stalled by I/O operations.
-	- This is essential for implementing an event-driven model that uses `select()`, `poll()`, or `epoll()` to handle multiple connections efficiently.
-
+    - Setting sockets to non-blocking mode using `fcntl()` to prevent the server from being stalled by I/O operations.
+    - This is essential for implementing an event-driven model that uses `select()`, `poll()`, or `epoll()` to handle multiple connections efficiently.
 </details>
 
-
-
 <details>
-
-<summary><b>Task 4: Use of Multiplexing for Handling Connections</b></summary>
+<summary><b>Task 4: Using Multiplexing for Handling Connections</b></summary>
 
 **Objective**: Implement I/O multiplexing to handle multiple connections simultaneously without using multiple threads for each connection.
 
-**Steps**:
+**Steps:**
 
-1. **Select Implementation**:
+1. **Select Implementation:**
+    - Implementing `select()` as the starting point for multiplexing, which monitors multiple file descriptors to see if any of them are ready for reading or writing.
+    - Setting up `fd_set` for read and write descriptors and using `select()` to determine which sockets can perform non-blocking read or write operations.
 
-	- Implement `select()` as the starting point for multiplexing, which monitors multiple file descriptors to see if any of them are ready for reading or writing.
-	- Setup `fd_set` for read and write descriptors and use `select()` to determine which sockets can perform non-blocking read or write operations.
-
-2. **Advanced Multiplexing (Optional)**:
-
-	- If performance under `select()` is limiting, consider using more scalable methods like `epoll()` on Linux or `kqueue()` on BSD systems, which handle large numbers of simultaneous connections more efficiently.
-	- Implement these systems in a modular way so that the underlying multiplexing mechanism can be switched based on the deployment environment or configuration settings.
-
+2. **Advanced Multiplexing (Optional):**
+    - If performance under `select()` is limiting, considering using more scalable methods like `epoll()` on Linux or `kqueue()` on BSD systems, which handle large numbers of simultaneous connections more efficiently.
+    - Implementing these systems in a modular way so that the underlying multiplexing mechanism can be switched based on the deployment environment or configuration settings.
 </details>
 
-
 <details>
-
 <summary><b>Task 5: Testing and Validation</b></summary>
 
 **Objective**: Ensure the network infrastructure is robust and can handle various network conditions.
 
-**Steps**:
+**Steps:**
 
-1. **Unit Testing**:
-	- Write unit tests for each component (socket creation, binding, listening, accepting).
-	- Test error handling and edge cases, such as what happens if the server runs out of available ports or the maximum number of connections is reached.
-2. **Integration Testing**:
-	- Test the server with simulated client connections.
-	- Use tools like `telnet` or `nc` (Netcat) to connect to the server and send requests.
-3. **Stress Testing**:
-	- Use a tool like `siege` or `ab` (Apache Bench) to stress test the server with a large number of concurrent connections. 
+1. **Unit Testing:**
+    - Writing unit tests for each component (socket creation, binding, listening, accepting).
+    - Testing error handling and edge cases, such as what happens if the server runs out of available ports or the maximum number of connections is reached.
 
+2. **Integration Testing:**
+    - Testing the server with simulated client connections.
+    - Using tools like `telnet` or `nc` (Netcat) to connect to the server and send requests.
+
+3. **Stress Testing:**
+    - Using a tool like `siege` or `ab` (Apache Bench) to stress test the server with a large number of concurrent connections.
 </details>
+
 
 ---
 

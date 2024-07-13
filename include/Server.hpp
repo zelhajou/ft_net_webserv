@@ -5,9 +5,12 @@
 # include "CGI.hpp"
 # include "Request.hpp"
 # include "Response.hpp"
+# include "Sockets.hpp"
 # include <string>
 # include <vector>
 # include <map>
+
+//class		CGI:public Location {};
 
 class Server {
 public:
@@ -23,19 +26,19 @@ public:
 	/*Parse Methods End */
 
 
-private:
+//private:
 	/*CONFIG START*/
-	std::vector<Location>								_locations;
-	std::string											_server_name;
-	std::string											_port;
-	std::string											_host;
-	std::map<int, std::string>							_error_pages;
-	size_t												_client_max_body_size;
+	std::map<std::string, Location>				_locations;
+	std::string						_server_name;
+	std::string						_port;
+	std::string						_host;
+	std::map<int, std::string>					_error_pages;
+	size_t							_client_max_body_size;
 	/*CONFIG END*/
 public:
-	int													_socket;
+	int						_socket;
 	std::map<int, std::pair<Request, Response> >		_requests;
-	std::map<int, CGI>									_cgi;
+	//std::map<int, CGI>					_cgi;
 	
 };
 

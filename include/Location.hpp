@@ -9,7 +9,7 @@ public:
 	Location();
 	virtual ~Location();
 
-	std::string					getMethod();
+	std::vector<std::string>				getMethod();
 	std::string					getLocation();
 	std::string					getRoot();
 	std::string					getUploadPath();
@@ -17,7 +17,7 @@ public:
 	bool						getAutoindex();
 	int							getReturnCode();
 
-protected:
+//protected:
 	std::string					_location;
 	std::string					_root;
 	std::string					_upload_path;

@@ -1,14 +1,29 @@
 #include "Request.hpp"
 
-Request::Request(std::map<std::string, Location>& locations) : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false) {
-	for (std::map<std::string, Location>::iterator it = locations.begin(); it != locations.end(); it++) {
+Request::Request(/*std::map<std::string, Location>& locations*/) : _fd(-1), _state(FIRST_LINE), _recv(0), _status(OK), _has_body(false), _timeout(0) {
+	/*for (std::map<std::string, Location>::iterator it = locations.begin(); it != locations.end(); it++) {
 		LocationNode*	node = new LocationNode;
 		node->name = it->first;
 		node->location = &it->second;
 		::insert(this->_location_tree, node, ::cmp);
 	}
+	setlvl(this->_location_tree);*/
+}
+
+void	Request::set_locations(std::map<std::string, Location>& locations) {
+	for (std::map<std::string, Location>::iterator it = locations.begin(); it != locations.end(); it++) {
+		LocationNode*	node = new LocationNode;
+		node->name = it->first;
+		std::cout << "node->name:" <<  node->name << std::endl;
+		node->location = &it->second;
+		std::cout << "node->locations:" << node->location->_root << std::endl;
+		::insert(this->_location_tree, node, ::cmp);
+	}
 	setlvl(this->_location_tree);
 }
+
+Request::Request(const Request &R) { *this = R; }
+Request	&Request::operator = (const Request &R) { return *this; }
 
 Request::~Request() {}
 
@@ -45,11 +60,13 @@ void	Request::check_uri() {
 	if (this->_state == ERROR) return ;
 	Location*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
 	if (loc == NULL)
-		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
+		{
+			(this->_status = NOT_FOUND, this->_state = ERROR); return ;
+		}
 	if (loc->getReturnCode() != 0)
 		{(this->_status = (e_status)loc->getReturnCode(), this->_state = DONE); return ;}
-	if (loc->getMethod().find(this->_first_line.method) == std::string::npos)
-		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
+	/*if (loc->getMethod().find(this->_first_line.method) == std::string::npos)
+		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}*/
 	this->_first_line.uri.replace(0, loc->getLocation().size(), loc->getRoot());
 	if (stat(this->_first_line.uri.c_str(), &st) == -1)
 		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
@@ -73,19 +90,31 @@ void Request::parse_first_line() {
 
 	size_t			pos;
 
+	//std::cout << "body from first_line parser:" << this->_body << std::endl;
 	if ((pos = this->_body.find("\r\n")) == std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return;}
+
+	//	method
 	if ((pos = this->_body.find(" ")) == std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.method = this->_body.substr(0, pos);
+	//std::cout << "got method:" << this->_first_line.method << std::endl;
 	this->_body = this->_body.substr(pos + 1);
+
+	//	uri
 	if ((pos = this->_body.find(" ")) == std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.uri = this->_body.substr(0, pos);
+	//std::cout << "got uri:" << this->_first_line.uri << std::endl;
 	this->_body = this->_body.substr(pos + 1);
+
+	//	version
 	if ((pos = this->_body.find("\r\n")) == std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.version = this->_body.substr(0, pos);
+	//std::cout << "got version:" << this->_first_line.version << std::endl;
+	this->_body = this->_body.substr(pos + 1);
+
 
 	if (this->_first_line.method != "GET" && this->_first_line.method != "POST" && this->_first_line.method != "DELETE")
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
@@ -93,6 +122,10 @@ void Request::parse_first_line() {
 		{(this->_status = HTTP_VERSION_NOT_SUPPORTED, this->_state = ERROR); return ;}
 	if (this->_first_line.uri.find("..") != std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
+	//
+	//	first line new line
+	this->_body = this->_body.substr(1);
+	//
 	check_uri();
 	this->_state = HEADERS;
 }
@@ -107,11 +140,15 @@ void Request::parse_headers() {
 	while ((pos = this->_body.find("\r\n")) != std::string::npos)
 	{
 		std::string line = this->_body.substr(0, pos);
+		//std::cout << "LINE:" << line << ";\n";
 		if (line.empty())
 			{this->_state = BODY; break;}
 		this->_body = this->_body.substr(pos + 2);
-		if ((pos = line.find(":")) == std::string::npos)
-			{this->_status = BAD_REQUEST; this->_state = ERROR; return ;}
+		if ((pos = line.find(":")) == std::string::npos) {
+			this->_status = BAD_REQUEST;
+			this->_state = ERROR;
+			return ;
+		}
 		key = line.substr(0, pos);
 		value = line.substr(pos);
 		if (key == "Host")
@@ -133,11 +170,15 @@ void Request::parse_headers() {
 		this->_chunked = this->_headers.transfer_encoding == "chunked";
 		this->_content_length = std::strtoll(this->_headers.content_length.c_str(), NULL, 10);
 	}
+	
 }
 
 void Request::parse_body() {
 	if (this->_state != BODY) return ;
-
+	while (this->_body.size() 
+		&& (this->_body[0] == '\r' || this->_body[0] == '\n'))
+		this->_body = this->_body.substr(1);
+	
 	if (this->_has_body || this->_body.size() > 0)
 		this->_has_body = true;
 	if (this->_has_body && !this->_chunked && this->_content_length == 0)
@@ -157,15 +198,22 @@ void Request::parse_body() {
 	this->_state = DONE;
 }
 
-void	Request::recvRequest() {
+void	Request::recvRequest(int sock_fd) {
 	char		buffer[BUFFER_SIZE];
 	int			ret;
 
 	if (this->_state == DONE || this->_state == ERROR) return ;
-	if ((ret = recv(this->_fd, buffer, BUFFER_SIZE, 0)) == -1)
-		(this->_status = INTERNAL_SERVER_ERROR, this->_state = ERROR); return ;
+	if ((ret = recv(sock_fd, buffer, BUFFER_SIZE, 0)) == -1) {
+		//std::cout << "DONE not peacefully\n";
+		this->_status = INTERNAL_SERVER_ERROR;
+		this->_state = ERROR;
+		return ;
+	}
 	if (ret == 0)
+	{
+		//std::cout << "DONE peacefully\n";
 		(this->_state = DONE); return ;
+	}
 	this->_recv += ret;
 	this->_body.append(buffer, ret);
 	parse_first_line();
@@ -185,3 +233,4 @@ e_parser_state	Request::getState( void ) {
 t_first_line	Request::get_first_line() { return this->_first_line; }
 t_headers		Request::get_headers() { return this->_headers; }
 e_location_type	Request::get_location_type() { return this->_location_type; }
+void		Request::setStatus(e_status new_status) { this->_status = new_status; }

@@ -13,6 +13,8 @@
 class	Response {
 public:
 	Response();
+	Response(const Response &);
+	Response	&operator = (const Response &);
 	~Response();
 
 	void		_initiate_response(Request *, Sockets &);
@@ -22,11 +24,11 @@ public:
 	size_t		get_file_size();
 	void		set_session_id(std::string);
 	bool		_new_session;
-private:
+	std::string	_connection_type;
+//private:
 	std::ifstream		_file;
 	size_t			_file_size;
 	std::string		_file_type;
-	std::string		_connection_type;
 	std::string		_session_id;
 	std::vector<size_t>		_sent;
 	Request			*_request;

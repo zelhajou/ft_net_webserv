@@ -13,10 +13,12 @@
 
 class Request {
 public:
-	Request(std::map<std::string, Location>& locations);
+	Request();
+	Request(const Request &);
+	Request &operator = (const Request &);
 	~Request();
 
-	void				recvRequest();
+	void				recvRequest(int);
 	void				POST();
 	void				parse_first_line();
 	void				parse_headers();
@@ -24,12 +26,14 @@ public:
 	void				parse_uri();
 	e_parser_state		getState();
 	e_status			getStatus();
+	void			setStatus(e_status);
 	void				check_uri();
 	t_first_line		get_first_line();
 	t_headers			get_headers();
 	e_location_type		get_location_type();
+	void			set_locations(std::map<std::string, Location>&);
 
-private:
+//private:
 	e_parser_state				_state;
 	e_status					_status;
 	bool						_has_body;

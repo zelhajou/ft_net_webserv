@@ -14,7 +14,7 @@ public:
 
 	std::vector<Server *>		getServers() const;
 
-private:
+//private:
 	std::vector<Server *>		_servers;
 
 };

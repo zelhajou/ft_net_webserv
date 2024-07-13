@@ -4,7 +4,7 @@ Location::Location() : _location(""), _root(""), _upload_path(""), _methods(), _
 
 Location::~Location() {}
 
-std::string		Location::getMethod() { return this->_methods; }
+std::vector<std::string>	Location::getMethod() { return this->_methods; }
 std::string		Location::getLocation() { return this->_location; }
 std::string		Location::getRoot() { return this->_root; }
 std::string		Location::getUploadPath() { return this->_upload_path; }

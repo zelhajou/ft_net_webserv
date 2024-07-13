@@ -1,5 +1,6 @@
-CXX = c++
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude
+CXX = c++ -fsanitize=address -g
+#CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude
+CXXFLAGS = -Iinclude
 SRC_DIR = src
 BUILD_DIR = build
 TARGET = webserv

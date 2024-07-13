@@ -6,13 +6,12 @@
 # include <sys/socket.h>
 # include <netdb.h>
 # include <unistd.h>
+# include <sstream>
 # include <fcntl.h>
 # include <iostream>
-# include "Server.hpp"
 # include "KQueue.hpp"
-# include "Parser.hpp"
 # include "util.h"
-# include "ConfigStructures.hpp"
+//# include "ConfigStructures.hpp"
 
 # define RED "\033[31m"
 # define GREEN "\033[32m"
@@ -21,9 +20,12 @@
 # define MAGENTA "\033[35m"
 # define CYAN "\033[36m"
 # define RESET "\033[0m"
+# include "Request.hpp"
+class	Server;
+class	Parser;
+class	Response;
 
 typedef std::map<int, Server *>::iterator mit;
-//typedef std::map<std::string, std::map<std::string, std::string> >::iterator cookie_it;
 
 class Sockets {
 public:
@@ -41,14 +43,13 @@ public:
 	void						kqueueLoop();
 	std::string					get_mime_type(std::string);
 	int						get_current_sessions();
-	int						set_current_sessions(int);
+	void						set_current_sessions(int);
 	//
 	void							set_Cookies(std::string, std::string);
-	std::map<std::string, std::map<std::string, std::string> >::iterator	&get_Cookies(std::string);
+	std::map<std::string, std::map<std::string, std::string> >::iterator	get_Cookies(std::string);
 	std::string						get_cookie(std::string, std::string);
 	std::string						get_client(std::string, std::string);
 	std::string						form_user_name(Request &);
-	//std::string						xor_encryptor(std::string, std::string);
 	void							check_session(Response &);
 
 private:
@@ -59,5 +60,9 @@ private:
 	std::map<std::string, std::map<std::string, std::string> >	_Cookies;
 	int						_sessions;
 };
+
+# include "Parser.hpp"
+# include "Server.hpp"
+# include "Response.hpp"
 
 #endif

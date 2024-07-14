@@ -37,6 +37,18 @@ void	Request::parse_uri() {
 	this->_first_line.uri = simple_uri;
 }
 
+void	Request::handle_cgi() {} // TODO: implement
+
+bool	Request::is_cgi() {
+	size_t	pos;
+
+	if ((pos = this->_first_line.uri.find(".php")) != std::string::npos && pos == this->_first_line.uri.size() - 4)
+		return true;
+	if ((pos = this->_first_line.uri.find(".py")) != std::string::npos && pos == this->_first_line.uri.size() - 3)
+		return true;
+	return false;
+}
+
 void	Request::check_uri() {
 	if (this->_state != FIRST_LINE) return ;
 
@@ -50,12 +62,12 @@ void	Request::check_uri() {
 		{(this->_status = (e_status)loc->getReturnCode(), this->_state = DONE); return ;}
 	if (loc->getMethod().find(this->_first_line.method) == std::string::npos)
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
+	if (is_cgi())
+		{handle_cgi(); return ;}
 	this->_first_line.uri.replace(0, loc->getLocation().size(), loc->getRoot());
 	if (stat(this->_first_line.uri.c_str(), &st) == -1)
 		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
 	if (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))
-		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
-	if (S_ISDIR(st.st_mode) && loc->getAutoindex() == false && loc->getIndex().empty()) // TODO: check if non of the index files are present
 		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
 	if (loc->getIndex().size() > 0) { // TODO: check if there is a valid index
 		this->_first_line.uri += loc->getIndex();
@@ -63,9 +75,12 @@ void	Request::check_uri() {
 			{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
 		if (!S_ISREG(st.st_mode))
 			{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
-		
+		this->_location_type = STATIC;
 	}
-	
+	else if (S_ISDIR(st.st_mode) && loc->getAutoindex() == true)
+			this->_location_type = AUTOINDEX;
+	else
+		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
 }
 
 void Request::parse_first_line() {
@@ -94,7 +109,8 @@ void Request::parse_first_line() {
 	if (this->_first_line.uri.find("..") != std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	check_uri();
-	this->_state = HEADERS;
+	if (this->_state == FIRST_LINE)
+		this->_state = HEADERS;
 }
 
 void Request::parse_headers() {

@@ -28,15 +28,15 @@ public:
 
 //private:
 	/*CONFIG START*/
-	std::map<std::string, Location>				_locations;
-	std::string						_server_name;
-	std::string						_port;
-	std::string						_host;
-	std::map<int, std::string>					_error_pages;
-	size_t							_client_max_body_size;
+	std::map<std::string, Location>	_locations;
+	std::string			_server_name;
+	std::string			_port;
+	std::string			_host;
+	std::map<int, std::string>		_error_pages;
+	size_t				_client_max_body_size;
 	/*CONFIG END*/
 public:
-	int						_socket;
+	int				_socket;
 	std::map<int, std::pair<Request, Response> >		_requests;
 	//std::map<int, CGI>					_cgi;
 	

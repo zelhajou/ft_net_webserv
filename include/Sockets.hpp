@@ -9,7 +9,10 @@
 # include <sstream>
 # include <fcntl.h>
 # include <iostream>
+# include <cstdlib>
+# include <ctime>
 # include "KQueue.hpp"
+# include "Request.hpp"
 # include "util.h"
 //# include "ConfigStructures.hpp"
 
@@ -20,7 +23,16 @@
 # define MAGENTA "\033[35m"
 # define CYAN "\033[36m"
 # define RESET "\033[0m"
-# include "Request.hpp"
+
+# define KNRM  "\x1B[0m"
+# define KRED  "\x1B[31m"
+# define KGRN  "\x1B[32m"
+# define KYEL  "\x1B[33m"
+# define KBLU  "\x1B[34m"
+# define KMAG  "\x1B[35m"
+# define KCYN  "\x1B[36m"
+# define KWHT  "\x1B[37m"
+
 class	Server;
 class	Parser;
 class	Response;
@@ -42,8 +54,8 @@ public:
 	void						cleanUp();
 	void						kqueueLoop();
 	std::string					get_mime_type(std::string);
-	int						get_current_sessions();
-	void						set_current_sessions(int);
+	size_t						get_sess_id();
+	void						incr_sess_id();
 	//
 	void							set_Cookies(std::string, std::string);
 	std::map<std::string, std::map<std::string, std::string> >::iterator	get_Cookies(std::string);
@@ -58,7 +70,7 @@ private:
 	KQueue						_kqueue;
 	std::map<int, Server *>				_fd_to_server;
 	std::map<std::string, std::map<std::string, std::string> >	_Cookies;
-	int						_sessions;
+	size_t						_sess_id;
 };
 
 # include "Parser.hpp"

@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/13 10:07:05 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/13 23:01:27 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,6 +45,7 @@ Server	*create_demo_server(std::string name, std::string port, std::string host,
 }
 
 int main(int argc, char *argv[]) {
+	signal(SIGPIPE, SIG_IGN);
 	(void)argc;
 	/*if (argc != 2) {
 		std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;

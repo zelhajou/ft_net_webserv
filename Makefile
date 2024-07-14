@@ -1,4 +1,4 @@
-CXX = c++ -fsanitize=address -g
+CXX = c++ # -fsanitize=address -g
 #CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude
 CXXFLAGS = -Iinclude
 SRC_DIR = src

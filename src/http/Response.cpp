@@ -1,6 +1,6 @@
 #include "Response.hpp"
 
-Response::Response(): status(FIRST_LINE), _has_body(false), _new_session(false) {
+Response::Response(): status(FIRST_LINE), _has_body(true), _new_session(false) {
 	/*this->_sent[0] = 0;
 	this->_sent[1] = 0;*/
 	this->_sent.push_back(0);
@@ -20,25 +20,33 @@ size_t	Response::get_file_size() {
 	return (size);
 }
 
-void	Response::_initiate_response(Request *req, Sockets &sock) {
+static	std::string	generate_status_file(e_status status_code, Server *server) {
+	std::map<int, std::string>::iterator	it = server->_error_pages.find(status_code);
+	if (it != server->_error_pages.end() && stat(it->second.c_str(), NULL) != -1)
+		return	it->second;
+	return	DEFAULT_ERROR_PATH + std::to_string(status_code) + ".html";
+}
+
+void	Response::_initiate_response(Request *req, Sockets &sock, Server *server) {
 	this->_request = req;
+	std::string	target_file;
 	if (req->getStatus() == OK && req->get_first_line().method == "GET")
-	{
-		this->_has_body = true;
-		this->_file.open( req->get_first_line().uri, std::ios::in|std::ios::binary);
-		if (!this->_file) {
-			this->_request->setStatus(INTERNAL_SERVER_ERROR);
-			this->_has_body = false;
-		}
-		else {
-			this->_file_size = this->get_file_size();
-			int	ppos = this->_request->get_first_line().uri.rfind(".");
-			if (ppos == this->_request->get_first_line().uri.npos) ppos = 0;
-			this->_file_type = sock.get_mime_type(this->_request->get_first_line().uri.substr(ppos));
-		}
+		target_file = req->get_first_line().uri;
+	else	target_file = generate_status_file(req->getStatus(), server);
+
+	this->_file.open( target_file, std::ios::in|std::ios::binary);
+	if (!this->_file) {
+		this->_request->setStatus(FORBIDDEN);
+		this->_has_body = false;
+	} else {
+		this->_file_size = this->get_file_size();
+		int	ppos = target_file.rfind(".");
+		if (ppos == target_file.npos) ppos = 0;
+		this->_file_type = sock.get_mime_type(target_file.substr(ppos));
 	}
-	this->_connection_type = req->get_headers().connection == "close" ? "close" : "keep-alive";
-	//sock.check_session(*this);
+
+	this->_connection_type = req->get_headers().connection.find("keep-alive") != std::string::npos ? "keep-alive": "close";
+	sock.check_session(*this);
 }
 
 e_parser_state	Response::get_status() { return this->status; }
@@ -50,6 +58,7 @@ static	std::string	http_code_msg(e_status code)
 		case OK:				return "OK";
 		case BAD_REQUEST:			return "Bad Request";
 		case NOT_FOUND:			return "Not Found";
+		case FORBIDDEN:			return "Forbidden";
 		case INTERNAL_SERVER_ERROR:		return "Internal Server Error";
 		case NOT_IMPLEMENTED:		return "Not Implemented";
 		case REDIRECT:			return "Redirect";
@@ -71,25 +80,25 @@ size_t	Response::form_headers(Server *server) {
 	this->header = "HTTP/1.1 " + std::to_string(req_scode) + " " + http_code_msg(req_scode) + CRLF;
 	this->header.append("Server: " + server->_server_name + CRLF"Connection: " + this->_connection_type + CRLF);
 	//if (req_scode == REDIRECT)	this->header.append("Location: "+/**/+CRLF);
-	if (this->_new_session)	this->header.append("set-cookie: " + this->_session_id + CRLF);
-	if (req_scode == OK)
-	{
-		this->header.append("Content-type: " + this->_file_type + CRLF);
-		this->header.append("Content-Length: " + std::to_string(this->_file_size) + CRLF);
-	}
-	else	this->header.append("Content-Length: 0"CRLF);
+	if (this->_new_session)	this->header.append("set-cookie: session="+ this->_session_id + "; "CRLF);
+	//
+	if (!this->_has_body)	generate_status_file(req_scode, server);
+	//
+	this->header.append("Content-type: " + this->_file_type + CRLF);
+	this->header.append("Content-Length: " + std::to_string(this->_file_size) + CRLF);
 	//
 	this->header.append(CRLF);
 	return this->header.size();
 }
 
 void	Response::sendResponse(int sock_fd, Server *server) {
-	//std::cout << "got to sendResponse\n";
+	std::cout << "sending response to: " << KCYN << sock_fd 
+		<< KNRM << " in session: " << KCYN << this->_session_id << KNRM << std::endl;
 	if (this->status == FIRST_LINE)
 	{
 		this->_sent[1] = this->form_headers(server);
 		this->status = HEADERS;
-//		return ;
+		return ;
 	}
 	if (this->status == HEADERS)
 	{

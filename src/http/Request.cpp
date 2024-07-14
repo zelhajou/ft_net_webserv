@@ -14,9 +14,7 @@ void	Request::set_locations(std::map<std::string, Location>& locations) {
 	for (std::map<std::string, Location>::iterator it = locations.begin(); it != locations.end(); it++) {
 		LocationNode*	node = new LocationNode;
 		node->name = it->first;
-		std::cout << "node->name:" <<  node->name << std::endl;
 		node->location = &it->second;
-		std::cout << "node->locations:" << node->location->_root << std::endl;
 		::insert(this->_location_tree, node, ::cmp);
 	}
 	setlvl(this->_location_tree);
@@ -56,20 +54,28 @@ void	Request::check_uri() {
 	if (this->_state != FIRST_LINE) return ;
 
 	struct stat		st;
+	//std::cout << "before parse_uri:" << this->_first_line.uri << std::endl;
 	parse_uri();
+	//std::cout << "after parse_uri:" << this->_first_line.uri << std::endl;
 	if (this->_state == ERROR) return ;
 	Location*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
-	if (loc == NULL)
+	if (loc)
+		this->_first_line.uri = loc->getRoot() + this->_first_line.uri;
+	/*if (loc == NULL)
 		{
+			std::cout << "didnt 1 found(" << this->_first_line.uri << std::endl;
 			(this->_status = NOT_FOUND, this->_state = ERROR); return ;
 		}
 	if (loc->getReturnCode() != 0)
 		{(this->_status = (e_status)loc->getReturnCode(), this->_state = DONE); return ;}
-	/*if (loc->getMethod().find(this->_first_line.method) == std::string::npos)
-		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}*/
+	if (loc->getMethod().find(this->_first_line.method) == std::string::npos)
+		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
 	this->_first_line.uri.replace(0, loc->getLocation().size(), loc->getRoot());
 	if (stat(this->_first_line.uri.c_str(), &st) == -1)
-		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
+		{
+			std::cout << "didnt 2 found(" << this->_first_line.uri << std::endl;
+			(this->_status = NOT_FOUND, this->_state = ERROR); return ;
+		}
 	if (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))
 		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
 	if (S_ISDIR(st.st_mode) && loc->getAutoindex() == false && loc->getIndex().empty()) // TODO: check if non of the index files are present
@@ -77,12 +83,14 @@ void	Request::check_uri() {
 	if (loc->getIndex().size() > 0) { // TODO: check if there is a valid index
 		this->_first_line.uri += loc->getIndex();
 		if (stat(this->_first_line.uri.c_str(), &st) == -1)
-			{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
+			{
+				std::cout << "didnt found(" << this->_first_line.uri << std::endl;
+				(this->_status = NOT_FOUND, this->_state = ERROR); return ;
+			}
 		if (!S_ISREG(st.st_mode))
 			{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
 		
-	}
-	
+	}*/
 }
 
 void Request::parse_first_line() {
@@ -150,7 +158,7 @@ void Request::parse_headers() {
 			return ;
 		}
 		key = line.substr(0, pos);
-		value = line.substr(pos);
+		value = line.substr(pos + 1);
 		if (key == "Host")
 			this->_headers.host = value;
 		else if (key == "Connection")
@@ -163,6 +171,10 @@ void Request::parse_headers() {
 			this->_headers.transfer_encoding = value;
 		else if (key == "Accept")
 			this->_headers.accept = value;
+		else if (key == "Cookie")
+			this->_headers.cookie = value;
+		else if (key == "User-Agent")
+			this->_headers.user_agent = value;
 	}
 	if (this->_state == HEADERS && (this->_body.size() >= BUFFER_SIZE / 2 || this->_recv >= BUFFER_SIZE * 4))
 		{this->_status = REQUEST_HEADER_FIELDS_TOO_LARGE; this->_state = ERROR;}
@@ -204,14 +216,14 @@ void	Request::recvRequest(int sock_fd) {
 
 	if (this->_state == DONE || this->_state == ERROR) return ;
 	if ((ret = recv(sock_fd, buffer, BUFFER_SIZE, 0)) == -1) {
-		//std::cout << "DONE not peacefully\n";
+		std::cout << "DONE not peacefully\n";
 		this->_status = INTERNAL_SERVER_ERROR;
 		this->_state = ERROR;
 		return ;
 	}
 	if (ret == 0)
 	{
-		//std::cout << "DONE peacefully\n";
+		std::cout << "DONE peacefully\n";
 		(this->_state = DONE); return ;
 	}
 	this->_recv += ret;

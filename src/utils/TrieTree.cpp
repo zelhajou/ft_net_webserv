@@ -18,7 +18,7 @@ void setlvl(std::vector<LocationNode *>& root) {
 	std::vector<LocationNode*> queue;
 	for (int i = 0; i < root.size(); i++) {
 		root[i]->lvl = 0;
-		std::cout << root[i]->name << " lvl: " << root[i]->lvl << std::endl; // "lvl: 0
+		//std::cout << root[i]->name << " lvl: " << root[i]->lvl << std::endl; // "lvl: 0
 		queue.push_back(root[i]);
 	}
 	while (!queue.empty()) {
@@ -26,7 +26,7 @@ void setlvl(std::vector<LocationNode *>& root) {
 		queue.erase(queue.begin());
 		for (int i = 0; i < temp->children.size(); i++) {
 			temp->children[i]->lvl = temp->lvl + 1;
-			std::cout << temp->children[i]->name << " lvl: " << temp->children[i]->lvl << std::endl; // "lvl: 1
+			//std::cout << temp->children[i]->name << " lvl: " << temp->children[i]->lvl << std::endl; // "lvl: 1
 			queue.push_back(temp->children[i]);
 		}
 	}
@@ -69,9 +69,12 @@ bool	insert(std::vector<LocationNode *>& root, LocationNode* node, int (*cmp)(st
 }
 
 Location*	search(std::vector<LocationNode *>& root, std::string name, int (*cmp)(std::string, std::string)) {
-	if (root.size() == 0) return NULL;
-	if (cmp(root[0]->name, name) == 0 && root[0]->children.size() == 0)
+	if (root.size() == 0) { 
+		return NULL;
+	}
+	if (cmp(root[0]->name, name) == 0 && root[0]->children.size() == 0) {
 		return root[0]->location;
+	}
 	for (int i = 0; i < root.size(); i++) {
 		if (cmp(root[i]->name, name) == 0) {
 			Location* loc = search(root[i]->children, name, cmp);

@@ -8,7 +8,8 @@
 # include "Sockets.hpp"
 
 # define	FILE_READ_BUFFER_SIZE	100
-# define	CRLF	"\r\n"
+# define  DEFAULT_ERROR_PATH		"/Users/beddinao/cursus-0/webserv/42cursus-webserv/err_status_html/"
+# define	CRLF			"\r\n"
 
 class	Response {
 public:
@@ -17,7 +18,7 @@ public:
 	Response	&operator = (const Response &);
 	~Response();
 
-	void		_initiate_response(Request *, Sockets &);
+	void		_initiate_response(Request *, Sockets &, Server*);
 	void		sendResponse(int, Server*);
 	size_t		form_headers(Server*);
 	e_parser_state	get_status();

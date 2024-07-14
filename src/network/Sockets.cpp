@@ -1,6 +1,8 @@
 #include "Sockets.hpp"
 
-Sockets::Sockets(Parser& parser) : _parser(parser), _sessions(0) {}
+Sockets::Sockets(Parser& parser) : _parser(parser), _sess_id(1234) {
+	std::srand(std::time(NULL));
+}
 
 Sockets::~Sockets() {}
 
@@ -12,49 +14,45 @@ void	Sockets::accept(int sock_fd) {
 	//
 	Server		*target = this->_fd_to_server.find(sock_fd)->second;
 	this->_fd_to_server[ new_s_fd ] = target;
-	//
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, 1);
-	std::cout << "Accept new connection:" << sock_fd << std::endl;
+	std::cout << KGRN << "Accept new connection: " << KNRM << KCYN << new_s_fd << KNRM << std::endl;
 }
 
 void	Sockets::recvFrom(int sock_fd) {
-	std::cout << "receiving from:" << sock_fd << std::endl;
+	std::cout << "receiving from: " << KCYN << sock_fd << KNRM << std::endl;
 	Server	*serv = this->_fd_to_server.find(sock_fd)->second;
 	std::map<int, std::pair<Request, Response> >::iterator	pai = serv->_requests.find(sock_fd);
-	if (pai == serv->_requests.end())
-	{
+	if (pai == serv->_requests.end()) {
 		std::pair<Request, Response>	new_pair;
-		new_pair.first.set_locations(serv->_locations);
 		serv->_requests[ sock_fd ] = new_pair;
+		serv->_requests[ sock_fd].first.set_locations(serv->_locations);
 		this->recvFrom(sock_fd);
 		return ;
 	}
 	pai->second.first.recvRequest(sock_fd);
-	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR)
-	{
+	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR) {
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
-		pai->second.second._initiate_response(&pai->second.first, *this);
+		pai->second.second._initiate_response(&pai->second.first, *this, serv);
 	}
 }
 
 void	Sockets::sendTo(int sock_fd) {
-	std::cout << "sending to:" << sock_fd << std::endl;
-
 	Server	*serv = this->_fd_to_server.find(sock_fd)->second;
 	std::map<int, std::pair<Request, Response> >::iterator	pai = serv->_requests.find(sock_fd);
 	pai->second.second.sendResponse(sock_fd, serv);
 	if (pai->second.second.get_status() == DONE) {
-		/*if (pai->second.second._connection_type == "keep-alive") {
-			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, EV_ADD);
+		if (pai->second.second._connection_type == "keep-alive") {
+			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 0);
+			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 1);
 			this->resetConn(sock_fd);
 		}
-		else	*/this->closeConn(sock_fd);
+		else	this->closeConn(sock_fd);
 	}
 }
 
 void	Sockets::closeConn(int sock_fd) {
-	std::cout << "closing connection: " << sock_fd << std::endl;
+	std::cout << KRED << "closing connection:" << KNRM << KCYN <<  sock_fd << KNRM << std::endl;
 	this->resetConn(sock_fd);
 	this->_fd_to_server.erase(sock_fd);
 	//this->_Cookies.erase();
@@ -63,13 +61,18 @@ void	Sockets::closeConn(int sock_fd) {
 }
 
 void	Sockets::resetConn(int sock_fd) {
+	std::cout << KWHT << "reseting request/response cycle: " << KNRM << KCYN << sock_fd << KNRM << std::endl;
 	this->_fd_to_server[ sock_fd ]->closeConn(sock_fd);
 }
 
 void	Sockets::cleanUp() {} // TODO
 
-void	Sockets::set_current_sessions(int new_count) { this->_sessions = new_count; }
-int	Sockets::get_current_sessions() { return this->_sessions; }
+void	Sockets::incr_sess_id() {
+	size_t	r_num = std::rand() % 1000;
+	if (this->_sess_id + r_num >= ULONG_MAX) this->_sess_id = 0;
+	this->_sess_id += r_num;
+}
+size_t	Sockets::get_sess_id() { return this->_sess_id; }
 
 ///////
 
@@ -89,15 +92,17 @@ static	std::string	clean_up_stuff(std::string input, std::string garbage, std::s
 	return	input;
 }
 
-static	std::string	xor_encryptor(std::string input, std::string key) {
-	int i = 0;
-	std::string		output(input.size(), 0);
-	while (key.size() < input.size()) {
-		if (i >= key.size())	i = 0;
-		key.append(&key[i]);
-	}
-	for (i=0; i < input.size();i++)
-		input[i] ^= key[i];
+int	__calc_new_range(int old_value, int old_min, int old_max, int new_min, int new_max) {
+	if (old_max==old_min||new_min==new_max) return new_min;
+	if (old_value == old_min) return new_min;
+	/*else if (old_value>old_max) return new_max;*/
+	return ( ((old_value-old_min)*(new_max-new_min))/(old_max-old_min)+new_min);
+}
+
+static	std::string	s_encryptor(std::string input, std::string key, int mode) {
+	int		i=0;
+	while (key.size() < input.size()) { if (i >= key.size()) i = 0; key.append(&key[i]); }
+	for (i=0; i < input.size();i++) input[i]+=mode*13;
 	return	input;
 }
 
@@ -119,23 +124,30 @@ static	std::string	get_cookie_value(std::string input, std::string name)
 void		Sockets::check_session(Response &response) {
 	std::string estab_session_id = response._request->get_headers().cookie;
 	std::string user_name = this->form_user_name(*response._request);
+	std::cout << "client user agent:" << user_name << std::endl;
 	std::string session_id = this->get_cookie(user_name, "session");
+	//
 	if (!estab_session_id.empty()) {
 		std::string cur_session_id = get_cookie_value(estab_session_id, "session=");
-		if (xor_encryptor(cur_session_id, "session") == session_id) {
-			response.set_session_id("session=" + cur_session_id + "; ");
+		if (s_encryptor(cur_session_id, user_name, -1) == session_id) {
+			std::cout << KCYN"already established/valid session: [" << cur_session_id << "] <- "<<session_id<<KNRM<<std::endl;
+			response.set_session_id(s_encryptor(cur_session_id, user_name, 1));
 			return ;
 		}
 		else if (!session_id.empty()) {
+			std::cout << KCYN"remembering client of their id: [" << session_id << "]" << KNRM<<std::endl;
 			response._new_session = true;
-			response.set_session_id("session=" + xor_encryptor(session_id, "session") + "; ");
+			response.set_session_id(s_encryptor(session_id, user_name, 1));
 		}
 	}
 	if (session_id.empty()) {
-		this->set_current_sessions(this->get_current_sessions()+1);
-		session_id = xor_encryptor(std::to_string(this->get_current_sessions()), "session");
+		this->incr_sess_id();
+		session_id = std::to_string(this->get_sess_id());
 		this->set_Cookies(user_name, "session=" + session_id + "; ");
+		std::string encr_id = s_encryptor(session_id, user_name, 1);
+		response.set_session_id(encr_id);
 		response._new_session = true;
+		std::cout << KCYN"registering a new session: [" << encr_id << "] <- " << session_id <<KNRM<<std::endl;
 	}
 }
 
@@ -152,6 +164,7 @@ void	Sockets::set_Cookies(std::string client, std::string cookie) {
 	std::stringstream			input(cookie);
 	std::string			f_half, s_half;
 	char				buffer[cookie.size()];
+	std::memset(buffer, 0, sizeof(buffer));
 
 	int	pos = cookie.find("; ");
 	while (input.read(buffer, pos))
@@ -164,7 +177,7 @@ void	Sockets::set_Cookies(std::string client, std::string cookie) {
 			if (!f_half.empty()&&!s_half.empty()
 				&&f_half.find_first_not_of(' ')!=f_half.npos
 				&&s_half.find_first_not_of(' ')!=s_half.npos)
-				new_cookies[ f_half ] = xor_encryptor(s_half, f_half);
+				new_cookies[ f_half ] = s_half;
 		}
 		pos = cookie.substr(pos+2).find("; ");
 		if (pos == cookie.npos)	break;
@@ -180,14 +193,14 @@ std::string	Sockets::get_cookie(std::string client, std::string var) {
 	if (it == this->_Cookies.end())	return "";
 	std::map<std::string, std::string>::iterator i = it->second.find(var);
 	if (i == it->second.end())		return "";
-	return xor_encryptor(i->second, var);
+	return i->second;
 }
 
 std::string	Sockets::get_client(std::string name, std::string value) {
 	std::map<std::string, std::map<std::string, std::string> >::iterator it = this->_Cookies.begin();
 	for (; it != this->_Cookies.end(); ++it) {
 		std::map<std::string, std::string>::iterator i = it->second.find(name);
-		if (i != it->second.end() && i->second == xor_encryptor(value, name))	return it->first;
+		if (i != it->second.end() && i->second == value)	return it->first;
 	}
 	return	"";
 }
@@ -208,12 +221,9 @@ void	Sockets::kqueueLoop() {
 				else if (events[i].filter == EVFILT_READ)
 				{
 					it = this->_fd_to_server.find(events[i].ident);
-					if (it != this->_fd_to_server.end() && it->first == it->second->_socket) {
+					if (it != this->_fd_to_server.end() && it->first == it->second->_socket)
 						this->accept(events[i].ident);
-					}
-					else {
-						this->recvFrom(events[i].ident);
-					}
+					else	this->recvFrom(events[i].ident);
 				}
 				else if (events[i].filter == EVFILT_WRITE) {
 					this->sendTo(events[i].ident);

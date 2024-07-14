@@ -28,6 +28,8 @@ public:
 	t_first_line		get_first_line();
 	t_headers			get_headers();
 	e_location_type		get_location_type();
+	bool				is_cgi();
+	void				handle_cgi();
 
 private:
 	e_parser_state				_state;
@@ -43,7 +45,6 @@ private:
 	bool						_chunked;
 	size_t						_content_length;
 	std::vector<LocationNode*>	_location_tree;
-	std::string					_return_string;
 	e_location_type				_location_type;
 };
 

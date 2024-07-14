@@ -54,7 +54,8 @@ enum e_parser_state {
 enum e_location_type {
 	STATIC,
 	CGI,
-	RETURN
+	RETURN,
+	AUTOINDEX,
 };
 
 struct MIME {

@@ -22,7 +22,7 @@ protected:
 	std::string					_root;
 	std::string					_upload_path;
 	std::vector<std::string>	_methods;
-	std::string					_index;
+	std::vector<std::string>	_index;
 	bool						_autoindex;
 	int							_return_code;
 };

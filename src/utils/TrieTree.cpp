@@ -2,7 +2,7 @@
 
 int	cmp (std::string a, std::string b)
 {
-	int i = 0;
+	size_t i = 0;
 	if (a.size() == 1)
 		return 0;
 	if (a.size() > b.size())
@@ -16,7 +16,7 @@ int	cmp (std::string a, std::string b)
 
 void setlvl(std::vector<LocationNode *>& root) {
 	std::vector<LocationNode*> queue;
-	for (int i = 0; i < root.size(); i++) {
+	for (size_t i = 0; i < root.size(); i++) {
 		root[i]->lvl = 0;
 		std::cout << root[i]->name << " lvl: " << root[i]->lvl << std::endl; // "lvl: 0
 		queue.push_back(root[i]);
@@ -24,7 +24,7 @@ void setlvl(std::vector<LocationNode *>& root) {
 	while (!queue.empty()) {
 		LocationNode* temp = queue.front();
 		queue.erase(queue.begin());
-		for (int i = 0; i < temp->children.size(); i++) {
+		for (size_t i = 0; i < temp->children.size(); i++) {
 			temp->children[i]->lvl = temp->lvl + 1;
 			std::cout << temp->children[i]->name << " lvl: " << temp->children[i]->lvl << std::endl; // "lvl: 1
 			queue.push_back(temp->children[i]);
@@ -35,7 +35,7 @@ void setlvl(std::vector<LocationNode *>& root) {
 void print(std::vector<LocationNode *>& root) {
 	int lvl = 0;
 	std::vector<LocationNode*> queue;
-	for (int i = 0; i < root.size(); i++) {
+	for (size_t i = 0; i < root.size(); i++) {
 		queue.push_back(root[i]);
 	}
 	while (!queue.empty()) {
@@ -57,7 +57,7 @@ bool	insert(std::vector<LocationNode *>& root, LocationNode* node, int (*cmp)(st
 		root.push_back(node);
 		return true;
 	}
-	for (int i = 0; i < root.size(); i++) {
+	for (size_t i = 0; i < root.size(); i++) {
 		if (cmp(root[i]->name, node->name) == 0) {
 			if (insert(root[i]->children, node, cmp)) {
 				return true;
@@ -68,13 +68,13 @@ bool	insert(std::vector<LocationNode *>& root, LocationNode* node, int (*cmp)(st
 	return true;
 }
 
-Location*	search(std::vector<LocationNode *>& root, std::string name, int (*cmp)(std::string, std::string)) {
+LocationConfig*	search(std::vector<LocationNode *>& root, std::string name, int (*cmp)(std::string, std::string)) {
 	if (root.size() == 0) return NULL;
 	if (cmp(root[0]->name, name) == 0 && root[0]->children.size() == 0)
 		return root[0]->location;
-	for (int i = 0; i < root.size(); i++) {
+	for (size_t i = 0; i < root.size(); i++) {
 		if (cmp(root[i]->name, name) == 0) {
-			Location* loc = search(root[i]->children, name, cmp);
+			LocationConfig* loc = search(root[i]->children, name, cmp);
 			if (loc != NULL)
 				return loc;
 			return root[i]->location;

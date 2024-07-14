@@ -6,21 +6,21 @@
 # include <string>
 # include <iomanip>
 # include <algorithm>
-# include "Location.hpp"
+# include "ConfigStructures.hpp"
 
 struct LocationNode
 {
 	std::string					name;
-	Location*					location;
+	LocationConfig*				location;
 	int							lvl;
 	std::vector<LocationNode*>	children;
 };
 
-bool		insert(std::vector<LocationNode *>& root, LocationNode* node, int (*cmp)(std::string, std::string));
-Location*	search(std::vector<LocationNode *>& root, std::string name, int (*cmp)(std::string, std::string));
-void		print(std::vector<LocationNode *>& root);
-void		setlvl(std::vector<LocationNode *>& root);
-int			cmp (std::string a, std::string b);
+bool			insert(std::vector<LocationNode *>& root, LocationNode* node, int (*cmp)(std::string, std::string));
+LocationConfig*	search(std::vector<LocationNode *>& root, std::string name, int (*cmp)(std::string, std::string));
+void			print(std::vector<LocationNode *>& root);
+void			setlvl(std::vector<LocationNode *>& root);
+int				cmp (std::string a, std::string b);
 
 
 

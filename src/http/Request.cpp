@@ -1,7 +1,12 @@
 #include "Request.hpp"
 
-Request::Request(std::map<std::string, Location>& locations) : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false) {
-	for (std::map<std::string, Location>::iterator it = locations.begin(); it != locations.end(); it++) {
+Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false) {
+}
+
+Request::~Request() {}
+
+void Request::setLocation(std::map<std::string, LocationConfig> locations) {
+	for (std::map<std::string, LocationConfig>::iterator it = locations.begin(); it != locations.end(); it++) {
 		LocationNode*	node = new LocationNode;
 		node->name = it->first;
 		node->location = &it->second;
@@ -9,8 +14,6 @@ Request::Request(std::map<std::string, Location>& locations) : _fd(-1), _recv(0)
 	}
 	setlvl(this->_location_tree);
 }
-
-Request::~Request() {}
 
 void	Request::parse_uri() {
 
@@ -55,29 +58,29 @@ void	Request::check_uri() {
 	struct stat		st;
 	parse_uri();
 	if (this->_state == ERROR) return ;
-	Location*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
+	LocationConfig*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
 	if (loc == NULL)
 		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
-	if (loc->getReturnCode() != 0)
-		{(this->_status = (e_status)loc->getReturnCode(), this->_state = DONE); return ;}
-	if (loc->getMethod().find(this->_first_line.method) == std::string::npos)
+	if (loc->return_url.first != 0)
+		{(this->_status = loc->return_url.first, this->_state = DONE); return ;}
+	if (std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), this->_first_line.method) == loc->allowed_methods.end())
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
 	if (is_cgi())
 		{handle_cgi(); return ;}
-	this->_first_line.uri.replace(0, loc->getLocation().size(), loc->getRoot());
+	this->_first_line.uri.replace(0, loc->path.size(), loc->root);
 	if (stat(this->_first_line.uri.c_str(), &st) == -1)
 		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
 	if (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))
 		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
-	if (loc->getIndex().size() > 0) { // TODO: check if there is a valid index
-		this->_first_line.uri += loc->getIndex();
+	if (loc->index.size() > 0) { // TODO: check if there is a valid index
+		this->_first_line.uri += loc->index;
 		if (stat(this->_first_line.uri.c_str(), &st) == -1)
 			{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
 		if (!S_ISREG(st.st_mode))
 			{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
 		this->_location_type = STATIC;
 	}
-	else if (S_ISDIR(st.st_mode) && loc->getAutoindex() == true)
+	else if (S_ISDIR(st.st_mode) && loc->auto_index == true)
 			this->_location_type = AUTOINDEX;
 	else
 		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
@@ -201,3 +204,5 @@ e_parser_state	Request::getState( void ) {
 t_first_line	Request::get_first_line() { return this->_first_line; }
 t_headers		Request::get_headers() { return this->_headers; }
 e_location_type	Request::get_location_type() { return this->_location_type; }
+
+void			Request::setStatus(e_status status) { this->_status = status; }

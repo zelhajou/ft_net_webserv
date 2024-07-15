@@ -8,14 +8,16 @@
 # include <unistd.h>
 # include <sys/stat.h>
 # include "util.h"
-# include "Location.hpp"
 # include "ConfigStructures.hpp"
-# include "TrieTree.hpp"
+
+struct	LocationNode;
 
 class Request {
 public:
 	Request();
 	~Request();
+	Request(const Request &);
+	Request &operator = (const Request &);
 
 	void						recvRequest();
 	void						POST();
@@ -23,6 +25,7 @@ public:
 	void						parse_headers();
 	void						parse_body();
 	void						parse_uri();
+	void						set_fd(int sock_fd);
 	e_parser_state				getState();
 	e_status					getStatus();
 	void						check_uri();
@@ -52,4 +55,5 @@ private:
 	e_location_type				_location_type;
 };
 
+# include "TrieTree.hpp"
 #endif

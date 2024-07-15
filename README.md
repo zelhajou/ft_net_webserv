@@ -75,6 +75,9 @@ The network infrastructure and server setup are crucial components of the projec
 </details>
 
 <details>
+<summary><b>Tasks for Network Infrastructure and Server Setup</b></summary>
+
+<details>
 <summary><b>Task 1: Setup Basic Server Framework</b></summary>
 
 **Objective**: Establish a basic server framework that can handle TCP connections.
@@ -161,7 +164,7 @@ The network infrastructure and server setup are crucial components of the projec
     - Using a tool like `siege` or `ab` (Apache Bench) to stress test the server with a large number of concurrent connections.
 </details>
 
-
+</details>
 ---
 
 ### 2. HTTP Protocol Handling
@@ -283,7 +286,6 @@ The HTTP protocol handling component is responsible for parsing incoming HTTP re
 
 </details>
 
-
 ---
 
 ### 3. Configuration Management and Logging
@@ -299,6 +301,11 @@ The configuration management and logging component are responsible for reading a
 - Implement a robust logging mechanism to aid in monitoring and debugging. (**Optional**)
  
  </details>
+
+<details>
+
+
+<summary><b>Tasks for Network Infrastructure and Server Setup</b></summary>
 
 <details>
 
@@ -363,6 +370,8 @@ The configuration management and logging component are responsible for reading a
 	- Ensure that log messages accurately reflect server operations and states under different scenarios.
 3. **Performance Evaluation**:
 	- Assess the impact of logging on server performance, especially under high load, and optimize as necessary.
+
+</details>
 
 </details>
 

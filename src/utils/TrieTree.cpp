@@ -18,7 +18,7 @@ void setlvl(std::vector<LocationNode *>& root) {
 	std::vector<LocationNode*> queue;
 	for (size_t i = 0; i < root.size(); i++) {
 		root[i]->lvl = 0;
-		std::cout << root[i]->name << " lvl: " << root[i]->lvl << std::endl; // "lvl: 0
+		//std::cout << root[i]->name << " lvl: " << root[i]->lvl << std::endl; // "lvl: 0
 		queue.push_back(root[i]);
 	}
 	while (!queue.empty()) {
@@ -26,7 +26,7 @@ void setlvl(std::vector<LocationNode *>& root) {
 		queue.erase(queue.begin());
 		for (size_t i = 0; i < temp->children.size(); i++) {
 			temp->children[i]->lvl = temp->lvl + 1;
-			std::cout << temp->children[i]->name << " lvl: " << temp->children[i]->lvl << std::endl; // "lvl: 1
+			//std::cout << temp->children[i]->name << " lvl: " << temp->children[i]->lvl << std::endl; // "lvl: 1
 			queue.push_back(temp->children[i]);
 		}
 	}

@@ -36,7 +36,7 @@ public:
 	void						handle_cgi();
 
 	void						setStatus(e_status status);
-	void						setLocation(std::map<std::string, LocationConfig> locations);
+	void						setLocation(std::map<std::string, LocationConfig> &locations);
 
 private:
 	int							_fd;

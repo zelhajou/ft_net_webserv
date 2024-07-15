@@ -6,12 +6,9 @@ Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeou
 Request::Request(const Request &R) { *this = R; }
 Request	&Request::operator = (const Request &R) { return *this; }
 
-
-void	Request::set_fd(int sock_fd) { this->_fd = sock_fd; }
-
 Request::~Request() {}
 
-void Request::setLocation(std::map<std::string, LocationConfig> locations) {
+void Request::setLocation(std::map<std::string, LocationConfig> &locations) {
 	for (std::map<std::string, LocationConfig>::iterator it = locations.begin(); it != locations.end(); it++) {
 		LocationNode*	node = new LocationNode;
 		node->name = it->first;
@@ -67,7 +64,7 @@ void	Request::check_uri() {
 	LocationConfig*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
 	if (loc == NULL)
 		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
-	if (loc->return_url.first != 0)
+	if (loc->return_url.first != NONE)	// compilation error (can't compare int to e_status)
 		{(this->_status = loc->return_url.first, this->_state = DONE); return ;}
 	if (std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), this->_first_line.method) == loc->allowed_methods.end())
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
@@ -129,7 +126,7 @@ void Request::parse_headers() {
 	std::string		key;
 	std::string		value;
 
-	while ((pos = this->_body.find("\r\n")) != std::string::npos)
+	while ((pos = this->_body.find("\r\n")) != std::string::npos)	// some headers are not detected
 	{
 		std::string line = this->_body.substr(0, pos);
 		if (line.empty())
@@ -187,10 +184,16 @@ void	Request::recvRequest() {
 	int			ret;
 
 	if (this->_state == DONE || this->_state == ERROR) return ;
-	if ((ret = recv(this->_fd, buffer, BUFFER_SIZE, 0)) == -1)
-		(this->_status = INTERNAL_SERVER_ERROR, this->_state = ERROR); return ;
+	if ((ret = recv(this->_fd, buffer, BUFFER_SIZE, 0)) == -1) { // old syntax produced a bug
+		this->_status = INTERNAL_SERVER_ERROR;
+		this->_state = ERROR;
+		return ;
+	}
 	if (ret == 0)
-		(this->_state = DONE); return ;
+	{
+		this->_state = DONE;
+		return ;
+	}
 	this->_recv += ret;
 	this->_body.append(buffer, ret);
 	parse_first_line();
@@ -210,5 +213,6 @@ e_parser_state	Request::getState( void ) {
 t_first_line	Request::get_first_line() { return this->_first_line; }
 t_headers		Request::get_headers() { return this->_headers; }
 e_location_type	Request::get_location_type() { return this->_location_type; }
+void		Request::set_fd(int sock_fd) { this->_fd = sock_fd; }
 
 void			Request::setStatus(e_status status) { this->_status = status; }

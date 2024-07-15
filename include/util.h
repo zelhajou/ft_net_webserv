@@ -42,6 +42,7 @@ enum e_status {
 	LENGTH_REQUIRED = 411,					// The server refuses to accept the request without a defined Content-Length.
 	REQUEST_TIMEOUT = 408,					// The server did not receive a complete request message within the time that it was prepared to wait.
 	FORBIDDEN = 403,						// The server understood the request, but is refusing to fulfill it.
+	NONE = 0,							// place holder for empty input
 };
 
 enum e_parser_state {

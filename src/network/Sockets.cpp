@@ -125,7 +125,6 @@ static	std::string	get_cookie_value(std::string input, std::string name)
 void		Sockets::check_session(Response &response) {
 	std::string estab_session_id = response._request->get_headers().cookie;
 	std::string user_name = this->form_user_name(*response._request);
-	std::cout << "client user agent:" << user_name << std::endl;
 	std::string session_id = this->get_cookie(user_name, "session");
 	//
 	if (!estab_session_id.empty()) {
@@ -287,6 +286,8 @@ void	Sockets::startServers() {
 		freeaddrinfo(res);
 		if (listen(sock, 100) < 0)
 			std::cerr << YELLOW << "server: " << (*it)->host << ":" << (*it)->listen_port << " is enable to start." << RESET << std::endl;
+		else	std::cout << KGRN << (*it)->server_name << KNRM << ": " << (*it)->host << ":"
+			<< (*it)->listen_port << ", " << (*it)->locations.size() << " locations " << KGRN << "STARTED successfully" << KNRM << std::endl;
 		(*it)->_socket = sock;
 		this->_kqueue.SET_QUEUE(sock, EVFILT_READ, 1);
 		this->_fd_to_server[ sock ] = *it;

@@ -8,10 +8,6 @@
 # include "Request.hpp"
 # include "ConfigStructures.hpp"
 
-# define	FILE_READ_BUFFER_SIZE	100
-# define  DEFAULT_ERROR_PATH		"/Users/beddinao/cursus-0/webserv/mainWebserv/config/http_dafault_status_files/"
-# define	CRLF			"\r\n"
-
 class	Sockets;
 
 class	Response {

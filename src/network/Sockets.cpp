@@ -32,8 +32,24 @@ void	Sockets::recvFrom(int sock_fd) {
 	}
 	pai->second.first.recvRequest();
 	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR) {
-		std::cout << "request received: " << KCYN << sock_fd << KNRM << std::endl;
-		//std::cout << "request state: " << KCYN << pai->second.first.get_headers().connection << KNRM << std::endl;
+		////////////
+		t_headers	h = pai->second.first.get_headers();
+		t_first_line fl = pai->second.first.get_first_line();
+		std::cout << "First line:\n";
+		std::cout << fl.method << std::endl;
+		std::cout << fl.uri << std::endl;
+		std::cout << fl.version << std::endl;
+		std::cout << "Headers:\n";
+		std::cout << h.host << std::endl;
+		std::cout << h.connection << std::endl;
+		std::cout << h.content_type << std::endl;
+		std::cout << h.content_length << std::endl;
+		std::cout << h.transfer_encoding << std::endl;
+		std::cout << h.date << std::endl;
+		std::cout << h.accept << std::endl;
+		std::cout << h.location << std::endl;
+		std::cout << h.user_agent << std::endl << std::endl;
+		/////////
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second.second._initiate_response(&pai->second.first, *this, serv);

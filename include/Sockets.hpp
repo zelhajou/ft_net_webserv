@@ -17,7 +17,7 @@
 
 # define FILE_READ_BUFFER_SIZE	100
 # define CRLF			"\r\n"
-# define PROJECT_PATH "/Users/hsobane/projects/teamWeb"
+# define PROJECT_PATH "/Users/beddinao/cursus-0/webserv/mainWebserv/"
 # define DEFAULT_ERROR_PATH PROJECT_PATH"config/http_default_status_files/"
 
 # define RED "\033[31m"

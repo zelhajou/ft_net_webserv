@@ -166,7 +166,10 @@ void Request::parse_headers() {
 		key = line.substr(0, pos);
 		value = line.substr(pos);
 		if (key == "Host")
+		{
 			this->_headers.host = value;
+			std::cout << "HOST:" << value << std::endl;
+		}
 		else if (key == "Connection")
 			this->_headers.connection = value;
 		else if (key == "Content-Type")

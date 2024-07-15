@@ -182,11 +182,7 @@ The HTTP protocol handling component is responsible for parsing incoming HTTP re
 
 <details>
 
-<summary>
-
-<b>Tasks for HTTP Protocol Handling</b>
-
-</summary>
+<summary><b>Tasks for HTTP Protocol Handling</b></summary>
 
 <details>
 

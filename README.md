@@ -168,6 +168,7 @@ The network infrastructure and server setup are crucial components of the projec
 
 The HTTP protocol handling component is responsible for parsing incoming HTTP requests, generating appropriate responses, and serving static content to clients.
 
+
 <details>
 
 <summary><b>Requirements from Subject</b></summary>
@@ -178,6 +179,14 @@ The HTTP protocol handling component is responsible for parsing incoming HTTP re
 - Must handle file uploads.
 
 </details>
+
+<details>
+
+<summary>
+
+<b>Tasks for HTTP Protocol Handling</b>
+
+</summary>
 
 <details>
 
@@ -274,6 +283,10 @@ The HTTP protocol handling component is responsible for parsing incoming HTTP re
 3. **Functional Testing**:
 	- Use tools like Postman or curl to test the server’s response to various HTTP requests, checking for correctness in headers, status codes, and body content.
 </details>
+
+
+</details>
+
 
 ---
 

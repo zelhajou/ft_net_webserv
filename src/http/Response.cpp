@@ -46,7 +46,7 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 	}
 
 	this->_connection_type = req->get_headers().connection.find("keep-alive") != std::string::npos ? "keep-alive": "close";
-	sock.check_session(*this);
+	//sock.check_session(*this);
 }
 
 e_parser_state	Response::get_status() { return this->status; }

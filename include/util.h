@@ -27,6 +27,7 @@ typedef struct s_headers {
 }				t_headers;
 
 enum e_status {
+	NONE = 0,								// place holder for empty input
 	OK = 200,
 	BAD_REQUEST = 400,						// The request could not be understood by the server due to malformed syntax.
 	NOT_FOUND = 404,						// The server has not found anything matching the Request-URI.
@@ -42,7 +43,6 @@ enum e_status {
 	LENGTH_REQUIRED = 411,					// The server refuses to accept the request without a defined Content-Length.
 	REQUEST_TIMEOUT = 408,					// The server did not receive a complete request message within the time that it was prepared to wait.
 	FORBIDDEN = 403,						// The server understood the request, but is refusing to fulfill it.
-	NONE = 0,							// place holder for empty input
 };
 
 enum e_parser_state {

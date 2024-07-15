@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 17:07:28 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/15 03:11:50 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/15 21:38:46 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,11 @@ MainConfig ConfigParser::parse(const std::string& config_file)
 	return main_config;
 }
 
-void	ServerConfig::closeConn(int s) {}
+void	ServerConfig::closeConn(int s) {
+	std::map<int, std::pair<Request, Response> >::iterator i = this->_requests.find(s);
+	if (i != this->_requests.end())
+		this->_requests.erase(i);
+}
 
 void	ConfigParser::parseServerBlock(std::ifstream& file, MainConfig& main_config)
 {

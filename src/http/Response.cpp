@@ -24,7 +24,7 @@ static	std::string	generate_status_file(e_status status_code, ServerConfig *serv
 	std::map<int, std::string>::iterator	it = server->error_pages.find(status_code);
 	if (it != server->error_pages.end() && stat(it->second.c_str(), NULL) != -1)
 		return	it->second;
-	return	DEFAULT_ERROR_PATH + std::to_string(status_code) + ".html";
+	return	"/Users/beddinao/cursus-0/webserv/mainWebserver/config/http_default_status_files/" + std::to_string(status_code) + ".html";
 }
 
 void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *server) {
@@ -109,6 +109,7 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		else		this->_sent[0] += sent_res;
 
 		if (this->_sent[0] >= this->_sent[1]) {
+			std::cout << "SENT HEADERS:" << this->header << std::endl;
 			if (this->_has_body) {
 				this->_sent[1] = 0;
 				this->status = BODY;

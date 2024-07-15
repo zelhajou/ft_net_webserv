@@ -3,3 +3,4 @@ build/*.o
 webserv
 .vscode
 index.html
+video_audio.mp4

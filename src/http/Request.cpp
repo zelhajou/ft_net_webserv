@@ -1,6 +1,6 @@
 #include "Request.hpp"
 
-Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(NONE), _timeout(0), _has_body(false), _hex(true), _chunk_size(0) {
+Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false), _hex(true), _chunk_size(0) {
 }
 
 Request::Request(const Request &R) { *this = R; }
@@ -39,7 +39,7 @@ void	Request::parse_uri() {
 	if (uri == "..")
 		(simple_uri = simple_uri.substr(0, simple_uri.find_last_of("/")), depth--);
 	else if (uri != "." && uri != "")
-		(simple_uri += uri + "/", depth++);
+		(simple_uri += uri, depth++);
 	if (depth < 0)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.uri = simple_uri;
@@ -144,14 +144,11 @@ void Request::parse_first_line() {
 }
 
 void Request::parse_headers() {
-	if (this->_state != HEADERS) return ;
+	if (this->_state != HEADERS && this->_state != ERROR) return ;
 
 	size_t			pos;
 	std::string		key;
 	std::string		value;
-
-	if ((pos = this->_body.find("\r\n\r\n")) == std::string::npos)
-		return ;
 
 	while ((pos = this->_body.find("\r\n")) != std::string::npos)
 	{
@@ -164,11 +161,12 @@ void Request::parse_headers() {
 			std::cout << "Bad Request (no colon): " << line << std::endl;
 			return ;}
 		key = line.substr(0, pos);
-		value = line.substr(pos);
+		value = line.substr(pos + 2);
+		std::cout << "Key: |" << key << "| Value: |" << value << "|" << std::endl;
 		if (key == "Host")
 		{
+			std::cout << "HOST FOUND ..." << std::endl;
 			this->_headers.host = value;
-			std::cout << "HOST:" << value << std::endl;
 		}
 		else if (key == "Connection")
 			this->_headers.connection = value;
@@ -180,6 +178,10 @@ void Request::parse_headers() {
 			this->_headers.transfer_encoding = value;
 		else if (key == "Accept")
 			this->_headers.accept = value;
+		else if (key == "User-Agent")
+			this->_headers.user_agent = value;
+		else if (key == "Cookie")
+			this->_headers.cookie = value;
 	}
 	if (this->_state == HEADERS && (this->_body.size() >= BUFFER_SIZE / 2 || this->_recv >= BUFFER_SIZE * 4))
 		{this->_status = REQUEST_HEADER_FIELDS_TOO_LARGE; this->_state = ERROR;

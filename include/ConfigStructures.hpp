@@ -6,17 +6,21 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 14:11:47 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/10 18:14:30 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/07/15 02:44:26 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CONFIGSTRUCTURES_HPP
 # define CONFIGSTRUCTURES_HPP
 
+//# include "Sockets.hpp"
+# include "util.h"
 # include <string>
 # include <vector>
 # include <map>
 
+class	Request;
+class	Response;
 
 // Structure to represent a location block in the configuration
 struct LocationConfig
@@ -27,7 +31,7 @@ struct LocationConfig
     std::string					root;
 	std::string					upload_store;
 	std::string					client_body_temp_path;
-	std::string					return_url;
+	std::pair<e_status, std::string>				return_url;
     std::string					fastcgi_pass;
     std::string					fastcgi_index;
     std::string					include;
@@ -36,17 +40,24 @@ struct LocationConfig
 
 // Structure to represent the main server configuration
 struct ServerConfig {
-    int												listen_port;
-	std::string										host;
-	std::string										server_name;
+	std::string									listen_port;
+	std::string								host;
+	std::string								server_name;
 	std::map<int, std::string>						error_pages;
-    std::string										client_max_body_size;
-    std::map<std::string, LocationConfig>			locations;
+    std::string								client_max_body_size;
+    std::map<std::string, LocationConfig>					locations;
+    int				_socket;
+    std::map<int, std::pair<Request, Response> >				_requests;
+    //
+    void	closeConn(int);	// remove entry from _requests
 };
 
 // Main configuration structure to hold multiple server blocks
 struct MainConfig {
-	std::vector<ServerConfig>	servers;
+	std::vector<ServerConfig *>	servers;
 };
+
+# include "Request.hpp"
+# include "Response.hpp"
 
 #endif

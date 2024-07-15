@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 17:07:28 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/10 18:20:45 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/07/15 03:11:50 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 MainConfig ConfigParser::parse(const std::string& config_file)
 {
 	MainConfig		main_config;
-	std::ifstream file(config_file.c_str());
+	/*std::ifstream file(config_file.c_str());
 	
 	if (!file.is_open())
 	{
@@ -33,13 +33,15 @@ MainConfig ConfigParser::parse(const std::string& config_file)
 			parseServerBlock(file, main_config);
 		}
 	}
-	file.close();
+	file.close();*/
 	return main_config;
 }
 
-void ConfigParser::parseServerBlock(std::ifstream& file, MainConfig& main_config)
+void	ServerConfig::closeConn(int s) {}
+
+void	ConfigParser::parseServerBlock(std::ifstream& file, MainConfig& main_config)
 {
-	ServerConfig	config;
+	/*ServerConfig	config;
 	std::string		line;
 
 	while (std::getline(file, line))
@@ -51,17 +53,17 @@ void ConfigParser::parseServerBlock(std::ifstream& file, MainConfig& main_config
 			main_config.servers.push_back(config);
 			break;
 		}
-	}
+	}*/
 
 }
 
-std::string ConfigParser::trim(const std::string& str)
+std::string	ConfigParser::trim(const std::string& str)
 {
-	std::string whitespaces = " \t\f\v\n\r";
-	size_t first = str.find_first_not_of(whitespaces);	
-	if (first == std::string::npos) {
+	/*std::string whitespaces = " \t\f\v\n\r";
+	size_t first = str.find_first_not_of(whitespaces);
+	if (first == std::string::npos) {*/
         return "";
-    }
+    /*}
     size_t last = str.find_last_not_of(whitespaces);
-    return str.substr(first, last - first + 1);
+    return str.substr(first, last - first + 1);*/
 }

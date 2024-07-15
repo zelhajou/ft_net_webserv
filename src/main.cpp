@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/10 18:09:46 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/07/15 02:51:36 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 
 	try {
 		// Parser parser(argv[1]); // Parse the config file
-		Sockets s(parser); // Create the Sockets for all servers
+		Sockets s(main_config); // Create the Sockets for all servers
 		s.run(); // Start the servers using kqueue
 	}
 	catch (std::exception &e) {

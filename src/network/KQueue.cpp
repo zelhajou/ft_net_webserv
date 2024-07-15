@@ -1,19 +1,26 @@
 #include "KQueue.hpp"
 
+KQueue::~KQueue() {}
+
 KQueue::KQueue()
 	: current_events(0) {
 		this->kq = kqueue();
 		if (this->kq < 0)	throw	1;
 	}
 
-int	KQueue::get_current_events() { return this->get_current_events; }
+int	KQueue::get_current_events() { return this->current_events; }
 
-void	KQueue::SET_QUEUE(int fd, short filter, u_short flags) {
+void	KQueue::SET_QUEUE(int fd, short filter, bool mode) {
 	std::memset(&this->event, 0, sizeof(this->event));
-	FD_SET(&this->event, fd, filter, flags|EV_ENABLE, 0, 0, 0);
+	if (mode) {
+		EV_SET(&this->event, fd, filter, EV_ADD|EV_ENABLE, 0, 0, 0);
+		this->current_events += 1;
+	}
+	else {	
+		EV_SET(&this->event, fd, filter, EV_DELETE, 0, 0, 0);
+		this->current_events -= 1;
+	}
 	kevent(this->kq, &this->event, 1, NULL, 0, NULL);
-	if (flags == EV_DELETE)	this->current_events -= 1;
-	else			this->current_events += 1;
 }
 
 int	KQueue::CHECK_QUEUE(struct kevent *events) {

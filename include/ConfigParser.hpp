@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 17:07:32 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/10 18:18:26 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/07/15 02:14:34 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,15 @@
 #define CONFIG_PARSER_HPP
 
 
-#include "ConfigStructures.hpp"
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <map>
+
+struct	MainConfig;
+struct	LocationConfig;
+struct	ServerConfig;
 
 class ConfigParser {
 public:
@@ -31,4 +34,5 @@ private:
     std::string trim(const std::string& str);
 };
 
+#include "ConfigStructures.hpp"
 #endif

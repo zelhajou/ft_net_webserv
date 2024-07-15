@@ -3,6 +3,12 @@
 Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false) {
 }
 
+Request::Request(const Request &R) { *this = R; }
+Request	&Request::operator = (const Request &R) { return *this; }
+
+
+void	Request::set_fd(int sock_fd) { this->_fd = sock_fd; }
+
 Request::~Request() {}
 
 void Request::setLocation(std::map<std::string, LocationConfig> locations) {

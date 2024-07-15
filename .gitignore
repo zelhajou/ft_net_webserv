@@ -2,3 +2,4 @@
 build/*.o
 webserv
 .vscode
+index.html

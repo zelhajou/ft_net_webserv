@@ -32,6 +32,8 @@ void	Sockets::recvFrom(int sock_fd) {
 	}
 	pai->second.first.recvRequest();
 	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR) {
+		std::cout << "request received: " << KCYN << sock_fd << KNRM << std::endl;
+		//std::cout << "request state: " << KCYN << pai->second.first.get_headers().connection << KNRM << std::endl;
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second.second._initiate_response(&pai->second.first, *this, serv);

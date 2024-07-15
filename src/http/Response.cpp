@@ -24,7 +24,7 @@ static	std::string	generate_status_file(e_status status_code, ServerConfig *serv
 	std::map<int, std::string>::iterator	it = server->error_pages.find(status_code);
 	if (it != server->error_pages.end() && stat(it->second.c_str(), NULL) != -1)
 		return	it->second;
-	return	"/Users/beddinao/cursus-0/webserv/mainWebserver/config/http_default_status_files/" + std::to_string(status_code) + ".html";
+	return	"/Users/hsobane/projects/teamWeb/config/http_default_status_files/" + std::to_string(status_code) + ".html";
 }
 
 void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *server) {
@@ -36,9 +36,11 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 
 	this->_file.open( target_file, std::ios::in|std::ios::binary);
 	if (!this->_file) {
+		std::cout << "file not found: " << target_file << std::endl;
 		this->_request->setStatus(FORBIDDEN);
 		this->_has_body = false;
 	} else {
+		std::cout << "file opened: " << target_file << std::endl;
 		this->_file_size = this->get_file_size();
 		int	ppos = target_file.rfind(".");
 		if (ppos == target_file.npos) ppos = 0;
@@ -82,10 +84,12 @@ size_t	Response::form_headers(ServerConfig *server) {
 	//if (req_scode == REDIRECT)	this->header.append("Location: "+/**/+CRLF);
 	if (this->_new_session)	this->header.append("set-cookie: session="+ this->_session_id + "; "CRLF);
 	//
-	if (!this->_has_body)	generate_status_file(req_scode, server);
+	//if (!this->_has_body)	generate_status_file(req_scode, server);
 	//
-	this->header.append("Content-type: " + this->_file_type + CRLF);
-	this->header.append("Content-Length: " + std::to_string(this->_file_size) + CRLF);
+	if (this->_has_body) {
+		this->header.append("Content-type: " + this->_file_type + CRLF);
+		this->header.append("Content-Length: " + std::to_string(this->_file_size) + CRLF);
+	}
 	//
 	this->header.append(CRLF);
 	return this->header.size();

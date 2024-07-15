@@ -6,7 +6,7 @@
 /*   By: hsobane <hsobane@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/15 20:55:56 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/15 22:06:26 by hsobane          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,8 +66,8 @@ int main(int argc, char *argv[]) {
 
 	//	demo play
 	std::vector<ServerConfig*>	servers;
-	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "index.html", "/Users/beddinao/cursus-0/webserv/files/", true));
-	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "index.html", "/Users/beddinao/cursus-0/webserv/files/server2/", true));
+	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "index.html", "/Users/hsobane/projects/teamWeb", true));
+	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "index.html", "/Users/hsobane/projects/teamWeb", true));
 	MainConfig	main_config;
 	main_config.servers = servers;
 	//

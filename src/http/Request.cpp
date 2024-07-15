@@ -1,6 +1,6 @@
 #include "Request.hpp"
 
-Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false) {
+Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(NONE), _timeout(0), _has_body(false), _hex(true), _chunk_size(0) {
 }
 
 Request::Request(const Request &R) { *this = R; }
@@ -28,22 +28,26 @@ void	Request::parse_uri() {
 
 	while ((pos = uri.find("/")) != std::string::npos) {
 		uri_tmp = uri.substr(0, pos);
-		if (uri_tmp == "..") {
-			simple_uri = simple_uri.substr(0, simple_uri.find_last_of("/"));
-			depth--;
-		}
+		if (uri_tmp == "..")
+			(simple_uri = simple_uri.substr(0, simple_uri.find_last_of("/")), depth--);
 		else if (uri_tmp != "." && uri_tmp != "")
-			depth++;
+			(simple_uri += uri_tmp + "/", depth++);
 		if (depth < 0)
 			{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 		uri = uri.substr(pos + 1);
 	}
-	if (pos > 0 && uri != ".." && uri != "." && uri != "")
-		simple_uri += uri;
+	if (uri == "..")
+		(simple_uri = simple_uri.substr(0, simple_uri.find_last_of("/")), depth--);
+	else if (uri != "." && uri != "")
+		(simple_uri += uri + "/", depth++);
+	if (depth < 0)
+		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.uri = simple_uri;
 }
 
-void	Request::handle_cgi() {} // TODO: implement
+void	Request::handle_cgi() {
+
+}
 
 bool	Request::is_cgi() {
 	size_t	pos;
@@ -64,7 +68,7 @@ void	Request::check_uri() {
 	LocationConfig*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
 	if (loc == NULL)
 		{(this->_status = NOT_FOUND, this->_state = ERROR); return ;}
-	if (loc->return_url.first != NONE)	// compilation error (can't compare int to e_status)
+	if (loc->return_url.first != NONE)
 		{(this->_status = loc->return_url.first, this->_state = DONE); return ;}
 	if (std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), this->_first_line.method) == loc->allowed_methods.end())
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
@@ -84,7 +88,7 @@ void	Request::check_uri() {
 		this->_location_type = STATIC;
 	}
 	else if (S_ISDIR(st.st_mode) && loc->auto_index == true)
-			this->_location_type = AUTOINDEX;
+		this->_location_type = AUTOINDEX;
 	else
 		{(this->_status = FORBIDDEN, this->_state = ERROR); return ;}
 }
@@ -94,26 +98,25 @@ void Request::parse_first_line() {
 
 	size_t			pos;
 
+	/* checking the format of the first line */
 	if ((pos = this->_body.find("\r\n")) == std::string::npos)
-		{(this->_status = BAD_REQUEST, this->_state = ERROR); return;}
+		{(this->_status = URI_TOO_LONG, this->_state = ERROR); return;}
 	if ((pos = this->_body.find(" ")) == std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.method = this->_body.substr(0, pos);
 	this->_body = this->_body.substr(pos + 1);
 	if ((pos = this->_body.find(" ")) == std::string::npos)
-		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
+		{(this->_status = URI_TOO_LONG, this->_state = ERROR); return ;}
 	this->_first_line.uri = this->_body.substr(0, pos);
 	this->_body = this->_body.substr(pos + 1);
 	if ((pos = this->_body.find("\r\n")) == std::string::npos)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.version = this->_body.substr(0, pos);
-
+	/* checking the content of the first line */
 	if (this->_first_line.method != "GET" && this->_first_line.method != "POST" && this->_first_line.method != "DELETE")
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR); return ;}
 	if (this->_first_line.version != "HTTP/1.1")
 		{(this->_status = HTTP_VERSION_NOT_SUPPORTED, this->_state = ERROR); return ;}
-	if (this->_first_line.uri.find("..") != std::string::npos)
-		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	check_uri();
 	if (this->_state == FIRST_LINE)
 		this->_state = HEADERS;
@@ -126,7 +129,7 @@ void Request::parse_headers() {
 	std::string		key;
 	std::string		value;
 
-	while ((pos = this->_body.find("\r\n")) != std::string::npos)	// some headers are not detected
+	while ((pos = this->_body.find("\r\n")) != std::string::npos)
 	{
 		std::string line = this->_body.substr(0, pos);
 		if (line.empty())
@@ -157,25 +160,41 @@ void Request::parse_headers() {
 	}
 }
 
+void Request::handle_chunked() {
+	size_t		pos;
+	std::string	tmp;
+
+	if ((pos = this->_body.find("\r\n")) == std::string::npos)
+		return ;
+	tmp = this->_body.substr(0, pos);
+	if (_hex) {
+		this->_chunk_size = std::strtoll(tmp.c_str(), NULL, 16);
+		if (this->_chunk_size == 0)
+			{this->_state = DONE; return ;}
+		this->_hex = false;
+	}
+	else {
+		if (this->_chunk_size != tmp.size())
+			{this->_status = BAD_REQUEST; this->_state = ERROR; return ;}
+		this->_hex = true;
+		this->_chunked_body.push_back(this->_body.substr(0, pos));
+	}
+	this->_body = this->_body.substr(pos + 2);
+	
+}
+
 void Request::parse_body() {
 	if (this->_state != BODY) return ;
 
-	if (this->_has_body || this->_body.size() > 0)
-		this->_has_body = true;
-	if (this->_has_body && !this->_chunked && this->_content_length == 0)
+	if (this->_body.size() == 0)
+		return ;
+	this->_has_body = true;
+	if (!this->_chunked && this->_content_length == 0)
 		{this->_state = ERROR; this->_status = LENGTH_REQUIRED; return ;}
-	if (this->_has_body && !this->_chunked && this->_body.size() >= this->_content_length)
+	if (!this->_chunked && this->_body.size() >= this->_content_length)
 		{this->_state = DONE; return ;}
-	if (this->_has_body && this->_chunked) {
-		size_t	pos;
-		if ((pos = this->_body.find("\r\n")) == std::string::npos)
-			return ;
-		size_t	chunk_size = std::strtoll(this->_body.substr(0, pos).c_str(), NULL, 16);
-		if (chunk_size == 0)
-			{this->_state = DONE; return ;}
-		if (this->_body.size() >= pos + 2 + chunk_size + 2)
-			this->_body = this->_body.substr(pos + 2 + chunk_size + 2);
-	}
+	if (this->_chunked)
+		handle_chunked();
 	this->_state = DONE;
 }
 
@@ -189,11 +208,7 @@ void	Request::recvRequest() {
 		this->_state = ERROR;
 		return ;
 	}
-	if (ret == 0)
-	{
-		this->_state = DONE;
-		return ;
-	}
+	if (ret == 0) {this->_state = DONE; return ;}
 	this->_recv += ret;
 	this->_body.append(buffer, ret);
 	parse_first_line();

@@ -34,6 +34,7 @@ public:
 	e_location_type				get_location_type();
 	bool						is_cgi();
 	void						handle_cgi();
+	void						handle_chunked();
 
 	void						setStatus(e_status status);
 	void						setLocation(std::map<std::string, LocationConfig> &locations);
@@ -53,6 +54,9 @@ private:
 	size_t						_content_length;
 	std::vector<LocationNode*>	_location_tree;
 	e_location_type				_location_type;
+	bool						_hex;
+	size_t						_chunk_size;
+	std::vector<std::string>	_chunked_body;
 };
 
 # include "TrieTree.hpp"

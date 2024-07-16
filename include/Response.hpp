@@ -6,6 +6,7 @@
 # include <fstream>
 # include "util.h"
 # include "Request.hpp"
+# include <dirent.h>
 # include "ConfigStructures.hpp"
 
 class	Sockets;

@@ -234,8 +234,10 @@ void	Sockets::kqueueLoop() {
 			for (int i=0; i < n; i++)
 			{
 				if (events[i].flags & EV_ERROR || events[i].fflags & EV_ERROR
-					|| events[i].flags & EV_EOF || events[i].fflags & EV_EOF)
+					|| events[i].flags & EV_EOF || events[i].fflags & EV_EOF) {
+					std::cout << KRED << "Error on connection: " << KNRM << KCYN << events[i].ident << KNRM << std::endl;
 					this->closeConn(events[i].ident);
+					}
 				else if (events[i].filter == EVFILT_READ)
 				{
 					it = this->_fd_to_server.find(events[i].ident);

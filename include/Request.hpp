@@ -33,8 +33,14 @@ public:
 	t_headers					get_headers();
 	e_location_type				get_location_type();
 	bool						is_cgi();
+	bool						is_file(std::string& path);
+	bool						is_directory(std::string& path);
 	void						handle_cgi();
 	void						handle_chunked();
+	void						handle_file();
+	void						handle_directory(LocationConfig* loc);
+	void						handle_uri(LocationConfig* loc);
+	void						handle_location(LocationConfig** loc);
 
 	void						setStatus(e_status status);
 	void						setLocation(std::map<std::string, LocationConfig> &locations);

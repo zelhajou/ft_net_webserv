@@ -26,6 +26,10 @@ void	Request::parse_uri() {
 	std::string	uri_tmp;
 	std::string simple_uri = "/";
 
+	// std::cout << "URI: " << uri << std::endl;
+	if (uri[uri.size() - 1] == '/')
+		uri = uri.substr(0, uri.size() - 1);
+
 	while ((pos = uri.find("/")) != std::string::npos) {
 		uri_tmp = uri.substr(0, pos);
 		if (uri_tmp == "..")
@@ -43,6 +47,7 @@ void	Request::parse_uri() {
 	if (depth < 0)
 		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
 	this->_first_line.uri = simple_uri;
+	// std::cout << "SIMPLE URI: " << this->_first_line.uri << std::endl;
 }
 
 void	Request::handle_cgi() {
@@ -59,54 +64,108 @@ bool	Request::is_cgi() {
 	return false;
 }
 
-void	Request::check_uri() {
-	if (this->_state != FIRST_LINE) return ;
+void	Request::handle_location(LocationConfig** loc) {
+	// if (this->_state == ERROR) return ;
 
-	struct stat		st;
-	parse_uri();
-	if (this->_state == ERROR) return ;
-	LocationConfig*		loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
+	*loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
 	if (loc == NULL)
 		{(this->_status = NOT_FOUND, this->_state = ERROR);
 		std::cout << "Location Not Found (null)" << std::endl;
 		return ;}
-	if (loc->return_url.first != NONE)
-		{(this->_status = loc->return_url.first, this->_state = DONE);
+	if ((*loc)->return_url.first != NONE)
+		{(this->_status = (*loc)->return_url.first, this->_state = DONE);
 		std::cout << "Return is set to not NONE" << std::endl;
 		return ;}
-	if (std::find(loc->allowed_methods.begin(), loc->allowed_methods.end(), this->_first_line.method) == loc->allowed_methods.end())
+	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_first_line.method) == (*loc)->allowed_methods.end())
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR);
 		std::cout << "Method Not Allowed (not supported inside location)" << std::endl;
 		return ;}
-	if (is_cgi())
-		{handle_cgi(); return ;}
-	this->_first_line.uri.replace(0, loc->path.size(), loc->root);
-	if (stat(this->_first_line.uri.c_str(), &st) == -1)
-		{(this->_status = NOT_FOUND, this->_state = ERROR);
-		std::cout << "File Not Found (stat)" << std::endl;
-		return ;}
-	if (!S_ISDIR(st.st_mode) && !S_ISREG(st.st_mode))
+}
+
+bool	Request::is_file(std::string& path) {
+	struct stat		st;
+
+	if (stat(path.c_str(), &st) == -1)
+		return false;
+	if (S_ISREG(st.st_mode))
+		return true;
+	return false;
+}
+
+bool	Request::is_directory(std::string& path) {
+	struct stat	st;
+
+	if (stat(path.c_str(), &st) == -1)
+		return false;
+	if (S_ISDIR(st.st_mode))
+		return true;
+	return false;
+}
+
+void	Request::handle_file() {
+	// if (this->_state == ERROR) return ;
+
+	if (access(this->_first_line.uri.c_str(), R_OK) == -1)
 		{(this->_status = FORBIDDEN, this->_state = ERROR);
-		std::cout << "Forbidden (not a file or directory)" << std::endl;
+		std::cout << "Forbidden (no read access)" << std::endl;
 		return ;}
-	if (loc->index.size() > 0) { // TODO: check if there is a valid index
+	this->_location_type = STATIC;
+}
+
+void	Request::handle_directory(LocationConfig* loc) {
+	// if (this->_state == ERROR) return ;
+
+	if (access(this->_first_line.uri.c_str(), R_OK) == -1)
+		{(this->_status = FORBIDDEN, this->_state = ERROR);
+		std::cout << "Forbidden (no read access)" << std::endl;
+		return ;}
+	if (loc->index.size() > 0) {
 		this->_first_line.uri += "/" + loc->index;
-		if (stat(this->_first_line.uri.c_str(), &st) == -1)
-			{(this->_status = NOT_FOUND, this->_state = ERROR);
-			std::cout << "File Not Found : " << this->_first_line.uri << std::endl;
-			return ;}
-		if (!S_ISREG(st.st_mode))
+		if (!is_file(this->_first_line.uri))
 			{(this->_status = FORBIDDEN, this->_state = ERROR);
-			std::cout << "Forbidden (not a file)" << std::endl;
+			std::cout << "Forbidden (no index)" << std::endl;
 			return ;}
 		this->_location_type = STATIC;
 	}
-	else if (S_ISDIR(st.st_mode) && loc->auto_index == true)
-		this->_location_type = AUTOINDEX;
-	else
+	else if (!loc->auto_index)
 		{(this->_status = FORBIDDEN, this->_state = ERROR);
 		std::cout << "Forbidden (no index)" << std::endl;
 		return ;}
+	this->_location_type = AUTOINDEX;
+}
+
+void Request::handle_uri(LocationConfig* loc) {
+	// if (this->_state == ERROR) return ;
+
+	std::string r = loc->root + "/";
+	std::cout << "ROOT: " << loc->root << std::endl;
+	std::cout << "PATH: " << loc->path << std::endl;
+	std::cout << "URI: " << this->_first_line.uri << std::endl;
+	std::cout << "INDEX: " << loc->index << std::endl;
+	this->_first_line.uri.replace(0, loc->path.size(), r);
+	parse_uri();
+	std::cout << "MERGED URI: " << this->_first_line.uri << std::endl;
+	if (is_file(this->_first_line.uri))
+		handle_file();
+	else if (is_directory(this->_first_line.uri))
+		handle_directory(loc);
+	else
+		{(this->_status = NOT_FOUND, this->_state = ERROR);
+		std::cout << "File Not Found (handle_uri)" << std::endl;
+		return ;}
+}
+
+void	Request::check_uri() {
+	if (this->_state != FIRST_LINE) return ;
+
+	struct stat		st;
+	LocationConfig*		loc;
+
+	parse_uri();
+	handle_location(&loc);
+	if (is_cgi())
+		{handle_cgi(); return ;}
+	handle_uri(loc);
 }
 
 void Request::parse_first_line() {
@@ -164,10 +223,7 @@ void Request::parse_headers() {
 		value = line.substr(pos + 2);
 		std::cout << "Key: |" << key << "| Value: |" << value << "|" << std::endl;
 		if (key == "Host")
-		{
-			std::cout << "HOST FOUND ..." << std::endl;
 			this->_headers.host = value;
-		}
 		else if (key == "Connection")
 			this->_headers.connection = value;
 		else if (key == "Content-Type")

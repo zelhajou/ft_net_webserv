@@ -33,7 +33,7 @@ void	Sockets::recvFrom(int sock_fd) {
 	pai->second.first.recvRequest();
 	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR) {
 		////////////
-		t_headers	h = pai->second.first.get_headers();
+		/*t_headers	h = pai->second.first.get_headers();
 		t_first_line fl = pai->second.first.get_first_line();
 		std::cout << "First line:\n";
 		std::cout << "method: " << fl.method << std::endl;
@@ -48,7 +48,7 @@ void	Sockets::recvFrom(int sock_fd) {
 		std::cout << "date: " << h.date << std::endl;
 		std::cout << "accept: " << h.accept << std::endl;
 		std::cout << "location: " << h.location << std::endl;
-		std::cout << "user_agent: " << h.user_agent << std::endl << std::endl;
+		std::cout << "user_agent: " << h.user_agent << std::endl << std::endl;*/
 		/////////
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
@@ -235,8 +235,8 @@ void	Sockets::kqueueLoop() {
 			{
 				if (events[i].flags & EV_ERROR || events[i].fflags & EV_ERROR
 					|| events[i].flags & EV_EOF || events[i].fflags & EV_EOF) {
-					std::cout << KRED << "Error on connection: " << KNRM << KCYN << events[i].ident << KNRM << std::endl;
-					this->closeConn(events[i].ident);
+						std::cout << KRED << "err/eof on connection: " << KNRM << KCYN << events[i].ident << KNRM << std::endl;
+						this->closeConn(events[i].ident);
 					}
 				else if (events[i].filter == EVFILT_READ)
 				{

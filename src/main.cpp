@@ -6,7 +6,7 @@
 /*   By: hsobane <hsobane@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/16 02:48:44 by hsobane          ###   ########.fr       */
+/*   Updated: 2024/07/16 09:08:33 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,8 @@ ServerConfig	*demo_server(std::string port, std::string host, std::string server
 	server->host = host;
 	server->server_name = server_name;
 	std::map<int, std::string>	error_pages;
-	error_pages[INTERNAL_SERVER_ERROR] = DEFAULT_ERROR_PATH"500.html";
-	error_pages[BAD_REQUEST] = DEFAULT_ERROR_PATH"400.html";
+	error_pages[INTERNAL_SERVER_ERROR] = CONFIG_PATH"/html_default_error_files/500.html";
+	error_pages[BAD_REQUEST] = CONFIG_PATH"/html_default_error_files/400.html";
 	server->error_pages = error_pages;
 
 	LocationConfig			_location_one;
@@ -66,8 +66,8 @@ int main(int argc, char *argv[]) {
 
 	//	demo play
 	std::vector<ServerConfig*>	servers;
-	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "index.html", "/Users/hsobane/projects/teamWeb", true));
-	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "index.html", "/Users/hsobane/projects", true));
+	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "index.html", SERVER_ALL_ROOT, false));
+	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
 	MainConfig	main_config;
 	main_config.servers = servers;
 	//

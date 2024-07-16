@@ -24,29 +24,96 @@ static	std::string	generate_status_file(e_status status_code, ServerConfig *serv
 	std::map<int, std::string>::iterator	it = server->error_pages.find(status_code);
 	if (it != server->error_pages.end() && stat(it->second.c_str(), NULL) != -1)
 		return	it->second;
-	return	"/Users/hsobane/projects/teamWeb/config/http_default_status_files/" + std::to_string(status_code) + ".html";
+	return	CONFIG_PATH"/html_default_error_files/" + std::to_string(status_code) + ".html";
+}
+
+static	std::string	replace_characters(std::string input, std::string from, std::string to) {
+	int	i;
+	while ((i = input.find(from)) != input.npos)
+		input.replace(i, from.size(), to);
+	return	input;
+}
+
+static	std::string	generate_auto_index(std::string uri, ServerConfig *server) {
+	std::string target =  CONFIG_PATH"/html_generated_files/"+ replace_characters(uri, "/", "#")+".html";
+	std::cout << KRED << "directory listing requested:\n" << KNRM << KCYN << target << KNRM << std::endl;
+	struct	stat	demo;
+	if (stat(target.c_str(), &demo) != -1) {
+		std::cout << KRED << "already generated html file\n" << KNRM;
+		return	target;
+	}
+	std::fstream	output(target, std::ios::out);
+	if (!output)	return	"";
+	output << "<html><head><title> | Directory Listing</title>\
+		<style>*{margin:0px;padding:0px;box-sizing:border-box;}html{background-color:#000;}body{\
+		height:100vh;width:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:monospace;color:#f7f7f7;}\
+		#container{height:100%;width:90%;display:flex;border:1px solid #404040;flex-direction:column;justify-content:space-around;align-items:start;\
+		max-height:90%;overflow:auto;scroll-behavior:smooth;padding:4em;}h1{color:#c8c8c8;font-size:1.7em;}\
+		#container > div{height:90%;width:100%;display:flex;flex-direction:column;padding:2em 5em;align-items:start;background-color:#333;}\
+		a{font-size:1.3em;height:2em;width:100%;display:flex;flex-direction:row;justify-content:space-between;align-items:center;\
+		transition-duration:.3s;font-family:monospace;text-decoration:none;color:inherit;padding:0em 10px;}p{font-size:0.9em;\
+		color:inherit;}hr {background-color:#4a4a4a;width:99%;height:1px;border:0px;align-self:center;}\
+		a:hover{background-color:#f7f7f7;color:#333;}</style>\
+		<script>function c_redir(loc){if (window.location.href.endsWith(\"#\")) window.location.href = window.location.href.slice(0, -1);\
+		if (!window.location.href.endsWith(\"/\")) loc = \"/\" + loc; window.location.href += loc;}</script>\
+		</head><body><div id=\"container\">\
+		<h1>" << uri << " :</h1><div>";
+	////////////////
+	DIR			*dir = opendir(uri.c_str());
+	struct	dirent		*direct;
+	struct	stat		file_status;
+	std::string		new_uri;
+	while ((direct = readdir(dir))) {
+		new_uri = uri + "/";
+		new_uri.append(direct->d_name);
+		output << "<a href=\"";
+		if (!std::strcmp(direct->d_name, ".") || !std::strcmp(direct->d_name, ".."))
+			output << direct->d_name<< "\">" << direct->d_name;
+		else	output << "javascript:;\" onclick=\"c_redir('" << direct->d_name << "')\">" << direct->d_name;
+		std::memset(&file_status, 0, sizeof(file_status));
+		if (stat(new_uri.c_str(), &file_status) == -1) {
+			output << "<p style=\"color:red;\">size_retrieval_failed</p></a><hr/>";
+			continue;
+		}
+		output <<"<p>"<< std::to_string(file_status.st_size)<<" B</p></a><hr/>";
+	}
+	///////////////
+	output <<	"</div></div></body></html>\n";
+	output.close();
+	return	target;
 }
 
 void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *server) {
 	this->_request = req;
 	std::string	target_file;
-	if (req->getStatus() == OK && req->get_first_line().method == "GET")
-		target_file = req->get_first_line().uri;
-	else	target_file = generate_status_file(req->getStatus(), server);
 
-	this->_file.open( target_file, std::ios::in|std::ios::binary);
-	if (!this->_file) {
-		std::cout << "file not found: " << target_file << std::endl;
-		this->_request->setStatus(FORBIDDEN);
-		this->_has_body = false;
-	} else {
-		std::cout << "file opened: " << target_file << std::endl;
-		this->_file_size = this->get_file_size();
-		int	ppos = target_file.rfind(".");
-		if (ppos == target_file.npos) ppos = 0;
-		this->_file_type = sock.get_mime_type(target_file.substr(ppos));
+	if (req->get_location_type() == AUTOINDEX) {
+		struct	stat	output;
+		std::string	uri = req->get_first_line().uri;
+		std::memset(&output, 0, sizeof(output));
+		if (stat(uri.c_str(), &output) == -1 || !S_ISDIR(output.st_mode)
+			|| !(target_file = generate_auto_index(uri, server)).size()) {
+			this->_request->setStatus(FORBIDDEN);
+			this->_has_body = false;
+		}
 	}
+	else if (req->getStatus() == OK && req->get_first_line().method == "GET")
+		target_file = req->get_first_line().uri;
+	else	
+		target_file = generate_status_file(req->getStatus(), server);
+	if (this->_has_body) {
+		this->_file.open( target_file, std::ios::in|std::ios::binary);
+		if (!this->_file) {
+			this->_request->setStatus(FORBIDDEN);
+			this->_has_body = false;
+		} else {
+			this->_file_size = this->get_file_size();
+			int	ppos = target_file.rfind(".");
+			if (ppos == target_file.npos) ppos = 0;
+			this->_file_type = sock.get_mime_type(target_file.substr(ppos));
+		}
 
+	}
 	this->_connection_type = req->get_headers().connection.find("keep-alive") != std::string::npos ? "keep-alive": "close";
 	//sock.check_session(*this);
 }
@@ -113,7 +180,6 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		else		this->_sent[0] += sent_res;
 
 		if (this->_sent[0] >= this->_sent[1]) {
-			std::cout << "SENT HEADERS:" << this->header << std::endl;
 			if (this->_has_body) {
 				this->_sent[1] = 0;
 				this->status = BODY;

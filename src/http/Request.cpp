@@ -70,15 +70,15 @@ void	Request::handle_location(LocationConfig** loc) {
 	*loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
 	if (loc == NULL)
 		{(this->_status = NOT_FOUND, this->_state = ERROR);
-		std::cout << "Location Not Found (null)" << std::endl;
+		//std::cout << "Location Not Found (null)" << std::endl;
 		return ;}
 	if ((*loc)->return_url.first != NONE)
 		{(this->_status = (*loc)->return_url.first, this->_state = DONE);
-		std::cout << "Return is set to not NONE" << std::endl;
+		//std::cout << "Return is set to not NONE" << std::endl;
 		return ;}
 	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_first_line.method) == (*loc)->allowed_methods.end())
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR);
-		std::cout << "Method Not Allowed (not supported inside location)" << std::endl;
+		//std::cout << "Method Not Allowed (not supported inside location)" << std::endl;
 		return ;}
 }
 
@@ -107,7 +107,7 @@ void	Request::handle_file() {
 
 	if (access(this->_first_line.uri.c_str(), R_OK) == -1)
 		{(this->_status = FORBIDDEN, this->_state = ERROR);
-		std::cout << "Forbidden (no read access)" << std::endl;
+		//std::cout << "Forbidden (no read access)" << std::endl;
 		return ;}
 	this->_location_type = STATIC;
 }
@@ -117,41 +117,42 @@ void	Request::handle_directory(LocationConfig* loc) {
 
 	if (access(this->_first_line.uri.c_str(), R_OK) == -1)
 		{(this->_status = FORBIDDEN, this->_state = ERROR);
-		std::cout << "Forbidden (no read access)" << std::endl;
+		//std::cout << "Forbidden (no read access)" << std::endl;
 		return ;}
 	if (loc->index.size() > 0) {
 		this->_first_line.uri += "/" + loc->index;
 		if (!is_file(this->_first_line.uri))
 			{(this->_status = FORBIDDEN, this->_state = ERROR);
-			std::cout << "Forbidden (no index)" << std::endl;
+			//std::cout << "Forbidden (no index)" << std::endl;
 			return ;}
 		this->_location_type = STATIC;
 	}
 	else if (!loc->auto_index)
 		{(this->_status = FORBIDDEN, this->_state = ERROR);
-		std::cout << "Forbidden (no index)" << std::endl;
+		//std::cout << "Forbidden (no index)" << std::endl;
 		return ;}
-	this->_location_type = AUTOINDEX;
+	else
+		this->_location_type = AUTOINDEX;
 }
 
 void Request::handle_uri(LocationConfig* loc) {
 	// if (this->_state == ERROR) return ;
 
 	std::string r = loc->root + "/";
-	std::cout << "ROOT: " << loc->root << std::endl;
+	/*std::cout << "ROOT: " << loc->root << std::endl;
 	std::cout << "PATH: " << loc->path << std::endl;
 	std::cout << "URI: " << this->_first_line.uri << std::endl;
-	std::cout << "INDEX: " << loc->index << std::endl;
+	std::cout << "INDEX: " << loc->index << std::endl;*/
 	this->_first_line.uri.replace(0, loc->path.size(), r);
 	parse_uri();
-	std::cout << "MERGED URI: " << this->_first_line.uri << std::endl;
+	//std::cout << "MERGED URI: " << this->_first_line.uri << std::endl;
 	if (is_file(this->_first_line.uri))
 		handle_file();
 	else if (is_directory(this->_first_line.uri))
 		handle_directory(loc);
 	else
 		{(this->_status = NOT_FOUND, this->_state = ERROR);
-		std::cout << "File Not Found (handle_uri)" << std::endl;
+		//std::cout << "File Not Found (handle_uri)" << std::endl;
 		return ;}
 }
 
@@ -191,11 +192,11 @@ void Request::parse_first_line() {
 	/* checking the content of the first line */
 	if (this->_first_line.method != "GET" && this->_first_line.method != "POST" && this->_first_line.method != "DELETE")
 		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR);
-		std::cout << "Method Not Implemented" << std::endl;
+		//std::cout << "Method Not Implemented" << std::endl;
 		return ;}
 	if (this->_first_line.version != "HTTP/1.1")
 		{(this->_status = HTTP_VERSION_NOT_SUPPORTED, this->_state = ERROR);
-		std::cout << "HTTP Version Not Supported" << std::endl;
+		//std::cout << "HTTP Version Not Supported" << std::endl;
 		return ;}
 	check_uri();
 	if (this->_state == FIRST_LINE)
@@ -217,11 +218,11 @@ void Request::parse_headers() {
 		this->_body = this->_body.substr(pos + 2);
 		if ((pos = line.find(":")) == std::string::npos)
 			{this->_status = BAD_REQUEST; this->_state = ERROR;
-			std::cout << "Bad Request (no colon): " << line << std::endl;
+			//std::cout << "Bad Request (no colon): " << line << std::endl;
 			return ;}
 		key = line.substr(0, pos);
 		value = line.substr(pos + 2);
-		std::cout << "Key: |" << key << "| Value: |" << value << "|" << std::endl;
+		//std::cout << "Key: |" << key << "| Value: |" << value << "|" << std::endl;
 		if (key == "Host")
 			this->_headers.host = value;
 		else if (key == "Connection")
@@ -241,7 +242,7 @@ void Request::parse_headers() {
 	}
 	if (this->_state == HEADERS && (this->_body.size() >= BUFFER_SIZE / 2 || this->_recv >= BUFFER_SIZE * 4))
 		{this->_status = REQUEST_HEADER_FIELDS_TOO_LARGE; this->_state = ERROR;
-		std::cout << "Request Header Fields Too Large" << std::endl;
+		//std::cout << "Request Header Fields Too Large" << std::endl;
 		return ;}
 	if (this->_state == BODY) {
 		this->_body = this->_body.substr(2);
@@ -284,12 +285,12 @@ void Request::parse_body() {
 	this->_has_body = true;
 	if (!this->_chunked && this->_content_length == 0)
 		{this->_state = ERROR; this->_status = LENGTH_REQUIRED;
-		std::cout << "Length Required: " << this->_body.size() << std::endl;
-		std::cout << "BODY: " << this->_body << std::endl;
+		/*std::cout << "Length Required: " << this->_body.size() << std::endl;
+		std::cout << "BODY: " << this->_body << std::endl;*/
 		return ;}
 	if (!this->_chunked && this->_body.size() >= this->_content_length)
 		{this->_state = DONE;
-		std::cout << "Done" << std::endl;
+		//std::cout << "Done" << std::endl;
 		return ;}
 	if (this->_chunked)
 		handle_chunked();
@@ -307,7 +308,7 @@ void	Request::recvRequest() {
 		return ;
 	}
 	if (ret == 0) {this->_state = DONE;
-	std::cout << "Done Recv 0 byte" << std::endl;
+	//std::cout << "Done Recv 0 byte" << std::endl;
 	return ;}
 	this->_recv += ret;
 	this->_body.append(buffer, ret);

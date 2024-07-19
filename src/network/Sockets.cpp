@@ -433,9 +433,9 @@ void	Sockets::startServers() {
 
 void	Sockets::run() {
 	//////////////////	TEST:
-	std::cout << KGRN << "script execution TEST:\n" << KNRM;
+	/*std::cout << KGRN << "script execution TEST:\n" << KNRM;
 	std::string		jobs[1] = {"/bin/ls"};
-	for (int i=0; i < 1; i++)	std::cout << this->execute_script(jobs[i]) << std::endl;
+	for (int i=0; i < 1; i++)	std::cout << this->execute_script(jobs[i]) << std::endl;*/
 	////////////////
 	this->startServers();
 	this->kqueueLoop();

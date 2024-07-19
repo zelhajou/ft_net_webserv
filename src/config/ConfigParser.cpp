@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 17:07:28 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/15 21:38:46 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/19 00:11:00 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,4 +70,14 @@ std::string	ConfigParser::trim(const std::string& str)
     /*}
     size_t last = str.find_last_not_of(whitespaces);
     return str.substr(first, last - first + 1);*/
+}
+
+ServerConfig::~ServerConfig() {
+	std::cout << KRED << "cleaning "<< KNRM << this->server_name << " configs\n";
+}
+
+MainConfig::~MainConfig() {
+	std::cout << KRED << "cleaning "<< KNRM<<"configuration structure..\n";
+	for (std::vector<ServerConfig*>::iterator i=this->servers.begin();i!=this->servers.end();++i)
+		delete	*i;
 }

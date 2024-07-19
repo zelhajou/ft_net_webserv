@@ -1,10 +1,139 @@
 #include "Sockets.hpp"
 
-Sockets::Sockets(MainConfig& main_config) : _main_config(main_config), _sess_id(1234) {
-	std::srand(std::time(NULL));
+void	fix_up_signals(void (*f)(int)) {
+	signal(SIGPIPE, SIG_IGN);
+	signal(SIGFPE, SIG_IGN);
+	signal(SIGABRT, SIG_IGN);
+	signal(SIGILL, SIG_IGN);
+	signal(SIGSEGV, SIG_IGN);
+	signal(SIGTERM, f);
+	signal(SIGINT, f);
+	signal(SIGKILL, f);
 }
 
-Sockets::~Sockets() {}
+static	std::string	exec_job(char *job) {
+	std::string	output;
+	char		buffer[8000];
+	std::memset(buffer, 0, sizeof(buffer));
+	int		pi[2];
+	pipe(pi);
+	std::cout << KCYN << "master_process: " << KNRM
+		<< "creating a grandchild process to handle execution"
+		<< " of the requested url: " << job << std::endl;
+	pid_t		grandchild = fork();
+	if (!grandchild) {
+		char	*argv[] = {job, 0};
+		close(pi[0]);
+		dup2(pi[1], 1);
+		close(pi[1]);
+		execve(argv[0], argv, NULL);
+		exit(1);
+	}
+	read(pi[0], buffer, 8000);
+	close(pi[0]); close(pi[1]);
+	output.append(buffer);
+	return	output;
+}
+
+static	int	geta_unix_socket(struct sockaddr_un &address, std::string socket_path) {
+	std::memset(&address, 0, sizeof(address));
+	int	sock = socket(AF_UNIX, SOCK_STREAM, 0);
+	address.sun_family = AF_UNIX;
+	std::strcpy(address.sun_path, socket_path.c_str());
+	return		sock;
+}
+
+static	void	child_ex(int sig_num) {
+	std::cout << KCYN << "master_process:" << KNRM
+		<< " received signal(" << KGRN << sig_num
+		<< KNRM << ") exiting..\n";
+	exit(sig_num);
+}
+
+static	void	master_routine(std::string socket_path) {
+	fix_up_signals(child_ex);
+	std::string	input, output;
+	struct	sockaddr_un	address;
+	int	sock = geta_unix_socket(address, socket_path);
+	connect(sock, (struct sockaddr*)&address, sizeof(address));
+	fd_set	r_set, w_set, r_copy, w_copy;
+	FD_ZERO(&r_set); FD_ZERO(&w_set);
+	FD_ZERO(&r_copy); FD_ZERO(&w_copy);
+	FD_SET(sock, &r_set);
+	for (;;) {
+		r_copy = r_set;
+		w_copy = w_set;
+		select(sock + 1, &r_copy, &w_copy, NULL, NULL);
+		if (FD_ISSET(sock, &r_copy)) {
+			char		buffer[1000];
+			std::memset(buffer, 0, sizeof(buffer));
+			while (recv(sock, buffer, 1000, MSG_DONTWAIT) > 0) {
+				input.append(buffer);
+				std::memset(buffer, 0, sizeof(buffer));
+			}
+			output = exec_job(const_cast<char*>(input.c_str()));
+			FD_CLR(sock, &r_set);
+			FD_SET(sock, &w_set);
+			input.clear();
+		}
+		else if (FD_ISSET(sock, &w_copy)) {
+			send(sock, output.c_str(), output.size(), 0);
+			std::cout << KCYN << "master_process:" << KNRM
+				<< " job done successfully ->"
+				<< " going back to sleep\n";
+			FD_CLR(sock, &w_set);
+			FD_SET(sock, &r_set);
+		}
+	}
+}
+
+void	Sockets::initiate_servers(MainConfig &main_config) {
+	this->_main_config = main_config;
+}
+
+Sockets::Sockets( void ) : _sess_id(1234) {
+	std::srand(std::time(NULL));
+	this->socket_path = SOCKETS_PATH"/unix_quick_private_socket";
+	std::cout << "creating cgi master process.." << std::endl;
+	this->master_PID = fork();
+	if (!this->master_PID)	master_routine(this->socket_path);
+	struct	sockaddr_un	address;
+	this->cgi_controller = geta_unix_socket(address, this->socket_path);
+	bind(this->cgi_controller, (struct sockaddr*)&address, sizeof(address));
+	listen(this->cgi_controller, 5);
+	std::cout << KCYN << "initiating" << KNRM  << " connection with master process over unix socket..\n";
+	this->master_process = ::accept(this->cgi_controller, NULL, NULL);
+	std::cout << "child created" << KGRN << " successfully and waiting for jobs in: "
+		<< KNRM << KCYN << this->socket_path << KNRM << std::endl;
+}
+
+Sockets::~Sockets() {
+	std::cout << KRED << "cleaning...\n";
+	std::cout << "deleting unix socket: "<< KNRM
+		<< KCYN << this->socket_path << KNRM << std::endl;
+	std::remove(this->socket_path.c_str());
+	kill(this->master_PID, SIGKILL);
+}
+
+std::string	Sockets::execute_script(std::string input) {
+	//	->
+	send(this->master_process, input.c_str(), input.size(), 0);
+	//	<-
+	std::string	output;
+	fd_set		r_set;
+	FD_ZERO(&r_set);
+	FD_SET(this->master_process, &r_set);
+	char		buffer[1000];
+	int		res;
+	select(this->master_process + 1, &r_set, NULL, NULL, NULL);
+	while (true) {
+		std::memset(buffer, 0, sizeof(buffer));
+		res = recv(this->master_process, buffer, 1000, MSG_DONTWAIT);
+		if (res <= 0)	break;
+		else		output.append(buffer);
+	}
+	return		output;
+}
 
 void	Sockets::accept(int sock_fd) {
 	struct	sockaddr	address;
@@ -32,24 +161,6 @@ void	Sockets::recvFrom(int sock_fd) {
 	}
 	pai->second.first.recvRequest();
 	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR) {
-		////////////
-		/*t_headers	h = pai->second.first.get_headers();
-		t_first_line fl = pai->second.first.get_first_line();
-		std::cout << "First line:\n";
-		std::cout << "method: " << fl.method << std::endl;
-		std::cout << "uri: " << fl.uri << std::endl;
-		std::cout << "version: " << fl.version << std::endl;
-		std::cout << "Headers:\n";
-		std::cout << "host: " << h.host << std::endl;
-		std::cout << "connection: " << h.connection << std::endl;
-		std::cout << "content_type: " << h.content_type << std::endl;
-		std::cout << "content_length: " << h.content_length << std::endl;
-		std::cout << "transfer_encoding: " << h.transfer_encoding << std::endl;
-		std::cout << "date: " << h.date << std::endl;
-		std::cout << "accept: " << h.accept << std::endl;
-		std::cout << "location: " << h.location << std::endl;
-		std::cout << "user_agent: " << h.user_agent << std::endl << std::endl;*/
-		/////////
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second.second._initiate_response(&pai->second.first, *this, serv);
@@ -114,7 +225,7 @@ static	std::string	clean_up_stuff(std::string input, std::string garbage, std::s
 int	__calc_new_range(int old_value, int old_min, int old_max, int new_min, int new_max) {
 	if (old_max==old_min||new_min==new_max) return new_min;
 	if (old_value == old_min) return new_min;
-	/*else if (old_value>old_max) return new_max;*/
+	else if (old_value>old_max) return new_max;
 	return ( ((old_value-old_min)*(new_max-new_min))/(old_max-old_min)+new_min);
 }
 
@@ -133,11 +244,14 @@ static	std::string	get_cookie_value(std::string input, std::string name)
 	epos = pos;
 	try {
 		if (epos > input.size() || input[epos] == input.npos) return "";
-		while (input[epos] != ';' && input[epos] != ' ') epos += 1;
+		while (epos < input.size() 
+			&& input[epos] != input.npos 
+			&& input[epos] != ';' 
+			&& input[epos] != ' ')
+			epos += 1;
 		return	input.substr(pos, epos-pos);
 	}
-	catch (std::exception &l)
-	{ return ""; }
+	catch (std::exception &l)	{ return ""; }
 }
 
 void		Sockets::check_session(Response &response) {
@@ -318,6 +432,11 @@ void	Sockets::startServers() {
 }
 
 void	Sockets::run() {
+	//////////////////	TEST:
+	std::cout << KGRN << "script execution TEST:\n" << KNRM;
+	std::string		jobs[1] = {"/bin/ls"};
+	for (int i=0; i < 1; i++)	std::cout << this->execute_script(jobs[i]) << std::endl;
+	////////////////
 	this->startServers();
 	this->kqueueLoop();
 }

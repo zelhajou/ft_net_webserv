@@ -1,15 +1,12 @@
 #include "Response.hpp"
 
 Response::Response(): status(FIRST_LINE), _has_body(true), _new_session(false) {
-	/*this->_sent[0] = 0;
-	this->_sent[1] = 0;*/
 	this->_sent.push_back(0);
 	this->_sent.push_back(0);
 }
 
 Response::Response(const Response &R) { *this = R; }
 Response	&Response::operator = (const Response &R) { return *this; }
-
 Response::~Response() {}
 
 size_t	Response::get_file_size() {
@@ -34,8 +31,14 @@ static	std::string	replace_characters(std::string input, std::string from, std::
 	return	input;
 }
 
+static	size_t		get_dir_size(std::string path) {
+	struct	stat	output;
+	if (stat(path.c_str(), &output) == -1)	return 0;
+	return	output.st_size;
+}
+
 static	std::string	generate_auto_index(std::string uri, ServerConfig *server) {
-	std::string target =  CONFIG_PATH"/html_generated_files/"+ replace_characters(uri, "/", "#")+".html";
+	std::string target =  CONFIG_PATH"/html_generated_files/"+ replace_characters(uri, "/", "#")+"S-"+std::to_string(get_dir_size(uri))+"Bytes"+".html";
 	std::cout << KRED << "directory listing requested:\n" << KNRM << KCYN << target << KNRM << std::endl;
 	struct	stat	demo;
 	if (stat(target.c_str(), &demo) != -1) {
@@ -115,7 +118,7 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 
 	}
 	this->_connection_type = req->get_headers().connection.find("keep-alive") != std::string::npos ? "keep-alive": "close";
-	//sock.check_session(*this);
+	sock.check_session(*this);
 }
 
 e_parser_state	Response::get_status() { return this->status; }
@@ -150,8 +153,6 @@ size_t	Response::form_headers(ServerConfig *server) {
 	this->header.append("Server: " + server->server_name + CRLF"Connection: " + this->_connection_type + CRLF);
 	//if (req_scode == REDIRECT)	this->header.append("Location: "+/**/+CRLF);
 	if (this->_new_session)	this->header.append("set-cookie: session="+ this->_session_id + "; "CRLF);
-	//
-	//if (!this->_has_body)	generate_status_file(req_scode, server);
 	//
 	if (this->_has_body) {
 		this->header.append("Content-type: " + this->_file_type + CRLF);

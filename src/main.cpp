@@ -6,11 +6,13 @@
 /*   By: hsobane <hsobane@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/16 09:08:33 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/19 00:04:35 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Sockets.hpp"
+
+Sockets		S;
 
 ///		example of expected config components
 ServerConfig	*demo_server(std::string port, std::string host, std::string server_name,
@@ -52,9 +54,15 @@ ServerConfig	*demo_server(std::string port, std::string host, std::string server
 	return	server;
 }
 
+void	sig_nan(int sig_num) {
+	std::cout << KCYN << "main_process:" << KNRM
+		<< " received signal(" << KGRN << sig_num
+		<< KNRM << ") exiting..\n";
+	exit(sig_num);
+}
 
 int main(int argc, char *argv[]) {
-	signal(SIGPIPE, SIG_IGN);
+	fix_up_signals(sig_nan);
 	/*(void)argc;
 	if (argc != 2) {
 		std::cerr << "Usage: " << argv[0] << " [config_file]" << std::endl;
@@ -66,16 +74,16 @@ int main(int argc, char *argv[]) {
 
 	//	demo play
 	std::vector<ServerConfig*>	servers;
-	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "index.html", SERVER_ALL_ROOT, false));
-	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
+	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "", SERVER_ALL_ROOT, true));
+	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "index.html", SERVER_ALL_ROOT"/server2", true));
 	MainConfig	main_config;
 	main_config.servers = servers;
 	//
 
 	try {
 		// Parser parser(argv[1]); // Parse the config file
-		Sockets s(main_config); // Create the Sockets for all servers
-		s.run(); // Start the servers using kqueue
+		S.initiate_servers(main_config); // Create the Sockets for all servers
+		S.run(); // Start the servers using kqueue
 	}
 	catch (std::exception &e) {
 		// If none of the servers could be started, the program should exit with a message to stderr

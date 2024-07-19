@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 14:11:47 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/15 02:44:26 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/18 23:56:53 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 # include "util.h"
 # include <string>
 # include <vector>
+# include <iostream>
 # include <map>
 
 class	Request;
@@ -50,11 +51,15 @@ struct ServerConfig {
     std::map<int, std::pair<Request, Response> >				_requests;
     //
     void	closeConn(int);	// remove entry from _requests
+	public:
+		~ServerConfig();
 };
 
 // Main configuration structure to hold multiple server blocks
 struct MainConfig {
 	std::vector<ServerConfig *>	servers;
+	public:
+		~MainConfig();
 };
 
 # include "Request.hpp"

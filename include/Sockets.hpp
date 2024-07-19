@@ -4,6 +4,7 @@
 # include <map>
 # include <sys/types.h>
 # include <sys/socket.h>
+# include <sys/select.h>
 # include <netdb.h>
 # include <unistd.h>
 # include <sstream>
@@ -13,12 +14,15 @@
 # include <ctime>
 # include "KQueue.hpp"
 # include "util.h"
+# include "sys/un.h"
 # include "ConfigParser.hpp"
+# include <signal.h> 
 
 # define FILE_READ_BUFFER_SIZE	100
 # define CRLF			"\r\n"
 # define PROJECT_PATH "/Users/beddinao/cursus-0/webserv/mainWebserver/"
 # define CONFIG_PATH PROJECT_PATH"config"
+# define SOCKETS_PATH CONFIG_PATH"/sockets"
 # define SERVER_ALL_ROOT PROJECT_PATH"www"
 
 # define RED "\033[31m"
@@ -48,7 +52,7 @@ typedef std::vector<ServerConfig *>::iterator mit;
 
 class Sockets {
 public:
-	Sockets(MainConfig&);
+	Sockets();
 	~Sockets();
 
 	void						run();
@@ -64,20 +68,30 @@ public:
 	size_t						get_sess_id();
 	void						incr_sess_id();
 	//
+	void						initiate_servers(MainConfig&);
+	//
 	void							set_Cookies(std::string, std::string);
 	std::map<std::string, std::map<std::string, std::string> >::iterator	get_Cookies(std::string);
 	std::string						get_cookie(std::string, std::string);
 	std::string						get_client(std::string, std::string);
 	std::string						form_user_name(Request &);
 	void							check_session(Response &);
+	//
+	std::string						execute_script(std::string);
 private:
 	MIME						_mime;
-	MainConfig&					_main_config;
+	MainConfig					_main_config;
 	KQueue						_kqueue;
 	std::map<int, ServerConfig *>				_fd_to_server;
 	std::map<std::string, std::map<std::string, std::string> >	_Cookies;
 	size_t						_sess_id;
+	pid_t						master_PID;
+	int						master_process;
+	int						cgi_controller;
+	std::string					socket_path;
 };
+
+void	fix_up_signals(void (*)(int));
 
 # include "Response.hpp"
 # include "Request.hpp"

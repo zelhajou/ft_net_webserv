@@ -77,7 +77,10 @@ public:
 	std::string						form_user_name(Request &);
 	void							check_session(Response &);
 	//
+	bool							initiate_master_process();
+	bool							update_master_state();
 	std::string						execute_script(std::string);
+	void							check_and_remove(std::string);
 private:
 	MIME						_mime;
 	MainConfig					_main_config;
@@ -89,6 +92,7 @@ private:
 	int						master_process;
 	int						cgi_controller;
 	std::string					socket_path;
+	bool						active_master;
 };
 
 void	fix_up_signals(void (*)(int));

@@ -37,7 +37,8 @@ static	std::string	exec_job(char *job) {
 
 static	int	geta_unix_socket(struct sockaddr_un &address, std::string socket_path) {
 	std::memset(&address, 0, sizeof(address));
-	int	sock = socket(AF_UNIX, SOCK_STREAM, 0);
+	int	sock;
+	if ((sock = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)	return -1;
 	address.sun_family = AF_UNIX;
 	std::strcpy(address.sun_path, socket_path.c_str());
 	return		sock;
@@ -54,20 +55,23 @@ static	void	master_routine(std::string socket_path) {
 	fix_up_signals(child_ex);
 	std::string	input, output;
 	struct	sockaddr_un	address;
-	int	sock = geta_unix_socket(address, socket_path);
-	connect(sock, (struct sockaddr*)&address, sizeof(address));
+	int	sock, n, temp_n;
+	if ((sock = geta_unix_socket(address, socket_path)) < 0)	exit(1);
+	if (connect(sock, (struct sockaddr*)&address, sizeof(address)) < 0)	exit(1);
 	fd_set	r_set, w_set, r_copy, w_copy;
 	FD_ZERO(&r_set); FD_ZERO(&w_set);
 	FD_ZERO(&r_copy); FD_ZERO(&w_copy);
 	FD_SET(sock, &r_set);
 	for (;;) {
-		r_copy = r_set;
-		w_copy = w_set;
-		select(sock + 1, &r_copy, &w_copy, NULL, NULL);
+		r_copy = r_set; w_copy = w_set;
+		n = select(sock + 1, &r_copy, &w_copy, NULL, NULL);
+		if (!n)		continue;
+		else if (n < 0)	exit(1);
 		if (FD_ISSET(sock, &r_copy)) {
 			char		buffer[1000];
 			std::memset(buffer, 0, sizeof(buffer));
-			while (recv(sock, buffer, 1000, MSG_DONTWAIT) > 0) {
+			while (recv(sock, buffer, 1000, MSG_DONTWAIT) > 0)
+			{
 				input.append(buffer);
 				std::memset(buffer, 0, sizeof(buffer));
 			}
@@ -77,41 +81,66 @@ static	void	master_routine(std::string socket_path) {
 			input.clear();
 		}
 		else if (FD_ISSET(sock, &w_copy)) {
-			send(sock, output.c_str(), output.size(), 0);
-			std::cout << KCYN << "master_process:" << KNRM
-				<< " job done successfully ->"
+			n = 0;
+			while (n < output.size()) {
+				temp_n = send(sock, output.c_str(), output.size(), 0);
+				if (temp_n <= 0)	break;
+				else if (n < output.size()) output = output.substr(n);
+				n += temp_n;
+			}
+			output.clear();
+			std::cout << KCYN << "master_process:" << KNRM << " job done successfully ->" 
 				<< " going back to sleep\n";
 			FD_CLR(sock, &w_set);
 			FD_SET(sock, &r_set);
 		}
 	}
+	exit(1);
 }
 
 void	Sockets::initiate_servers(MainConfig &main_config) {
 	this->_main_config = main_config;
 }
 
-Sockets::Sockets( void ) : _sess_id(1234) {
-	std::srand(std::time(NULL));
-	this->socket_path = SOCKETS_PATH"/unix_quick_private_socket";
-	std::cout << "creating cgi master process.." << std::endl;
-	this->master_PID = fork();
-	if (!this->master_PID)	master_routine(this->socket_path);
+bool	Sockets::initiate_master_process() {
 	struct	sockaddr_un	address;
-	this->cgi_controller = geta_unix_socket(address, this->socket_path);
-	bind(this->cgi_controller, (struct sockaddr*)&address, sizeof(address));
-	listen(this->cgi_controller, 5);
+	this->socket_path = SOCKETS_PATH"/unix_quick_private_socket";
+	this->check_and_remove(this->socket_path);
+	std::cout << "creating cgi master process.." << std::endl;
+	if ((this->master_PID = fork()) < 0)	return	false;
+	if (!this->master_PID)	master_routine(this->socket_path);
+	if ((this->cgi_controller = geta_unix_socket(address, this->socket_path)) < 0) return	false;
+	if (bind(this->cgi_controller, (struct sockaddr*)&address, sizeof(address)) < 0) return	false;
+	if (listen(this->cgi_controller, 5) < 0) return	false;
 	std::cout << KCYN << "initiating" << KNRM  << " connection with master process over unix socket..\n";
-	this->master_process = ::accept(this->cgi_controller, NULL, NULL);
+	if ((this->master_process = ::accept(this->cgi_controller, NULL, NULL)) < 0) return	false;
 	std::cout << "child created" << KGRN << " successfully and waiting for jobs in: "
 		<< KNRM << KCYN << this->socket_path << KNRM << std::endl;
+	return	true;
+}
+
+bool	Sockets::update_master_state() {
+	if (kill(this->master_PID, 0) < 0) this->active_master = false;
+	else	this->active_master = true;
+	return	this->active_master;
+}
+
+void	Sockets::check_and_remove(std::string target) {
+	struct	stat	output;
+	if (stat(target.c_str(), &output) != 0)	return;
+	std::remove(target.c_str());
+}
+
+Sockets::Sockets( void ) : _sess_id(1234) {
+	std::srand(std::time(NULL));
+	this->active_master = this->initiate_master_process();
 }
 
 Sockets::~Sockets() {
 	std::cout << KRED << "cleaning...\n";
 	std::cout << "deleting unix socket: "<< KNRM
 		<< KCYN << this->socket_path << KNRM << std::endl;
-	std::remove(this->socket_path.c_str());
+	this->check_and_remove(this->socket_path);
 	kill(this->master_PID, SIGKILL);
 }
 

@@ -1,5 +1,8 @@
 #include "Sockets.hpp"
 
+Sockets::Sockets(const Sockets &S) {*this = S;}
+Sockets	&Sockets::operator = (const Sockets &S) {return *this;}
+
 void	fix_up_signals(void (*f)(int)) {
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGFPE, SIG_IGN);
@@ -23,9 +26,12 @@ static	std::string	exec_job(char *job) {
 	pid_t		grandchild = fork();
 	if (!grandchild) {
 		char	*argv[] = {job, 0};
+		//
+		dup2(pi[0], 0);
 		close(pi[0]);
 		dup2(pi[1], 1);
 		close(pi[1]);
+		write(1, "ok\n", 3);	// some better stuff later
 		execve(argv[0], argv, NULL);
 		exit(1);
 	}
@@ -95,7 +101,7 @@ static	void	master_routine(std::string socket_path) {
 			FD_SET(sock, &r_set);
 		}
 	}
-	exit(1);
+	exit(0);
 }
 
 void	Sockets::initiate_servers(MainConfig &main_config) {
@@ -131,7 +137,7 @@ void	Sockets::check_and_remove(std::string target) {
 	std::remove(target.c_str());
 }
 
-Sockets::Sockets( void ) : _sess_id(1234) {
+Sockets::Sockets( void ) : _sess_id(1234), active_master(0) {
 	std::srand(std::time(NULL));
 	this->active_master = this->initiate_master_process();
 }
@@ -140,8 +146,14 @@ Sockets::~Sockets() {
 	std::cout << KRED << "cleaning...\n";
 	std::cout << "deleting unix socket: "<< KNRM
 		<< KCYN << this->socket_path << KNRM << std::endl;
+	//
 	this->check_and_remove(this->socket_path);
-	kill(this->master_PID, SIGKILL);
+	if (this->active_master) {
+		std::cout << KRED << "killing master process\n" << KNRM;
+		close(this->master_process);
+		close(this->cgi_controller);
+		kill(this->master_PID, SIGKILL);
+	}
 }
 
 std::string	Sockets::execute_script(std::string input) {
@@ -190,6 +202,7 @@ void	Sockets::recvFrom(int sock_fd) {
 	}
 	pai->second.first.recvRequest();
 	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR) {
+		//std::cout << pai->second.first._body << std::endl;
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second.second._initiate_response(&pai->second.first, *this, serv);
@@ -463,8 +476,9 @@ void	Sockets::startServers() {
 void	Sockets::run() {
 	//////////////////	TEST:
 	/*std::cout << KGRN << "script execution TEST:\n" << KNRM;
-	std::string		jobs[1] = {"/bin/ls"};
-	for (int i=0; i < 1; i++)	std::cout << this->execute_script(jobs[i]) << std::endl;*/
+	std::string		jobs[1] = {"/usr/bin/wc"};
+	for (int i=0; i < 1; i++)	std::cout << KGRN << "OUTPUT:" << KNRM << this->execute_script(jobs[i]) << std::endl;
+	std::cout << "end test\n";*/
 	////////////////
 	this->startServers();
 	this->kqueueLoop();

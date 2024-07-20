@@ -54,6 +54,8 @@ class Sockets {
 public:
 	Sockets();
 	~Sockets();
+	Sockets(const Sockets &);
+	Sockets &operator = (const Sockets &);
 
 	void						run();
 	void						startServers();

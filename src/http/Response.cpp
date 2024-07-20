@@ -164,8 +164,7 @@ size_t	Response::form_headers(ServerConfig *server) {
 }
 
 void	Response::sendResponse(int sock_fd, ServerConfig *server) {
-	std::cout << "sending response to: " << KCYN << sock_fd 
-		<< KNRM << " in session: " << KCYN << this->_session_id << KNRM << std::endl;
+	int		sent_res;
 	if (this->status == FIRST_LINE)
 	{
 		this->_sent[1] = this->form_headers(server);
@@ -175,7 +174,6 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	if (this->status == HEADERS)
 	{
 
-		int		sent_res;
 		sent_res = send(sock_fd, this->header.c_str(), this->header.size(), 0);
 		if (sent_res < 0)	this->_sent[0] = this->_sent[1];
 		else		this->_sent[0] += sent_res;
@@ -192,7 +190,6 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	else if (this->status == BODY)
 	{
 		char	buffer[FILE_READ_BUFFER_SIZE];
-		int	read_res;
 
 		std::memset(buffer, 0, sizeof(buffer));
 		if (!this->_sent[1]) {
@@ -200,18 +197,24 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 			this->_sent[0] = 0;
 		}
 		this->_file.read(buffer, FILE_READ_BUFFER_SIZE);
-		read_res = this->_file.gcount();
-		for (int bytes_sent=0, temp_perc=0; bytes_sent < read_res;) {
-			temp_perc = send(sock_fd, buffer, read_res, 0);
+		sent_res = this->_file.gcount();
+		for (int bytes_sent=0, temp_perc=0; bytes_sent < sent_res;) {
+			temp_perc = send(sock_fd, buffer, sent_res, 0);
 			if (temp_perc < 0) {
 				this->_sent[0] = this->_sent[1];
 				break ;
 			}
 			bytes_sent += temp_perc;
 		}
-		this->_sent[0] += read_res;
+		this->_sent[0] += sent_res;
 		if (this->_sent[0] >= this->_sent[1])	this->status = DONE;
 	}
-	if (this->status == DONE)	this->_file.close();
+	std::cout << "sent " << sent_res <<" Bytes "<< "to "
+		<< KCYN << sock_fd << KNRM << std::endl;
+	if (this->status == DONE) {
+		this->_file.close();
+		std::cout << "done sending " << KCYN << this->_sent[1] << KNRM << " Bytes to " << KCYN << sock_fd
+			<< KNRM << " in session: " << KCYN << this->_session_id << KNRM << std::endl;
+	}
 }
 

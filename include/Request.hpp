@@ -55,6 +55,7 @@ private:
 	std::ifstream				_file;
 	t_first_line				_first_line;
 	t_headers					_headers;
+public:
 	std::string					_body;
 	bool						_chunked;
 	size_t						_content_length;

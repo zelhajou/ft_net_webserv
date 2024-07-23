@@ -37,10 +37,10 @@ ServerConfig	*demo_server(std::string port, std::string host, std::string server
 	allowed_methods.push_back("POST");
 	allowed_methods.push_back("DELETE");
 	_location_one.allowed_methods = allowed_methods;
-	_location_one.upload_store = "";
+	_location_one.upload_store = "hello";
 	_location_one.client_body_temp_path = "";
 	std::pair<e_status, std::string>	return_url;
-	return_url.first = NONE;
+	return_url.first = STATUS_NONE;
 	return_url.second = "";
 	_location_one.return_url = return_url;
 	_location_one.fastcgi_pass = "";
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
 	//	demo play
 	std::vector<ServerConfig*>	servers;
-	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "", SERVER_ALL_ROOT, true));
+	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "index.html", SERVER_ALL_ROOT, true));
 	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
 	MainConfig	main_config;
 	main_config.servers = servers;

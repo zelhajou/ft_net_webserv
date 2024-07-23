@@ -146,13 +146,13 @@ Sockets::~Sockets() {
 	std::cout << KRED << "cleaning...\n";
 	std::cout << "deleting unix socket: "<< KNRM
 		<< KCYN << this->socket_path << KNRM << std::endl;
-	//
+
 	this->check_and_remove(this->socket_path);
 	if (this->active_master) {
 		std::cout << KRED << "killing master process\n" << KNRM;
 		close(this->master_process);
 		close(this->cgi_controller);
-		kill(this->master_PID, SIGKILL);
+		kill(this->master_PID, SIGINT);
 	}
 }
 
@@ -191,30 +191,52 @@ void	Sockets::accept(int sock_fd) {
 void	Sockets::recvFrom(int sock_fd) {
 	std::cout << "receiving from: " << KCYN << sock_fd << KNRM << std::endl;
 	ServerConfig	*serv = this->_fd_to_server.find(sock_fd)->second;
-	std::map<int, std::pair<Request, Response> >::iterator	pai = serv->_requests.find(sock_fd);
+	std::map<int, std::pair<Request, Response>* >::iterator	pai = serv->_requests.find(sock_fd);
 	if (pai == serv->_requests.end()) {
-		std::pair<Request, Response>	new_pair;
+		std::pair<Request, Response>		*new_pair = new std::pair<Request, Response>;
 		serv->_requests[ sock_fd ] = new_pair;
-		serv->_requests[ sock_fd ].first.setLocation(serv->locations);
-		serv->_requests[ sock_fd ].first.set_fd(sock_fd);
+		serv->_requests[ sock_fd ]->first.setLocation(serv->locations);
+		serv->_requests[ sock_fd ]->first.set_fd(sock_fd);
 		this->recvFrom(sock_fd);
 		return ;
 	}
-	pai->second.first.recvRequest();
-	if (pai->second.first.getState() == DONE || pai->second.first.getState() == ERROR) {
-		//std::cout << pai->second.first._body << std::endl;
+	pai->second->first.recvRequest();
+	if (pai->second->first.getState() == DONE || pai->second->first.getState() == ERROR) {
+		// std::cout << "BODY: " << pai->second->first._request.raw_body << std::endl;
+		/*std::cout << "request received: " << KCYN << sock_fd << KNRM << std::endl;
+
+		std::cout << "method: " << pai->second->first.get_first_line().method << std::endl;
+		std::cout << "uri: " << pai->second->first.get_first_line().uri << std::endl;*/
+		//std::cout << "version: " << pai->second->first.get_first_line().version << std::endl;
+		/*std::cout << "location: " << pai->second->first.get_location_type() << std::endl;
+		std::cout << "status: " << pai->second->first.getStatus() << std::endl;
+		std::cout << "state: " << pai->second->first.getState() << std::endl;
+		std::cout << "content_length: " << pai->second->first.get_headers().content_length << std::endl;
+		std::cout << "content_type: " << pai->second->first.get_headers().content_type << std::endl;*/
+
+		/*std::cout << "looping through bodies:\n";
+
+		if (pai->second->first._post_body.size() > 0) {
+			std::cout << "name: " << pai->second->first._post_body[0].name << std::endl;
+			std::cout << "filename: " << pai->second->first._post_body[0].filename << std::endl;
+			std::cout << "content_type: " << pai->second->first._post_body[0].content_type << std::endl;
+			std::cout << "data: " << pai->second->first._post_body[0].data << std::endl;
+		}
+		else
+			std::cout << "no post body\n";*/
+
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
-		pai->second.second._initiate_response(&pai->second.first, *this, serv);
+		pai->second->second._initiate_response(&pai->second->first, *this, serv);
 	}
 }
 
 void	Sockets::sendTo(int sock_fd) {
 	ServerConfig	*serv = this->_fd_to_server.find(sock_fd)->second;
-	std::map<int, std::pair<Request, Response> >::iterator	pai = serv->_requests.find(sock_fd);
-	pai->second.second.sendResponse(sock_fd, serv);
-	if (pai->second.second.get_status() == DONE) {
-		if (pai->second.second._connection_type == "keep-alive") {
+	std::map<int, std::pair<Request, Response> *>::iterator	pai = serv->_requests.find(sock_fd);
+	pai->second->second.sendResponse(sock_fd, serv);
+	if (pai->second->second.get_status() == DONE) {
+		if (pai->second->second._connection_type == "keep-alive") {
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 0);
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 1);
 			this->resetConn(sock_fd);

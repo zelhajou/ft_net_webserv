@@ -6,6 +6,8 @@
 
 # define BUFFER_SIZE 4096
 
+typedef std::vector<std::pair<std::string, std::string> > t_vpair;
+
 typedef struct s_first_line {
 	std::string method;
 	std::string uri;
@@ -16,7 +18,7 @@ typedef struct s_headers {
 	std::string host;
 	std::string connection;
 	std::string content_type;
-	std::string content_length;
+	size_t		content_length;
 	std::string transfer_encoding;
 	std::string date;
 	std::string accept;
@@ -26,8 +28,15 @@ typedef struct s_headers {
 	std::string user_agent;
 }				t_headers;
 
+typedef struct s_post_body {
+	std::string		name;
+	std::string		filename;
+	std::string		content_type;
+	std::string		data;
+}					t_post_body;
+
 enum e_status {
-	NONE = 0,								// place holder for empty input
+	STATUS_NONE = 0,								// place holder for empty input
 	OK = 200,
 	BAD_REQUEST = 400,						// The request could not be understood by the server due to malformed syntax.
 	NOT_FOUND = 404,						// The server has not found anything matching the Request-URI.
@@ -53,11 +62,34 @@ enum e_parser_state {
 	ERROR,
 };
 
+typedef struct s_request {
+	e_parser_state						state;
+	e_status							status;
+	std::string							error_message;
+	std::string							raw_first_line;
+	std::map<std::string, std::string>	raw_headers;
+	std::string							raw_body;
+	t_first_line						first_line;
+	t_headers							headers;
+	std::string							body;
+	std::string							boundary;
+}										t_request;
+
 enum e_location_type {
+	LOC_NONE,
 	STATIC,
 	CGI,
 	RETURN,
-	AUTOINDEX,
+	UPLOAD,
+	AUTOINDEX
+};
+
+enum e_method {
+	MTH_NONE,
+	GET,
+	POST,
+	DELETE,
+	NOT_IMP
 };
 
 struct MIME {

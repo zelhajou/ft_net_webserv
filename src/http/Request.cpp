@@ -1,6 +1,12 @@
 #include "Request.hpp"
 
-Request::Request() : _fd(-1), _recv(0), _state(FIRST_LINE), _status(OK), _timeout(0), _has_body(false), _hex(true), _chunk_size(0) {
+Request::Request() : _fd(-1), _total_body_size(0), _state(FIRST_LINE), _status(OK), _chunk_size(0) {
+	this->_method = MTH_NONE;
+	this->_request.status = STATUS_NONE;
+	this->_request.state = FIRST_LINE;
+	this->_request.headers.content_length = 0;
+	this->_location_type = LOC_NONE;
+
 }
 
 Request::Request(const Request &R) { *this = R; }
@@ -18,36 +24,20 @@ void Request::setLocation(std::map<std::string, LocationConfig> &locations) {
 	setlvl(this->_location_tree);
 }
 
-void	Request::parse_uri() {
-
+static std::string sanitizeURI(std::string uri) {
+	std::string ret = uri;
 	size_t		pos;
-	int			depth = 0;
-	std::string	uri = this->_first_line.uri;
-	std::string	uri_tmp;
-	std::string simple_uri = "/";
 
-	// std::cout << "URI: " << uri << std::endl;
-	if (uri[uri.size() - 1] == '/')
-		uri = uri.substr(0, uri.size() - 1);
-
-	while ((pos = uri.find("/")) != std::string::npos) {
-		uri_tmp = uri.substr(0, pos);
-		if (uri_tmp == "..")
-			(simple_uri = simple_uri.substr(0, simple_uri.find_last_of("/")), depth--);
-		else if (uri_tmp != "." && uri_tmp != "")
-			(simple_uri += uri_tmp + "/", depth++);
-		if (depth < 0)
-			{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
-		uri = uri.substr(pos + 1);
+	while ((pos = ret.find("/./")) != std::string::npos)
+		ret = ret.substr(0, pos) + ret.substr(pos + 2);
+	while ((pos = ret.find("/../")) != std::string::npos) {
+		size_t	pos2 = ret.substr(0, pos).find_last_of("/");
+		if (pos2 == std::string::npos)
+			ret = ret.substr(pos + 3);
+		else
+			ret = ret.substr(0, pos2) + ret.substr(pos + 3);
 	}
-	if (uri == "..")
-		(simple_uri = simple_uri.substr(0, simple_uri.find_last_of("/")), depth--);
-	else if (uri != "." && uri != "")
-		(simple_uri += uri, depth++);
-	if (depth < 0)
-		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
-	this->_first_line.uri = simple_uri;
-	// std::cout << "SIMPLE URI: " << this->_first_line.uri << std::endl;
+	return ret;
 }
 
 void	Request::handle_cgi() {
@@ -57,29 +47,34 @@ void	Request::handle_cgi() {
 bool	Request::is_cgi() {
 	size_t	pos;
 
-	if ((pos = this->_first_line.uri.find(".php")) != std::string::npos && pos == this->_first_line.uri.size() - 4)
+	if (this->_request.state == ERROR || this->_request.state == DONE)
+		return false;
+	std::string uri = this->_request.first_line.uri;
+	if ((pos = uri.find(".php")) != std::string::npos && pos == uri.size() - 4)
 		return true;
-	if ((pos = this->_first_line.uri.find(".py")) != std::string::npos && pos == this->_first_line.uri.size() - 3)
+	if ((pos = uri.find(".py")) != std::string::npos && pos == uri.size() - 3)
 		return true;
 	return false;
 }
 
 void	Request::handle_location(LocationConfig** loc) {
-	// if (this->_state == ERROR) return ;
+	*loc = ::search(this->_location_tree, this->_request.first_line.uri, ::cmp);
+	if (*loc == NULL)
+		{setRequestState(LOC_NF, NOT_FOUND, ERROR); return ;}
+	if (is_cgi())
+		{this->_location_type = CGI; return ;}
+	if ((*loc)->return_url.first != STATUS_NONE)
+		setRequestState((*loc)->return_url.second, (*loc)->return_url.first, DONE);
+	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_request.first_line.method) == (*loc)->allowed_methods.end())
+		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
+}
 
-	*loc = ::search(this->_location_tree, this->_first_line.uri, ::cmp);
-	if (loc == NULL)
-		{(this->_status = NOT_FOUND, this->_state = ERROR);
-		//std::cout << "Location Not Found (null)" << std::endl;
-		return ;}
-	if ((*loc)->return_url.first != NONE)
-		{(this->_status = (*loc)->return_url.first, this->_state = DONE);
-		//std::cout << "Return is set to not NONE" << std::endl;
-		return ;}
-	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_first_line.method) == (*loc)->allowed_methods.end())
-		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR);
-		//std::cout << "Method Not Allowed (not supported inside location)" << std::endl;
-		return ;}
+void	Request::setRequestState(std::string msg, e_status status, e_parser_state state) {
+	if (this->_request.status != STATUS_NONE)
+		return ;
+	this->_request.error_message = msg;
+	this->_request.status = status;
+	this->_request.state = state;
 }
 
 bool	Request::is_file(std::string& path) {
@@ -92,209 +87,303 @@ bool	Request::is_file(std::string& path) {
 	return false;
 }
 
-bool	Request::is_directory(std::string& path) {
+bool	Request::is_directory(std::string& path, int flag) {
 	struct stat	st;
 
 	if (stat(path.c_str(), &st) == -1)
 		return false;
-	if (S_ISDIR(st.st_mode))
+	if (S_ISDIR(st.st_mode) && access(path.c_str(), flag) == 0)
 		return true;
 	return false;
 }
 
 void	Request::handle_file() {
-	// if (this->_state == ERROR) return ;
-
-	if (access(this->_first_line.uri.c_str(), R_OK) == -1)
-		{(this->_status = FORBIDDEN, this->_state = ERROR);
-		//std::cout << "Forbidden (no read access)" << std::endl;
-		return ;}
+	if (access(this->_request.first_line.uri.c_str(), R_OK) == -1) {
+		setRequestState(INV_LOC_FILE, FORBIDDEN, ERROR);
+		this->_status = FORBIDDEN;
+		this->_state = ERROR;
+		return ;
+	}
 	this->_location_type = STATIC;
 }
 
 void	Request::handle_directory(LocationConfig* loc) {
-	// if (this->_state == ERROR) return ;
-
-	if (access(this->_first_line.uri.c_str(), R_OK) == -1)
-		{(this->_status = FORBIDDEN, this->_state = ERROR);
-		//std::cout << "Forbidden (no read access)" << std::endl;
-		return ;}
+	if (access(this->_request.first_line.uri.c_str(), R_OK) == -1) {
+		setRequestState(INV_LOC_DIR, FORBIDDEN, ERROR);
+		this->_status = FORBIDDEN;
+		this->_state = ERROR;
+		return ;
+	}
 	if (loc->index.size() > 0) {
-		this->_first_line.uri += "/" + loc->index;
-		if (!is_file(this->_first_line.uri))
-			{(this->_status = FORBIDDEN, this->_state = ERROR);
-			//std::cout << "Forbidden (no index)" << std::endl;
-			return ;}
+		this->_request.first_line.uri += "/" + loc->index;
+		if (!is_file(this->_request.first_line.uri)) {
+			setRequestState(INV_LOC_FILE, FORBIDDEN, ERROR);
+			this->_status = FORBIDDEN;
+			this->_state = ERROR;
+			return ;
+		}
 		this->_location_type = STATIC;
 	}
-	else if (!loc->auto_index)
-		{(this->_status = FORBIDDEN, this->_state = ERROR);
-		//std::cout << "Forbidden (no index)" << std::endl;
-		return ;}
+	else if (!loc->auto_index) {
+		setRequestState(INV_LOC_DIR, FORBIDDEN, ERROR);
+		this->_status = FORBIDDEN;
+		this->_state = ERROR;
+	}
 	else
 		this->_location_type = AUTOINDEX;
 }
 
 void Request::handle_uri(LocationConfig* loc) {
-	// if (this->_state == ERROR) return ;
+	if (this->_location_type == CGI)
+		return ;
 
 	std::string r = loc->root + "/";
-	/*std::cout << "ROOT: " << loc->root << std::endl;
-	std::cout << "PATH: " << loc->path << std::endl;
-	std::cout << "URI: " << this->_first_line.uri << std::endl;
-	std::cout << "INDEX: " << loc->index << std::endl;*/
-	this->_first_line.uri.replace(0, loc->path.size(), r);
-	parse_uri();
-	//std::cout << "MERGED URI: " << this->_first_line.uri << std::endl;
-	if (is_file(this->_first_line.uri))
-		handle_file();
-	else if (is_directory(this->_first_line.uri))
-		handle_directory(loc);
-	else
-		{(this->_status = NOT_FOUND, this->_state = ERROR);
-		//std::cout << "File Not Found (handle_uri)" << std::endl;
-		return ;}
+
+	this->_request.first_line.uri.replace(0, loc->path.size(), r);
+	if (this->_request.first_line.method == "GET") {
+		if (is_file(this->_request.first_line.uri))
+			handle_file();
+		else if (is_directory(this->_request.first_line.uri, R_OK))
+			handle_directory(loc);
+		else
+			setRequestState(NOT_FND, NOT_FOUND, ERROR);
+	}
+	else if (this->_request.first_line.method == "POST") {
+		this->_request.first_line.uri = loc->root + "/" + loc->upload_store;
+		if (is_directory(this->_request.first_line.uri, W_OK))
+			this->_location_type = UPLOAD;
+		else
+			setRequestState(INV_LOC_DIR, FORBIDDEN, ERROR);
+	}
+	else if (this->_request.first_line.method == "DELETE") {
+		if (access(this->_request.first_line.uri.c_str(), W_OK) == -1) {
+			setRequestState(CANT_DELL, FORBIDDEN, ERROR);
+			this->_status = FORBIDDEN;
+			this->_state = ERROR;
+			return ;
+		}
+		this->_location_type = STATIC;
+	}
 }
 
-void	Request::check_uri() {
-	if (this->_state != FIRST_LINE) return ;
-
-	struct stat		st;
+void	Request::parse_uri() {
+	struct stat			st;
 	LocationConfig*		loc;
+	size_t				pos;
+	std::string			uri;
 
-	parse_uri();
+	uri = this->_request.first_line.uri;
+	while ((pos = uri.find("//")) != std::string::npos)
+		uri = uri.substr(0, pos) + uri.substr(pos + 1);
+	extract_query_string();
 	handle_location(&loc);
-	if (is_cgi())
-		{handle_cgi(); return ;}
 	handle_uri(loc);
 }
 
-void Request::parse_first_line() {
+void Request::set_first_line() {
 	if (this->_state != FIRST_LINE) return ;
 
+	std::string		line;
 	size_t			pos;
 
-	/* checking the format of the first line */
-	if ((pos = this->_body.find("\r\n")) == std::string::npos)
-		{(this->_status = URI_TOO_LONG, this->_state = ERROR); return;}
-	if ((pos = this->_body.find(" ")) == std::string::npos)
-		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
-	this->_first_line.method = this->_body.substr(0, pos);
-	this->_body = this->_body.substr(pos + 1);
-	if ((pos = this->_body.find(" ")) == std::string::npos)
-		{(this->_status = URI_TOO_LONG, this->_state = ERROR); return ;}
-	this->_first_line.uri = this->_body.substr(0, pos);
-	this->_body = this->_body.substr(pos + 1);
-	if ((pos = this->_body.find("\r\n")) == std::string::npos)
-		{(this->_status = BAD_REQUEST, this->_state = ERROR); return ;}
-	this->_first_line.version = this->_body.substr(0, pos);
-	this->_body = this->_body.substr(pos + 2);
-	/* checking the content of the first line */
-	if (this->_first_line.method != "GET" && this->_first_line.method != "POST" && this->_first_line.method != "DELETE")
-		{(this->_status = NOT_IMPLEMENTED, this->_state = ERROR);
-		//std::cout << "Method Not Implemented" << std::endl;
-		return ;}
-	if (this->_first_line.version != "HTTP/1.1")
-		{(this->_status = HTTP_VERSION_NOT_SUPPORTED, this->_state = ERROR);
-		//std::cout << "HTTP Version Not Supported" << std::endl;
-		return ;}
-	check_uri();
-	if (this->_state == FIRST_LINE)
-		this->_state = HEADERS;
+	if ((pos = this->_request_buffer.find("\r\n")) == std::string::npos)
+		return ;
+	this->_request.raw_first_line = this->_request_buffer.substr(0, pos);
+	this->_request_buffer = this->_request_buffer.substr(pos + 2);
+	parse_first_line();
+	this->_state = HEADERS;
 }
 
-void Request::parse_headers() {
-	if (this->_state != HEADERS && this->_state != ERROR) return ;
+void	Request::set_headers() {
+	if (this->_state != HEADERS) return ;
 
 	size_t			pos;
 	std::string		key;
 	std::string		value;
 
-	while ((pos = this->_body.find("\r\n")) != std::string::npos)
-	{
-		std::string line = this->_body.substr(0, pos);
-		if (line.empty())
-			{this->_state = BODY; break;}
-		this->_body = this->_body.substr(pos + 2);
+	if ((pos = this->_request_buffer.find("\r\n\r\n")) == std::string::npos)
+		return ;
+	std::string headers = this->_request_buffer.substr(0, pos);
+	this->_request_buffer = this->_request_buffer.substr(pos + 4);
+	while ((pos = headers.find("\r\n")) != std::string::npos) {
+		std::string line = headers.substr(0, pos);
+		headers = headers.substr(pos + 2);
 		if ((pos = line.find(":")) == std::string::npos)
-			{this->_status = BAD_REQUEST; this->_state = ERROR;
-			//std::cout << "Bad Request (no colon): " << line << std::endl;
-			return ;}
+			{setRequestState(NO_CL_HD, BAD_REQUEST, ERROR); continue ;}
 		key = line.substr(0, pos);
 		value = line.substr(pos + 2);
-		//std::cout << "Key: |" << key << "| Value: |" << value << "|" << std::endl;
-		if (key == "Host")
-			this->_headers.host = value;
-		else if (key == "Connection")
-			this->_headers.connection = value;
-		else if (key == "Content-Type")
-			this->_headers.content_type = value;
-		else if (key == "Content-Length")
-			this->_headers.content_length = value;
-		else if (key == "Transfer-Encoding")
-			this->_headers.transfer_encoding = value;
-		else if (key == "Accept")
-			this->_headers.accept = value;
-		else if (key == "User-Agent")
-			this->_headers.user_agent = value;
-		else if (key == "Cookie")
-			this->_headers.cookie = value;
+		this->_request.raw_headers[key] = value;
 	}
-	if (this->_state == HEADERS && (this->_body.size() >= BUFFER_SIZE / 2 || this->_recv >= BUFFER_SIZE * 4))
-		{this->_status = REQUEST_HEADER_FIELDS_TOO_LARGE; this->_state = ERROR;
-		//std::cout << "Request Header Fields Too Large" << std::endl;
-		return ;}
-	if (this->_state == BODY) {
-		this->_body = this->_body.substr(2);
-		this->_chunked = this->_headers.transfer_encoding == "chunked";
-		this->_content_length = std::strtoll(this->_headers.content_length.c_str(), NULL, 10);
+	parse_headers();
+	this->_state = BODY;
+}
+
+void	Request::set_method() {
+	if (this->_method != MTH_NONE)
+		return ;
+	std::string method = this->_request.first_line.method;
+	if (method == "GET")
+		this->_method = GET;
+	else if (method == "POST")
+		this->_method = POST;
+	else if (method == "DELETE")
+		this->_method = DELETE;
+	else
+		this->_method = NOT_IMP;
+}
+
+void	Request::set_body() {
+	if (this->_state != BODY || this->_request.state == ERROR || this->_request.status != STATUS_NONE) {
+		this->_status = this->_request.status;
+		this->_state = this->_request.state;
+		// std::cout << "STATE: " << this->_state << std::endl;
+		// std::cout << "STATUS: " << this->_status << std::endl;
+		// std::cout << "ERROR MESSAGE: " << this->_request.error_message << std::endl;
+		// std::cout << "request_buffer size: " << this->_request_buffer.size() << std::endl;
+		// std::cout << "raw_body size: " << this->_request.raw_body.size() << std::endl;
+		// std::cout << "raw_first_line size: " << this->_request.raw_first_line.size() << std::endl;
+		// std::cout << "raw_headers size: " << this->_request.raw_headers.size() << std::endl;
+		// std::cout << "request_buffer : \n" << this->_request_buffer << std::endl;
+		return ;
+	}
+	if (this->_method == GET || this->_method == DELETE)
+		{this->_state = DONE; return ;}
+	if (this->_request.headers.transfer_encoding == "chunked")
+		handle_chunked();
+	else if (this->_request.headers.content_length > 0)
+		handle_centent_length();
+	else {
+		setRequestState(LEN_REQ, LENGTH_REQUIRED, ERROR);
+		this->_state = ERROR;
+		this->_status = LENGTH_REQUIRED;
+	}
+}
+
+void Request::parse_first_line() {
+	size_t			pos;
+	std::string		uri;
+
+	if (this->_request_buffer.size() > BUFFER_SIZE * 2)
+		setRequestState(FL_TL, URI_TOO_LONG, ERROR);
+	if ((pos = this->_request.raw_first_line.find(" ")) == std::string::npos)
+		setRequestState(NO_SP_FL, BAD_REQUEST, ERROR);
+	this->_request.first_line.method = this->_request.raw_first_line.substr(0, pos);
+	this->_request.raw_first_line = this->_request.raw_first_line.substr(pos + 1);
+	if ((pos = this->_request.raw_first_line.find(" ")) == std::string::npos)
+		setRequestState(NO_SP_FL, BAD_REQUEST, ERROR);
+	this->_request.first_line.uri = this->_request.raw_first_line.substr(0, pos);
+	this->_request.raw_first_line = this->_request.raw_first_line.substr(pos + 1);
+	pos = this->_request.raw_first_line.find("\r\n");
+	this->_request.first_line.version = this->_request.raw_first_line.substr(0, pos);
+	this->_request.raw_first_line = this->_request.raw_first_line.substr(pos + 2);
+	if (this->_request.first_line.method != "GET"
+		&& this->_request.first_line.method != "POST"
+		&& this->_request.first_line.method != "DELETE")
+		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
+	if (this->_request.first_line.version != "HTTP/1.1")
+		setRequestState(INV_VER, NOT_IMPLEMENTED, ERROR);
+	set_method();
+	parse_uri();
+}
+
+static std::string get_boundary(std::string content_type) {
+	
+	if (content_type.find("multipart/form-data") == std::string::npos)
+		return "";
+	size_t pos = content_type.find("boundary=");
+	if (pos == std::string::npos)
+		return "";
+	std::string boundary = content_type.substr(pos + 9);
+	boundary = "--" + boundary;
+	return boundary;
+}
+
+void Request::parse_headers() {
+	if (this->_state != HEADERS && this->_state != ERROR) return ;
+
+	this->_request.headers.host = this->_request.raw_headers["Host"];
+	this->_request.headers.connection = this->_request.raw_headers["Connection"];
+	size_t content_length = std::strtoll(this->_request.raw_headers["Content-Length"].c_str(), NULL, 10);
+	this->_request.headers.content_length = content_length;
+	this->_request.headers.transfer_encoding = this->_request.raw_headers["Transfer-Encoding"];
+	this->_request.headers.content_type = this->_request.raw_headers["Content-Type"];
+	this->_request.headers.date = this->_request.raw_headers["Date"];
+	this->_request.headers.accept = this->_request.raw_headers["Accept"];
+	this->_request.headers.location = this->_request.raw_headers["Location"];
+	this->_request.headers.cookie = this->_request.raw_headers["Cookie"];
+	this->_request.headers.set_cookie = this->_request.raw_headers["Set-Cookie"];
+	this->_request.headers.user_agent = this->_request.raw_headers["User-Agent"];
+
+	this->_request.boundary = get_boundary(this->_request.headers.content_type);
+	if (this->_request.headers.host == "")
+		setRequestState(MIS_HOST, BAD_REQUEST, ERROR);
+}
+
+static bool is_hex(std::string str) {
+	for (size_t i = 0; i < str.size(); i++)
+		if (!std::isxdigit(str[i]))
+			return false;
+	return true;
+}
+
+void Request::handle_centent_length() {
+	//std::cout << "CONTENT LENGTH" << std::endl;
+	this->_request.raw_body.append(this->_request_buffer);
+	this->_request_buffer.clear();
+	if (this->_request.raw_body.size() >= this->_request.headers.content_length) {
+		this->_request.raw_body = this->_request.raw_body.substr(0, this->_request.headers.content_length);
+		parse_body();
+		this->_state = DONE;
 	}
 }
 
 void Request::handle_chunked() {
-	size_t		pos;
-	std::string	tmp;
+	size_t			pos;
+	std::string		tmp;
 
-	if ((pos = this->_body.find("\r\n")) == std::string::npos)
-		return ;
-	tmp = this->_body.substr(0, pos);
-	if (_hex) {
-		this->_chunk_size = std::strtoll(tmp.c_str(), NULL, 16);
-		if (this->_chunk_size == 0)
-			{this->_state = DONE; return ;}
-		this->_hex = false;
+	while ((pos = this->_request_buffer.find("\r\n")) != std::string::npos || this->_chunk_size > 0) {
+		if (this->_chunk_size > 0) {
+			if (this->_chunk_size > this->_request_buffer.size()) {
+				this->_request.raw_body.append(this->_request_buffer);
+				this->_chunk_size -= this->_request_buffer.size();
+				this->_request_buffer.clear();
+				break ;
+			}
+			else {
+				this->_request.raw_body.append(this->_request_buffer.substr(0, this->_chunk_size));
+				this->_request_buffer = this->_request_buffer.substr(this->_chunk_size);
+				this->_chunk_size = 0;
+				continue ;
+			}
+		}
+		tmp = this->_request_buffer.substr(0, pos);
+		this->_request_buffer = this->_request_buffer.substr(pos + 2);
+		if (this->_chunk_size == 0 && is_hex(tmp)) {
+			this->_chunk_size = std::strtoll(tmp.c_str(), NULL, 16);
+			if (this->_chunk_size == 0) {parse_body(); return ;}
+		}
+		else
+			{setRequestState(LEN_NOT_MATCH, BAD_REQUEST, ERROR); return ;}
 	}
-	else {
-		if (this->_chunk_size != tmp.size())
-			{this->_status = BAD_REQUEST; this->_state = ERROR; return ;}
-		this->_hex = true;
-		this->_chunked_body.push_back(this->_body.substr(0, pos));
-	}
-	this->_body = this->_body.substr(pos + 2);
-	
 }
 
 void Request::parse_body() {
-	if (this->_state != BODY) return ;
-
-	if (this->_body.size() == 0)
-	{
-		this->_state = DONE;
-		return ;
-	}
-	this->_has_body = true;
-	if (!this->_chunked && this->_content_length == 0)
-		{this->_state = ERROR; this->_status = LENGTH_REQUIRED;
-		/*std::cout << "Length Required: " << this->_body.size() << std::endl;
-		std::cout << "BODY: " << this->_body << std::endl;*/
-		return ;}
-	if (!this->_chunked && this->_body.size() >= this->_content_length)
-		{this->_state = DONE;
-		//std::cout << "Done" << std::endl;
-		return ;}
-	if (this->_chunked)
-		handle_chunked();
+	// std::cout << "BODY PARSE: \n|" << this->_request.raw_body << "|" << std::endl;
+	// std::cout << "BODY PARSE: " << this->_request.raw_body << std::endl;
+	if (this->_request.raw_body.size() == 0)
+		{this->_state = DONE; return ;}
+	if (this->_request.boundary.size() > 0)
+		parse_multipart();
+	else
+		this->_request.body = this->_request.raw_body;
 	this->_state = DONE;
+	for (std::vector<t_post_body>::iterator it = this->_post_body.begin(); it != this->_post_body.end(); it++) {
+		std::cout << "NAME: " << it->name << std::endl;
+		std::cout << "FILENAME: " << it->filename << std::endl;
+		std::cout << "CONTENT TYPE: " << it->content_type << std::endl;
+		std::cout << "BODY: \n" << it->data << std::endl;
+		std::cout << "---------------------------------------------------------------------------" << std::endl;
+	}
 }
 
 void	Request::recvRequest() {
@@ -302,21 +391,170 @@ void	Request::recvRequest() {
 	int			ret;
 
 	if (this->_state == DONE || this->_state == ERROR) return ;
-	if ((ret = recv(this->_fd, buffer, BUFFER_SIZE, 0)) == -1) { // old syntax produced a bug
+	if ((ret = recv(this->_fd, buffer, BUFFER_SIZE, 0)) == -1) {
 		this->_status = INTERNAL_SERVER_ERROR;
 		this->_state = ERROR;
 		return ;
 	}
-	if (ret == 0) {this->_state = DONE;
-	//std::cout << "Done Recv 0 byte" << std::endl;
-	return ;}
-	this->_recv += ret;
-	this->_body.append(buffer, ret);
-	parse_first_line();
-	parse_headers();
-	parse_body();
+	if (ret == 0)
+		{this->_state = DONE; return ;}
+	this->_request_buffer.append(buffer, ret);
+	set_first_line();
+	set_headers();
+	set_body();
 }
 
+std::string	urldecode(std::string str) {
+	std::string ret;
+	size_t		pos;
+
+	while ((pos = str.find("%")) != std::string::npos) {
+		ret += str.substr(0, pos);
+		str = str.substr(pos + 1);
+		ret += static_cast<char>(std::strtol(str.substr(0, 2).c_str(), NULL, 16));
+		str = str.substr(2);
+	}
+	ret += str;
+	while ((pos = ret.find("+")) != std::string::npos)
+		ret.replace(pos, 1, " ");
+	return ret;
+}
+
+void	Request::parse_query_string() {
+	if (this->_query_string.size() == 0)
+		return ;
+	std::vector<std::pair<std::string, std::string> >::iterator it;
+	for (it = this->_query_string.begin(); it != this->_query_string.end(); it++) {
+		it->first = urldecode(it->first);
+		it->second = urldecode(it->second);
+	}
+}
+
+void	Request::extract_query_string() {
+	size_t		pos;
+	std::string	uri;
+
+	if ((pos = this->_request.first_line.uri.find("?")) == std::string::npos)
+		return ;
+	this->_request.first_line.uri = this->_request.first_line.uri.substr(0, pos);
+	uri = this->_request.raw_first_line.substr(pos + 1);
+	while ((pos = uri.find("&")) != std::string::npos) {
+		std::string tmp = uri.substr(0, pos);
+		size_t		pos2;
+		if ((pos2 = tmp.find("=")) != std::string::npos)
+			this->_query_string.push_back(std::make_pair(tmp.substr(0, pos2), tmp.substr(pos2 + 1)));
+		else
+			this->_query_string.push_back(std::make_pair(tmp, ""));
+		uri = uri.substr(pos + 1);
+	}
+	if ((pos = uri.find("=")) != std::string::npos)
+		this->_query_string.push_back(std::make_pair(uri.substr(0, pos), uri.substr(pos + 1)));
+	else if (uri.size() > 0)
+		this->_query_string.push_back(std::make_pair(uri, ""));
+	parse_query_string();
+}
+
+static bool in_quotes(std::string str, size_t pos) {
+	int	c = 0;
+
+	for (int i = 0; i < pos; i++)
+		if (str[i] == '"')
+			c++;
+	return (c % 2 == 1);
+}
+
+static bool is_filename(std::string section) {
+	size_t	pos;
+	bool	exists = false;
+
+	std::string line = section.substr(0, section.find("\r\n"));
+	while ((pos = line.find("filename=")) != std::string::npos) {
+		if (in_quotes(line, pos)) {
+			line = line.substr(pos + 9);
+			continue ;
+		}
+		exists = true;
+		break ;
+	}
+	if (exists) {
+		section = section.substr(section.find("\r\n") + 2);
+		line = section.substr(0, section.find("\r\n"));
+		if (line.find("Content-Type:") != std::string::npos)
+			return true;
+	}
+	return false;
+}
+
+void	Request::parse_multipart() {
+	size_t			pos;
+	std::string		boundary;
+	std::string		section;
+	std::string		line;
+
+	std::cout << KRED << "PARSE_MULTIPART" << KNRM << std::endl;
+	boundary = this->_request.boundary;
+	while ((pos = this->_request.raw_body.find(boundary)) != std::string::npos) {
+		section = this->_request.raw_body.substr(0, pos);
+		this->_request.raw_body = this->_request.raw_body.substr(pos + boundary.size());
+		if (section.empty()) continue ;
+		section = section.substr(2);
+		if ((pos = section.find("\r\n")) == std::string::npos) {
+			setRequestState(INV_BD, BAD_REQUEST, ERROR);
+			this->_state = ERROR;
+			this->_status = BAD_REQUEST;
+			return ;
+		}
+		if (is_filename(section))
+			handle_post_file(section);
+		else
+			handle_post_fields(section);
+		if (this->_state == ERROR)
+			return ;
+	}
+}
+
+static std::string get_field_value(std::string line, std::string field) {
+	size_t	pos;
+
+	while ((pos = line.find(field)) != std::string::npos) {
+		if (in_quotes(line, pos)) {
+			line = line.substr(pos + field.size() + 1);
+			continue ;
+		}
+		break ;
+	}
+	std::string value = line.substr(pos + field.size() + 1);
+	value = value.substr(0, value.find("\""));
+	return value;
+}
+
+void	Request::handle_post_file(std::string section) {
+	// std::cout << KRED << "HANDLE_POST_FILE" << KNRM << std::endl;
+	size_t pos = section.find("\r\n");
+	std::string line = section.substr(0, pos);
+
+	std::string name = get_field_value(line, "name=");
+	std::string filename = get_field_value(line, "filename=");
+	section = section.substr(pos + 2);
+	pos = section.find("Content-Type: ");
+	std::string content_type = section.substr(pos + 14);
+	content_type = content_type.substr(0, content_type.find("\r\n"));
+	section = section.substr(section.find("\r\n\r\n") + 4);
+	section = section.substr(0, section.find("\r\n"));
+	t_post_body post_body = {name, filename, content_type, section};
+	this->_post_body.push_back(post_body);
+}
+
+void	Request::handle_post_fields(std::string section) {
+	// std::cout << KRED << "HANDLE_POST_FIELDS" << KNRM << std::endl;
+	size_t pos = section.find("\r\n");
+	std::string line = section.substr(0, pos);
+	std::string name = get_field_value(line, "name=");
+	section = section.substr(pos + 4);
+	section = section.substr(0, section.find("\r\n"));
+	t_post_body post_body = {name, "", "", section};
+	this->_post_body.push_back(post_body);
+}
 
 e_status	Request::getStatus( void ) {
 	return this->_status;
@@ -326,9 +564,8 @@ e_parser_state	Request::getState( void ) {
 	return	this->_state;
 }
 
-t_first_line	Request::get_first_line() { return this->_first_line; }
-t_headers		Request::get_headers() { return this->_headers; }
+t_first_line	Request::get_first_line() { return this->_request.first_line; }
+t_headers		Request::get_headers() { return this->_request.headers; }
 e_location_type	Request::get_location_type() { return this->_location_type; }
-void		Request::set_fd(int sock_fd) { this->_fd = sock_fd; }
-
+void			Request::set_fd(int sock_fd) { this->_fd = sock_fd; }
 void			Request::setStatus(e_status status) { this->_status = status; }

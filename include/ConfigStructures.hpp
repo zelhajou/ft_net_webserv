@@ -26,17 +26,17 @@ class	Response;
 // Structure to represent a location block in the configuration
 struct LocationConfig
 {
-	std::string					path;
-	std::vector<std::string>	allowed_methods;
-	std::string					index;
-    std::string					root;
-	std::string					upload_store;
-	std::string					client_body_temp_path;
-	std::pair<e_status, std::string>				return_url;
-    std::string					fastcgi_pass;
-    std::string					fastcgi_index;
-    std::string					include;
-	bool						auto_index;
+	std::string							path;
+	std::vector<std::string>			allowed_methods;
+	std::string							index;
+    std::string							root;
+	std::string							upload_store;
+	std::string							client_body_temp_path;
+	std::pair<e_status, std::string>	return_url;
+    std::string							fastcgi_pass;
+    std::string							fastcgi_index;
+    std::string							include;
+	bool								auto_index;
 };
 
 // Structure to represent the main server configuration
@@ -48,7 +48,7 @@ struct ServerConfig {
     std::string								client_max_body_size;
     std::map<std::string, LocationConfig>					locations;
     int				_socket;
-    std::map<int, std::pair<Request, Response> >				_requests;
+    std::map<int, std::pair<Request, Response> *>				_requests;
     //
     void	closeConn(int);	// remove entry from _requests
 	public:

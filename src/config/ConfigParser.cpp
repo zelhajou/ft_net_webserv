@@ -38,9 +38,11 @@ MainConfig ConfigParser::parse(const std::string& config_file)
 }
 
 void	ServerConfig::closeConn(int s) {
-	std::map<int, std::pair<Request, Response> >::iterator i = this->_requests.find(s);
-	if (i != this->_requests.end())
+	std::map<int, std::pair<Request, Response> *>::iterator i = this->_requests.find(s);
+	if (i != this->_requests.end()) {
+		delete	i->second;
 		this->_requests.erase(i);
+	}
 }
 
 void	ConfigParser::parseServerBlock(std::ifstream& file, MainConfig& main_config)

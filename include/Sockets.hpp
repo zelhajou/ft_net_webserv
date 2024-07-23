@@ -20,7 +20,7 @@
 
 # define FILE_READ_BUFFER_SIZE	100
 # define CRLF			"\r\n"
-# define PROJECT_PATH "/Users/beddinao/cursus-0/webserv/mainWebserver/"
+# define PROJECT_PATH "/Users/hsobane/projects/teamWeb/"
 # define CONFIG_PATH PROJECT_PATH"config"
 # define SOCKETS_PATH CONFIG_PATH"/sockets"
 # define SERVER_ALL_ROOT PROJECT_PATH"www"

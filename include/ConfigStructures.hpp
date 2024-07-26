@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 14:11:47 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/18 23:56:53 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/24 22:37:41 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,9 +33,11 @@ struct LocationConfig
 	std::string							upload_store;
 	std::string							client_body_temp_path;
 	std::pair<e_status, std::string>	return_url;
-    std::string							fastcgi_pass;
-    std::string							fastcgi_index;
-    std::string							include;
+
+	std::vector<std::string>							add_cgi;
+	std::string								cgi_path;
+	std::vector<std::string>							cgi_allowed_methods;
+
 	bool								auto_index;
 };
 

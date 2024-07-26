@@ -1,6 +1,6 @@
 #include "Response.hpp"
 
-Response::Response(): status(FIRST_LINE), _has_body(true), _new_session(false) {
+Response::Response(): status(FIRST_LINE), _has_body(true), _new_session(false), _file_type("NONE") {
 	this->_sent.push_back(0);
 	this->_sent.push_back(0);
 }
@@ -17,11 +17,46 @@ size_t	Response::get_file_size() {
 	return (size);
 }
 
-static	std::string	generate_status_file(e_status status_code, ServerConfig *server) {
+static	std::string	http_code_msg(e_status code)
+{
+	switch (code) {
+		case OK:				return "OK";
+		case BAD_REQUEST:			return "Bad Request";
+		case NOT_FOUND:			return "Not Found";
+		case FORBIDDEN:			return "Forbidden";
+		case INTERNAL_SERVER_ERROR:		return "Internal Server Error";
+		case NOT_IMPLEMENTED:		return "Not Implemented";
+		case REDIRECT:			return "Redirect";
+		case NOT_MODIFIED:			return "Not Modified";
+		case TOO_MANY_REQUESTS:		return "Too Many Requests";
+		case REQUEST_ENTITY_TOO_LARGE:	return "Request Entity Too Large";
+		case REQUEST_HEADER_FIELDS_TOO_LARGE:	return "Request Header Fields Too Large";
+		case HTTP_VERSION_NOT_SUPPORTED:	return "Http Version NOT Supported";
+		case URI_TOO_LONG:			return "Url Too Long";
+		case LENGTH_REQUIRED:		return "Length Required";
+		case REQUEST_TIMEOUT:		return "Request Timeout";
+		default:				return " ";
+	}
+}
+
+static	std::string	generate_status_file(e_status status_code, ServerConfig *server, std::string addon) {
 	std::map<int, std::string>::iterator	it = server->error_pages.find(status_code);
-	if (it != server->error_pages.end() && stat(it->second.c_str(), NULL) != -1)
-		return	it->second;
-	return	CONFIG_PATH"/html_default_error_files/" + std::to_string(status_code) + ".html";
+	if (it != server->error_pages.end() && access(it->second.c_str(), R_OK) == 0) return it->second;
+	std::string	status_file = CONFIG_PATH"/html_default_error_files/" + std::to_string(status_code) + ".html";
+	if (!access(status_file.c_str(), R_OK))	return status_file;
+	std::fstream	_file(status_file, std::ios::out);
+	if (!_file.is_open())	return "";
+	std::string mdn_link = "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/" + std::to_string(status_code);
+	_file << "<html><head><title>"<<std::to_string(status_code)<<"</title><style>\
+			* {margin:0px;padding:0px;box-sizing:border-box;}html{background-color:#000;}\
+			body {height:100vh;width:100%;display:flex;align-items:center;row-gap:1em;\
+				justify-content:center;flex-direction:column;font-family:monospace;}\
+			h1 {color:#fff;font-size:15em;font-style:italic;text-shadow:5px 5px #7a7a7a;}\
+			h2 {color:#7a7a7a;text-transform:uppercase;font-size:3em;}a{font-size:20px;}\
+		</style></head><body><h1>"<<std::to_string(status_code)<<"</h1><h2>"<<(addon.size()?addon:http_code_msg(status_code))<<"</h2>\
+		<a target='_blank' href=\""<<mdn_link<<"\">developer.mozilla.org</a></body></html>";
+	_file.close();
+	return	status_file;
 }
 
 static	std::string	replace_characters(std::string input, std::string from, std::string to) {
@@ -86,72 +121,182 @@ static	std::string	generate_auto_index(std::string uri, ServerConfig *server) {
 	return	target;
 }
 
+static	std::string	_generate_random_string(std::string seed, int length) {
+	std::string	output = seed;
+	for (int i=0;i<length;i++) {
+		std::string    r(1, static_cast<char>(std::rand() % (122 - 48) + 48 ));
+		output.append( r );
+	}
+	return	clean_up_stuff(output, "[\\]^`:;<>=?/ ", "_____________");
+}
+
+
+static	int	file_to_disk(std::string content, std::string path, std::string filename) {
+	if (!filename.size())	filename = _generate_random_string(path, 15);
+	std::fstream		file(path+"/"+filename, std::ios::out);
+	if (!file.is_open())	return 0;
+	file << content;
+	file.close();
+	return	1;
+}
+
+static	std::string	get_executer(std::pair<std::string, std::string> cgi_info, std::string uri) {
+	if (cgi_info.first.empty() || !access(uri.c_str(), X_OK))	return	uri;
+	if (cgi_info.first == ".py")				return	PYTHON_PATH;
+	if (cgi_info.first == ".php")				return	PHP_PATH;
+	if (cgi_info.first == ".pl" || cgi_info.first == ".pm")	return	PERL_PATH;
+	if (cgi_info.first == ".java" || cgi_info.first == ".jvs")		return	JAVA_PATH;
+	if (cgi_info.first == ".js" || cgi_info.first == ".javascript")	return	JS_PATH;
+	if (cgi_info.first == ".sh")					return	SHELL_PATH;
+	return	uri;
+}
+
+std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
+	std::string	out_file = CGI_OUTPUT"/"+ _generate_random_string(this->_request->get_headers().host, 15) +".html";
+	std::fstream	_file(out_file, std::ios::out);
+	if (!_file.is_open())	return	generate_status_file(INTERNAL_SERVER_ERROR, server, "");
+	std::string	input, to_stdin_input, output;
+	if (this->_request->_query_string.size()) {
+		for (std::vector<std::pair<std::string, std::string> >::iterator i=this->_request->_query_string.begin();
+			i!=this->_request->_query_string.end();++i)
+			input.append(i->first+"="+i->second+"&");
+	}
+	if (this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos)
+		for (std::vector<t_post_body>::iterator i=this->_request->_post_body.begin();i!=this->_request->_post_body.end();++i)
+			input.append(i->name+"="+i->data+"&");
+	else	input.append(this->_request->_request.raw_body);
+	sock._enrg_env_var("CONTENT_LENGTH", std::to_string(input.size()));
+	sock._enrg_env_var("REQUEST_METHOD", this->_request->get_first_line().method);
+	sock._enrg_env_var("SERVER_NAME", server->server_name);
+	sock._enrg_env_var("SERVER_PORT", server->listen_port);
+	sock._enrg_env_var("SERVER_PROTOCOL", "HTTP/1.1");
+	std::string	uri = this->_request->get_first_line().uri;
+	if (!this->_request->_cgi_info.second.empty()) {
+		sock._enrg_env_var("PATH_INFO", this->_request->_cgi_info.second);
+		uri = uri.substr(0, uri.find(this->_request->_cgi_info.second));
+	}
+	if (this->_request->get_first_line().method == "GET")	sock._enrg_env_var("QUERY_STRING", input);
+	else	to_stdin_input = input;
+	try {
+		output = sock.execute_script(sock.format_env() + _M_DEL
+			+ get_executer(this->_request->_cgi_info, uri) + _M_DEL
+			+ uri + _M_DEL
+			+ to_stdin_input);
+	} catch (std::exception &l) {
+		std::cout << KRED << "Response::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		if (_file.is_open())	_file.close();
+		return	generate_status_file(INTERNAL_SERVER_ERROR, server, "");
+	}
+	int		pos = output.find("webserv_cgi_status=");
+	if (pos != std::string::npos) {
+		int	cgi_status = std::atoi(output.substr(pos+19, pos+22).c_str());
+		std::cout << KGRN"cgi_status:"<< cgi_status<<std::endl<<KNRM;
+		std::cout << KGRN"got:" << output.substr(pos+23) << KNRM << std::endl;
+		if (cgi_status != 200)	return	generate_status_file((e_status)cgi_status, server, output.substr(pos+23));
+	}
+	try {
+		pos = output.find("Content-Type: ");
+		if (pos != std::string::npos) {
+			std::string temp_c_t = output.substr(pos+14);
+			output = temp_c_t;
+			pos = temp_c_t.find("\n");
+			if (pos != std::string::npos) {
+				temp_c_t = temp_c_t.substr(0, pos);
+				if (sock.is_valid_mime(temp_c_t))
+					this->_file_type = temp_c_t;
+				output = output.substr(pos);
+			}
+		}
+	} catch (std::exception &l) {
+		std::cout << KRED << "Response::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		if (_file.is_open())	_file.close();
+		return	generate_status_file(INTERNAL_SERVER_ERROR, server, "");
+	}
+	//
+	_file << output;
+	_file.close();
+	return	out_file;
+}
+
 void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *server) {
 	this->_request = req;
 	std::string	target_file;
 
-	if (req->get_location_type() == AUTOINDEX) {
-		struct	stat	output;
-		std::string	uri = req->get_first_line().uri;
-		std::memset(&output, 0, sizeof(output));
-		if (stat(uri.c_str(), &output) == -1 || !S_ISDIR(output.st_mode)
-			|| !(target_file = generate_auto_index(uri, server)).size()) {
-			this->_request->setStatus(FORBIDDEN);
-			this->_has_body = false;
+	if (this->_request->getStatus() == OK && !this->_request->_is_return) {
+		if (this->_request->_location_type == AUTOINDEX) {
+			struct	stat	output;
+			std::string	uri = this->_request->get_first_line().uri;
+			std::memset(&output, 0, sizeof(output));
+			if (stat(uri.c_str(), &output) == -1 || !S_ISDIR(output.st_mode)
+				|| !(target_file = generate_auto_index(uri, server)).size()) {
+				this->_request->setStatus(FORBIDDEN);
+				this->_has_body = false;
+			}
 		}
+		else if (this->_request->_location_type == CGI) {
+			// CGI STUFF
+			std::cout << "////////////////////////CGI_STUFF//////\n";
+			std::cout << KCYN"uri:"KNRM << this->_request->get_first_line().uri << std::endl;
+			std::cout << KCYN"method:"KNRM << this->_request->get_first_line().method << std::endl;
+			std::vector<std::pair<std::string, std::string> >::iterator	i = this->_request->_query_string.begin();
+			for (;i != this->_request->_query_string.end();++i)
+				std::cout << KCYN"query_string:"KNRM << i->first << "->" << i->second << std::endl;
+			//
+			target_file = this->process_cgi_exec(sock, server);
+			std::cout << "////////////////////////////////\n";
+		}
+		else if (this->_request->get_first_line().method == "GET") target_file = this->_request->get_first_line().uri;
+		else if (this->_request->get_first_line().method == "POST") {
+			bool	post_status(true);	int	mini_post_status(1);
+			if (this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) {
+				for (std::vector<t_post_body>::iterator i = this->_request->_post_body.begin(); i!=this->_request->_post_body.end(); ++i)
+					if (i->filename.size() > 0) mini_post_status += file_to_disk(i->data, this->_request->get_first_line().uri, i->filename);
+				if (mini_post_status != this->_request->_post_body.size())	post_status = false;
+			}
+			else	post_status = file_to_disk(this->_request->_request.raw_body, this->_request->get_first_line().uri, "");
+			target_file = generate_status_file(post_status ? this->_request->getStatus() : INTERNAL_SERVER_ERROR, server, "");
+		}
+		else if (this->_request->get_first_line().method == "DELETE")
+			target_file = generate_status_file((std::remove(this->_request->get_first_line().uri.c_str()))
+					? INTERNAL_SERVER_ERROR
+					: this->_request->getStatus(), server, "");
 	}
-	else if (req->getStatus() == OK && req->get_first_line().method == "GET")
-		target_file = req->get_first_line().uri;
-	else	
-		target_file = generate_status_file(req->getStatus(), server);
+	else	target_file = generate_status_file(this->_request->getStatus(), server, "");
+	
 	if (this->_has_body) {
-		this->_file.open( target_file, std::ios::in|std::ios::binary);
+		this->_file.open(target_file, std::ios::in|std::ios::binary);
 		if (!this->_file) {
+			e_status	tempS = this->_request->getStatus();
 			this->_request->setStatus(FORBIDDEN);
-			this->_has_body = false;
-		} else {
+			if (tempS == OK) {
+				this->_initiate_response(req, sock, server);
+				return ;
+			}
+			else	this->_has_body = false;
+		}
+		else {
 			this->_file_size = this->get_file_size();
 			int	ppos = target_file.rfind(".");
-			if (ppos == target_file.npos) ppos = 0;
-			this->_file_type = sock.get_mime_type(target_file.substr(ppos));
+			if (ppos == target_file.npos)	ppos = 0;
+			if (this->_file_type == "NONE")
+				this->_file_type = sock.get_mime_type(target_file.substr(ppos));
 		}
-
 	}
-	this->_connection_type = req->get_headers().connection.find("keep-alive") != std::string::npos ? "keep-alive": "close";
+	this->_connection_type = (this->_request->get_headers().connection == "keep-alive") ? "keep-alive" : "close";
 	sock.check_session(*this);
 }
 
 e_parser_state	Response::get_status() { return this->status; }
 void		Response::set_session_id( std::string id ) { this->_session_id = id; }
 
-static	std::string	http_code_msg(e_status code)
-{
-	switch (code) {
-		case OK:				return "OK";
-		case BAD_REQUEST:			return "Bad Request";
-		case NOT_FOUND:			return "Not Found";
-		case FORBIDDEN:			return "Forbidden";
-		case INTERNAL_SERVER_ERROR:		return "Internal Server Error";
-		case NOT_IMPLEMENTED:		return "Not Implemented";
-		case REDIRECT:			return "Redirect";
-		case NOT_MODIFIED:			return "Not Modified";
-		case TOO_MANY_REQUESTS:		return "Too Many Requests";
-		case REQUEST_ENTITY_TOO_LARGE:	return "Request Entity Too Large";
-		case REQUEST_HEADER_FIELDS_TOO_LARGE:	return "Request Header Fields Too Large";
-		case HTTP_VERSION_NOT_SUPPORTED:	return "Http Version NOT Supported";
-		case URI_TOO_LONG:			return "Url Too Long";
-		case LENGTH_REQUIRED:		return "Length Required";
-		case REQUEST_TIMEOUT:		return "Request Timeout";
-		default:				return " ";
-	}
-}
-
 size_t	Response::form_headers(ServerConfig *server) {
 	e_status	req_scode = this->_request->getStatus();
 	if (this->header.size())	this->header.clear();
 	this->header = "HTTP/1.1 " + std::to_string(req_scode) + " " + http_code_msg(req_scode) + CRLF;
 	this->header.append("Server: " + server->server_name + CRLF"Connection: " + this->_connection_type + CRLF);
-	//if (req_scode == REDIRECT)	this->header.append("Location: "+/**/+CRLF);
+	if (this->_request->_is_return && req_scode >= 300 && req_scode < 400) {
+		this->header.append("Location: "+this->_request->_c_location->return_url.second+CRLF);
+	}
 	if (this->_new_session)	this->header.append("set-cookie: session="+ this->_session_id + "; "CRLF);
 	//
 	if (this->_has_body) {

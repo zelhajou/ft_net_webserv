@@ -6,7 +6,7 @@
 /*   By: hsobane <hsobane@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/19 22:59:35 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/25 02:11:12 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,15 +37,20 @@ ServerConfig	*demo_server(std::string port, std::string host, std::string server
 	allowed_methods.push_back("POST");
 	allowed_methods.push_back("DELETE");
 	_location_one.allowed_methods = allowed_methods;
-	_location_one.upload_store = "hello";
+	_location_one.upload_store = "server2";
 	_location_one.client_body_temp_path = "";
+	//
 	std::pair<e_status, std::string>	return_url;
 	return_url.first = STATUS_NONE;
-	return_url.second = "";
+	return_url.second = "http://youtube.com/results?search_query=TOOL+reflection";
 	_location_one.return_url = return_url;
-	_location_one.fastcgi_pass = "";
-	_location_one.fastcgi_index = "";
- 	_location_one.include = "";
+	//
+	_location_one.cgi_path = "cgi_scripts";
+	std::vector<std::string>		cgi_add;
+	cgi_add.push_back(".php");
+	cgi_add.push_back(".py");
+	_location_one.add_cgi = cgi_add;
+	_location_one.cgi_allowed_methods = allowed_methods;
 
 	std::map<std::string, LocationConfig>	locations;
 	locations[ l_path ] = _location_one;
@@ -61,7 +66,7 @@ void	sig_nan(int sig_num) {
 	exit(sig_num);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[], char **env) {
 	fix_up_signals(sig_nan);
 	/*(void)argc;
 	if (argc != 2) {
@@ -74,20 +79,20 @@ int main(int argc, char *argv[]) {
 
 	//	demo play
 	std::vector<ServerConfig*>	servers;
-	servers.push_back(demo_server("8080", "localhost", "server_one", "/", "index.html", SERVER_ALL_ROOT, true));
+	servers.push_back(demo_server("8080", "127.0.0.1", "server_one", "/", "index.html", SERVER_ALL_ROOT, true));
 	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
 	MainConfig	main_config;
 	main_config.servers = servers;
 	//
 
-	try {
+	//try {
 		// Parser parser(argv[1]); // Parse the config file
-		S.initiate_servers(main_config); // Create the Sockets for all servers
+		S.initiate_servers(main_config, env); // Create the Sockets for all servers
 		S.run(); // Start the servers using kqueue
-	}
-	catch (std::exception &e) {
+	//}
+	/*catch (std::exception &e) {
 		// If none of the servers could be started, the program should exit with a message to stderr
 		std::cerr << e.what() << std::endl;
-	}
+	}*/
     return 0;
 }

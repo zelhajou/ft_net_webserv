@@ -44,16 +44,26 @@ void	Request::handle_cgi() {
 
 }
 
-bool	Request::is_cgi() {
-	size_t	pos;
+bool	Request::is_cgi(LocationConfig *loc) {
+	size_t	pos, npos;
 
-	if (this->_request.state == ERROR || this->_request.state == DONE)
-		return false;
+	if (this->_request.state == ERROR || this->_request.state == DONE
+		|| !loc->add_cgi.size() || !loc->cgi_path.size()
+		|| !loc->cgi_allowed_methods.size())	return false;
 	std::string uri = this->_request.first_line.uri;
-	if ((pos = uri.find(".php")) != std::string::npos && pos == uri.size() - 4)
-		return true;
-	if ((pos = uri.find(".py")) != std::string::npos && pos == uri.size() - 3)
-		return true;
+	//
+	for (std::vector<std::string>::iterator i = loc->add_cgi.begin();i != loc->add_cgi.end(); ++i)
+		if ((pos = uri.find(*i)) != std::string::npos && uri[pos] == '.') {
+			std::string	temp_uri = uri.substr(pos);
+			npos = temp_uri.find("/");
+			if (npos != std::string::npos) {
+				this->_cgi_info.second = temp_uri.substr(npos);
+				temp_uri = temp_uri.substr(0, npos);
+			}
+			if (temp_uri == *i) { this->_cgi_info.first = *i; return true; }
+			else	this->_cgi_info.second.clear();
+		}
+	//
 	return false;
 }
 
@@ -61,11 +71,17 @@ void	Request::handle_location(LocationConfig** loc) {
 	*loc = ::search(this->_location_tree, this->_request.first_line.uri, ::cmp);
 	if (*loc == NULL)
 		{setRequestState(LOC_NF, NOT_FOUND, ERROR); return ;}
-	if (is_cgi())
-		{this->_location_type = CGI; return ;}
+	if (is_cgi(*loc))
+		{
+			std::cout << KGRN"CGI ACCEPTED"KNRM << std::endl;
+			this->_location_type = CGI; return ;
+		}
 	if ((*loc)->return_url.first != STATUS_NONE)
-		setRequestState((*loc)->return_url.second, (*loc)->return_url.first, DONE);
+		{setRequestState((*loc)->return_url.second, (*loc)->return_url.first, DONE);}
 	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_request.first_line.method) == (*loc)->allowed_methods.end())
+		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
+	//
+	if (this->_location_type == CGI && std::find((*loc)->cgi_allowed_methods.begin(), (*loc)->cgi_allowed_methods.end(), this->_request.first_line.method) == (*loc)->cgi_allowed_methods.end())
 		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
 }
 
@@ -104,7 +120,7 @@ void	Request::handle_file() {
 		this->_state = ERROR;
 		return ;
 	}
-	this->_location_type = STATIC;
+	else if (this->_location_type != CGI)	this->_location_type = STATIC;
 }
 
 void	Request::handle_directory(LocationConfig* loc) {
@@ -134,16 +150,21 @@ void	Request::handle_directory(LocationConfig* loc) {
 }
 
 void Request::handle_uri(LocationConfig* loc) {
-	if (this->_location_type == CGI)
-		return ;
+	/*if (this->_location_type == CGI)
+		return ;*/
 
-	std::string r = loc->root + "/";
+	std::string r = loc->root + "/" + ((this->_location_type == CGI) ? (loc->cgi_path+"/") : "");
 
 	this->_request.first_line.uri.replace(0, loc->path.size(), r);
-	if (this->_request.first_line.method == "GET") {
+
+	//if (this->_location_type == CGI)	return ;
+
+	if (this->_request.first_line.method == "GET" ||
+		(this->_request.first_line.method == "POST" && this->_location_type == CGI)) {
 		if (is_file(this->_request.first_line.uri))
 			handle_file();
-		else if (is_directory(this->_request.first_line.uri, R_OK))
+		else if (is_directory(this->_request.first_line.uri, R_OK)
+			&& this->_location_type != CGI)
 			handle_directory(loc);
 		else
 			setRequestState(NOT_FND, NOT_FOUND, ERROR);
@@ -177,6 +198,7 @@ void	Request::parse_uri() {
 		uri = uri.substr(0, pos) + uri.substr(pos + 1);
 	extract_query_string();
 	handle_location(&loc);
+	this->_c_location = loc;
 	handle_uri(loc);
 }
 
@@ -377,13 +399,13 @@ void Request::parse_body() {
 	else
 		this->_request.body = this->_request.raw_body;
 	this->_state = DONE;
-	for (std::vector<t_post_body>::iterator it = this->_post_body.begin(); it != this->_post_body.end(); it++) {
+	/*for (std::vector<t_post_body>::iterator it = this->_post_body.begin(); it != this->_post_body.end(); it++) {
 		std::cout << "NAME: " << it->name << std::endl;
 		std::cout << "FILENAME: " << it->filename << std::endl;
 		std::cout << "CONTENT TYPE: " << it->content_type << std::endl;
 		std::cout << "BODY: \n" << it->data << std::endl;
 		std::cout << "---------------------------------------------------------------------------" << std::endl;
-	}
+	}*/
 }
 
 void	Request::recvRequest() {
@@ -436,8 +458,9 @@ void	Request::extract_query_string() {
 
 	if ((pos = this->_request.first_line.uri.find("?")) == std::string::npos)
 		return ;
+
+	uri = this->_request.first_line.uri.substr(pos + 1);
 	this->_request.first_line.uri = this->_request.first_line.uri.substr(0, pos);
-	uri = this->_request.raw_first_line.substr(pos + 1);
 	while ((pos = uri.find("&")) != std::string::npos) {
 		std::string tmp = uri.substr(0, pos);
 		size_t		pos2;

@@ -25,6 +25,7 @@ public:
 	size_t		get_file_size();
 	void		set_session_id(std::string);
 	bool		_new_session;
+	std::string	process_cgi_exec(Sockets&, ServerConfig*);
 	std::string	_connection_type;
 //private:
 	std::ifstream		_file;

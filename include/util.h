@@ -96,7 +96,6 @@ struct MIME {
 public:
 	MIME();
 	std::string getMIME(std::string extension);
-private:
 	std::map<std::string, std::string> _mime;
 };
 

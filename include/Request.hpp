@@ -53,7 +53,7 @@ public:
 	t_first_line				get_first_line();
 	t_headers					get_headers();
 	e_location_type				get_location_type();
-	bool						is_cgi();
+	bool						is_cgi(LocationConfig *);
 	bool						is_file(std::string& path);
 	bool						is_directory(std::string& path, int flag);
 	void						handle_cgi();
@@ -94,6 +94,9 @@ public:
 	std::vector<t_post_body>	_post_body;
 	std::string					_request_buffer;
 	e_method					_method;
+	LocationConfig				*_c_location;
+	std::pair<std::string, std::string>		_cgi_info;
+	bool					_is_return;
 };
 
 #endif

@@ -20,6 +20,7 @@
 
 # define FILE_READ_BUFFER_SIZE	1000
 # define CRLF			"\r\n"
+# define CLR_TERM			"\e[1;1H\e[2J"
 # define PROJECT_PATH "/Users/beddinao/cursus-0/webserv/mainWebserver/"
 # define CONFIG_PATH PROJECT_PATH"config"
 # define CGI_OUTPUT CONFIG_PATH"/cgi_outputs"
@@ -27,7 +28,7 @@
 # define SERVER_ALL_ROOT PROJECT_PATH"www"
 # define _S_DEL "__S_"CRLF"_DEL__"
 # define _M_DEL "__M_"CRLF"_DEL__"
-# define CGI_TIME_LIMIT	10		// s
+# define CGI_TIME_LIMIT	10	// s
 # define CGI_PIPE_MAX_SIZE	1000
 # define UNIX_SOCK_BUFFER	8000
 # define PYTHON_PATH	"/usr/local/bin/python3"

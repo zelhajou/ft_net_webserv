@@ -1,6 +1,6 @@
 #include "Response.hpp"
 
-Response::Response(): status(FIRST_LINE), _has_body(true), _new_session(false), _file_type("NONE") {
+Response::Response(): status(FIRST_LINE), _has_body(true), _new_session(false), _file_type("NONE"), _has_cookies(false) {
 	this->_sent.push_back(0);
 	this->_sent.push_back(0);
 }
@@ -140,6 +140,39 @@ static	int	file_to_disk(std::string content, std::string path, std::string filen
 	return	1;
 }
 
+static	std::string	_conc_(std::string input, char c) {
+	try {
+		int	i(0);
+		while (input[i] == c)
+			input = input.substr(1);
+		i = input.size() - 1;
+		while (input[i] == c) {
+			input = input.substr(0, i - 1);
+			i = input.size() - 1;
+		}
+		return	input;
+	}
+	catch (std::exception &l)
+	{
+		return	input;
+	}
+}
+
+static	std::string	_cgi_header(std::string input, std::string v_name, std::string v_name_2) {
+		std::string		temp_c_t;
+		int	pos = input.find(v_name);
+		if (pos == std::string::npos) pos = input.find(v_name_2);
+		if (pos != std::string::npos) {
+			temp_c_t = input.substr(pos + v_name.size());
+			pos = temp_c_t.find("\n");
+			if (pos != std::string::npos) {
+				temp_c_t = _conc_(temp_c_t.substr(0, pos), ' ');
+				return	temp_c_t;
+			}
+		}
+		return	"";
+}
+
 static	std::string	get_executer(std::pair<std::string, std::string> cgi_info, std::string uri) {
 	if (cgi_info.first.empty() || !access(uri.c_str(), X_OK))	return	uri;
 	if (cgi_info.first == ".py")				return	PYTHON_PATH;
@@ -167,9 +200,11 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	else	input.append(this->_request->_request.raw_body);
 	sock._enrg_env_var("CONTENT_LENGTH", std::to_string(input.size()));
 	sock._enrg_env_var("REQUEST_METHOD", this->_request->get_first_line().method);
+	sock._enrg_env_var("CONTENT_TYPE", this->_request->get_headers().content_type);
 	sock._enrg_env_var("SERVER_NAME", server->server_name);
 	sock._enrg_env_var("SERVER_PORT", server->listen_port);
 	sock._enrg_env_var("SERVER_PROTOCOL", "HTTP/1.1");
+	sock._enrg_env_var("HTTP_COOKIE", this->_request->get_headers().cookie);
 	std::string	uri = this->_request->get_first_line().uri;
 	if (!this->_request->_cgi_info.second.empty()) {
 		sock._enrg_env_var("PATH_INFO", this->_request->_cgi_info.second);
@@ -190,23 +225,23 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	int		pos = output.find("webserv_cgi_status=");
 	if (pos != std::string::npos) {
 		int	cgi_status = std::atoi(output.substr(pos+19, pos+22).c_str());
-		std::cout << KGRN"cgi_status:"<< cgi_status<<std::endl<<KNRM;
-		std::cout << KGRN"got:" << output.substr(pos+23) << KNRM << std::endl;
-		if (cgi_status != 200)	return	generate_status_file((e_status)cgi_status, server, output.substr(pos+23));
+		output = output.substr(pos+23);
+		if (cgi_status != 200)	return	generate_status_file((e_status)cgi_status, server, output);
 	}
 	try {
-		pos = output.find("Content-Type: ");
-		if (pos != std::string::npos) {
-			std::string temp_c_t = output.substr(pos+14);
-			output = temp_c_t;
-			pos = temp_c_t.find("\n");
-			if (pos != std::string::npos) {
-				temp_c_t = temp_c_t.substr(0, pos);
-				if (sock.is_valid_mime(temp_c_t))
-					this->_file_type = temp_c_t;
-				output = output.substr(pos);
-			}
+		std::string	temp_c_t = _cgi_header(output, "Content-type:", "Content-Type:");
+		if (!temp_c_t.empty() && sock.is_valid_mime(temp_c_t))
+			this->_file_type = temp_c_t;
+		temp_c_t = _cgi_header(output, "set-cookie:", "Set-cookie:");
+		if (!temp_c_t.empty()) {
+			this->_cgi_cookie = temp_c_t;
+			this->_has_cookies = true;
 		}
+		//
+		pos = output.find("\n\n");
+		if (pos != std::string::npos)
+			output = output.substr(pos + 2);
+		else	throw	std::runtime_error("invalid cgi output formatting");
 	} catch (std::exception &l) {
 		std::cout << KRED << "Response::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
@@ -234,7 +269,6 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			}
 		}
 		else if (this->_request->_location_type == CGI) {
-			// CGI STUFF
 			std::cout << "////////////////////////CGI_STUFF//////\n";
 			std::cout << KCYN"uri:"KNRM << this->_request->get_first_line().uri << std::endl;
 			std::cout << KCYN"method:"KNRM << this->_request->get_first_line().method << std::endl;
@@ -295,9 +329,10 @@ size_t	Response::form_headers(ServerConfig *server) {
 	this->header = "HTTP/1.1 " + std::to_string(req_scode) + " " + http_code_msg(req_scode) + CRLF;
 	this->header.append("Server: " + server->server_name + CRLF"Connection: " + this->_connection_type + CRLF);
 	if (this->_request->_is_return && req_scode >= 300 && req_scode < 400) {
-		this->header.append("Location: "+this->_request->_c_location->return_url.second+CRLF);
-	}
-	if (this->_new_session)	this->header.append("set-cookie: session="+ this->_session_id + "; "CRLF);
+		this->header.append("Location: "+this->_request->_c_location->return_url.second+CRLF); }
+
+	if (this->_has_cookies)	this->header.append("set-cookie: " + this->_cgi_cookie + " ;" + (this->_new_session ? "" : CRLF));
+	if (this->_new_session)	this->header.append((this->_has_cookies ? std::string("") : std::string("set-cookie: ")) + "session="+ this->_session_id + "; "CRLF);
 	//
 	if (this->_has_body) {
 		this->header.append("Content-type: " + this->_file_type + CRLF);

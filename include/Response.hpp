@@ -31,6 +31,9 @@ public:
 	std::ifstream		_file;
 	size_t			_file_size;
 	std::string		_file_type;
+	std::string		_cgi_cookie;
+	bool			_has_cookies;
+
 	std::string		_session_id;
 	std::vector<size_t>		_sent;
 	Request			*_request;

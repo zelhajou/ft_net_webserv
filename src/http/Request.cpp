@@ -1,6 +1,6 @@
 #include "Request.hpp"
 
-Request::Request() : _fd(-1), _total_body_size(0), _state(FIRST_LINE), _status(OK), _chunk_size(0) {
+Request::Request() : _fd(-1), _total_body_size(0), _state(FIRST_LINE), _status(OK), _chunk_size(0), _is_return(0) {
 	this->_method = MTH_NONE;
 	this->_request.status = STATUS_NONE;
 	this->_request.state = FIRST_LINE;
@@ -77,7 +77,7 @@ void	Request::handle_location(LocationConfig** loc) {
 			this->_location_type = CGI; return ;
 		}
 	if ((*loc)->return_url.first != STATUS_NONE)
-		{setRequestState((*loc)->return_url.second, (*loc)->return_url.first, DONE);}
+		{setRequestState((*loc)->return_url.second, (*loc)->return_url.first, DONE); this->_is_return = true;}
 	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_request.first_line.method) == (*loc)->allowed_methods.end())
 		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
 	//

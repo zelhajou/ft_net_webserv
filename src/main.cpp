@@ -6,7 +6,7 @@
 /*   By: hsobane <hsobane@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/25 02:11:12 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/27 06:58:47 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,15 +40,18 @@ ServerConfig	*demo_server(std::string port, std::string host, std::string server
 	_location_one.upload_store = "server2";
 	_location_one.client_body_temp_path = "";
 	//
-	std::pair<e_status, std::string>	return_url;
-	return_url.first = STATUS_NONE;
-	return_url.second = "http://youtube.com/results?search_query=TOOL+reflection";
-	_location_one.return_url = return_url;
+	if (port[0] != '8') {
+		std::pair<e_status, std::string>	return_url;
+		return_url.first = (e_status)307;
+		return_url.second = "http://" + host + ":8080";
+		_location_one.return_url = return_url;
+	}
 	//
 	_location_one.cgi_path = "cgi_scripts";
 	std::vector<std::string>		cgi_add;
 	cgi_add.push_back(".php");
 	cgi_add.push_back(".py");
+	cgi_add.push_back(".pl");
 	_location_one.add_cgi = cgi_add;
 	_location_one.cgi_allowed_methods = allowed_methods;
 
@@ -81,6 +84,14 @@ int main(int argc, char *argv[], char **env) {
 	std::vector<ServerConfig*>	servers;
 	servers.push_back(demo_server("8080", "127.0.0.1", "server_one", "/", "index.html", SERVER_ALL_ROOT, true));
 	servers.push_back(demo_server("1234", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
+	servers.push_back(demo_server("4321", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
+	servers.push_back(demo_server("1243", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
+	servers.push_back(demo_server("2134", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
+	servers.push_back(demo_server("1235", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
+	servers.push_back(demo_server("1236", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
+	servers.push_back(demo_server("1237", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server2", true));
+	servers.push_back(demo_server("8888", "localhost", "server_two", "/", "", SERVER_ALL_ROOT"/server3", true));
+	servers.push_back(demo_server("8000", "localhost", "server_two", "/", "index.html", SERVER_ALL_ROOT, true));
 	MainConfig	main_config;
 	main_config.servers = servers;
 	//

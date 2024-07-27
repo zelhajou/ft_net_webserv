@@ -5,7 +5,10 @@ webserv
 index.html
 video_audio.mp4
 post.html
-www
+www/assets
+www/*.html
+www/server2
+www/server3
 config/html_generated_files
 config/cgi_outputs
 config/html_default_error_files

@@ -187,6 +187,15 @@ void Request::handle_uri(LocationConfig* loc) {
 	}
 }
 
+static bool	is_valid_uri(std::string uri) {
+	std::string	invalid = "<>\"{}|\\^[]`";
+
+	for (size_t i = 0; i < invalid.size(); i++)
+		if (uri.find(invalid[i]) != std::string::npos)
+			return false;
+	return true;
+}
+
 void	Request::parse_uri() {
 	struct stat			st;
 	LocationConfig*		loc;
@@ -196,6 +205,8 @@ void	Request::parse_uri() {
 	uri = this->_request.first_line.uri;
 	while ((pos = uri.find("//")) != std::string::npos)
 		uri = uri.substr(0, pos) + uri.substr(pos + 1);
+	if (is_valid_uri(uri) == false)
+		{setRequestState(INV_URI, BAD_REQUEST, ERROR); return ;}
 	extract_query_string();
 	handle_location(&loc);
 	this->_c_location = loc;
@@ -413,13 +424,12 @@ void	Request::recvRequest() {
 	int			ret;
 
 	if (this->_state == DONE || this->_state == ERROR) return ;
-	if ((ret = recv(this->_fd, buffer, BUFFER_SIZE, 0)) == -1) {
+	ret = recv(this->_fd, buffer, BUFFER_SIZE, 0);
+	if (ret == -1 || ret == 0) {
 		this->_status = INTERNAL_SERVER_ERROR;
 		this->_state = ERROR;
 		return ;
 	}
-	if (ret == 0)
-		{this->_state = DONE; return ;}
 	this->_request_buffer.append(buffer, ret);
 	set_first_line();
 	set_headers();
@@ -514,7 +524,7 @@ void	Request::parse_multipart() {
 	std::string		section;
 	std::string		line;
 
-	std::cout << KRED << "PARSE_MULTIPART" << KNRM << std::endl;
+	// std::cout << KRED << "PARSE_MULTIPART" << KNRM << std::endl;
 	boundary = this->_request.boundary;
 	while ((pos = this->_request.raw_body.find(boundary)) != std::string::npos) {
 		section = this->_request.raw_body.substr(0, pos);

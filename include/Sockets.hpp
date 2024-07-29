@@ -15,7 +15,10 @@
 # include "KQueue.hpp"
 # include "util.h"
 # include "sys/un.h"
-# include "ConfigParser.hpp"
+# include "ConfigStructures.hpp"
+# include "Tokenizer.hpp"
+# include "Tracer.hpp"
+# include "Parser.hpp"
 # include <signal.h> 
 
 # define FILE_READ_BUFFER_SIZE	1000
@@ -26,6 +29,7 @@
 # define CGI_OUTPUT CONFIG_PATH"/cgi_outputs"
 # define SOCKETS_PATH CONFIG_PATH"/sockets"
 # define SERVER_ALL_ROOT PROJECT_PATH"www"
+# define OUTPUT_HTML_FILE SERVER_ALL_ROOT"/output/out.html"
 # define _S_DEL "__S_"CRLF"_DEL__"
 # define _M_DEL "__M_"CRLF"_DEL__"
 # define CGI_TIME_LIMIT	10	// s
@@ -92,6 +96,8 @@ public:
 	void							_initiate_env_variables(char**);
 	std::string						format_env();
 	bool							is_valid_mime(std::string);
+	std::map<std::string, std::string>				env_variables;
+	Servers_tracer						_tracer;
 private:
 	MIME						_mime;
 	MainConfig					_main_config;
@@ -103,9 +109,6 @@ private:
 	int						master_process;
 	int						cgi_controller;
 	std::string					socket_path;
-public:
-	std::map<std::string, std::string>			env_variables;
-private:
 	bool						active_master;
 };
 

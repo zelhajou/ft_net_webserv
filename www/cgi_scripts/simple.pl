@@ -16,7 +16,7 @@ print <<EOF ;
 <html>
 <head><title>CGI Results</title></head>
 <body>
-<h1>Hello, world.</h1>
+<h1>Hello, THERE.</h1>
 Your CGI input variables were:
 <ul>
 EOF

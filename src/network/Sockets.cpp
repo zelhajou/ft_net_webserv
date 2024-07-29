@@ -14,19 +14,6 @@ void	fix_up_signals(void (*f)(int)) {
 	signal(SIGKILL, f);
 }
 
-static	void	_print_status(Sockets &sock) {
-	sock.check_and_remove(OUTPUT_HTML_FILE);
-	std::fstream		_file(OUTPUT_HTML_FILE, std::ios::out);
-	if (!_file.is_open()) {
-		std::cout << KRED << "failed generating html file "
-			<< OUTPUT_HTML_FILE << KNRM << std::endl;
-		return ;
-	}
-	_file << sock._tracer.generate_html();
-	_file.close();
-	std::cout << KGRN << "just updated html file" << KNRM << std::endl;
-}
-
 static	std::string	exec_job(char *executer, char *script, char **env, std::string input)
 {
 	std::string	output;
@@ -288,17 +275,12 @@ void	Sockets::accept(int sock_fd) {
 	ServerConfig		*target = this->_fd_to_server.find(sock_fd)->second;
 	this->_fd_to_server[ new_s_fd ] = target;
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, 1);
-	this->_tracer._open_connections += 1;
-	/*this->_tracer.add_output(sock_fd, "accept new connection " + std::to_string(new_s_fd));
-	_print_status(*this);*/
-	//std::cout << KGRN << "Accept new connection: " << KNRM << KCYN << new_s_fd << KNRM << std::endl;
+	std::cout << KGRN << "Accept new connection: " << KNRM << KCYN << new_s_fd << KNRM << std::endl;
 }
 
 void	Sockets::recvFrom(int sock_fd) {
-	//std::cout << "receiving from: " << KCYN << sock_fd << KNRM << std::endl;
+	std::cout << "receiving from: " << KCYN << sock_fd << KNRM << std::endl;
 	ServerConfig	*serv = this->_fd_to_server.find(sock_fd)->second;
-	/*this->_tracer.add_output(serv->_socket, "receiving from " + std::to_string(sock_fd));
-	_print_status(*this);*/
 	std::map<int, std::pair<Request, Response> *>::iterator	pai = serv->_requests.find(sock_fd);
 	if (pai == serv->_requests.end()) {
 		std::pair<Request, Response>	*new_pair = new std::pair<Request, Response>;
@@ -319,8 +301,6 @@ void	Sockets::recvFrom(int sock_fd) {
 
 void	Sockets::sendTo(int sock_fd) {
 	ServerConfig	*serv = this->_fd_to_server.find(sock_fd)->second;
-	/*this->_tracer.add_output(serv->_socket, "sending to " + std::to_string(sock_fd));
-	_print_status(*this);*/
 	std::map<int, std::pair<Request, Response>* >::iterator	pai = serv->_requests.find(sock_fd);
 	pai->second->second.sendResponse(sock_fd, serv);
 	if (pai->second->second.get_status() == DONE) {
@@ -329,12 +309,7 @@ void	Sockets::sendTo(int sock_fd) {
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 1);
 			this->resetConn(sock_fd);
 		}
-		else {
-			/*this->_tracer._open_connections -= 1;
-			this->_tracer._served_clients += 1;
-			_print_status(*this);*/
-			this->closeConn(sock_fd);
-		}
+		else	this->closeConn(sock_fd);
 	}
 }
 
@@ -439,8 +414,6 @@ void		Sockets::check_session(Response &response) {
 		std::string encr_id = s_encryptor(session_id, user_name, 1);
 		response.set_session_id(encr_id);
 		response._new_session = true;
-		/*this->_tracer._sessions += 1;
-		_print_status(*this);*/
 		std::cout << KCYN"registering a new session: [" << encr_id << "] <- " << session_id <<KNRM<<std::endl;
 	}
 }
@@ -567,10 +540,6 @@ static int createSocket(struct addrinfo *res, mit it) {
 	return (-1);
 }
 
-static	void	initiate_server_html(bool status, int sock, ServerConfig *server, Sockets &socke) {
-	socke._tracer.add_server(sock, server->server_name, server->listen_port, server->host, status, server->locations);
-}
-
 void	Sockets::startServers() {
 	struct addrinfo		hints;
 	struct addrinfo		*res;
@@ -580,10 +549,8 @@ void	Sockets::startServers() {
 
 	for (mit it = servers.begin(); it != servers.end(); it++) {
 		initAddInfo(hints);
-		if (getAddrInfo(&hints, &res, it) < 0) {
-			initiate_server_html(false, (int)(servers.end()-it), *it, *this); continue; }
-		if ((sock = createSocket(res, it)) < 0) {
-			initiate_server_html(false, (int)(servers.end()-it), *it, *this); continue; }
+		if (getAddrInfo(&hints, &res, it) < 0) continue ;
+		if ((sock = createSocket(res, it)) < 0)	continue ;
 		freeaddrinfo(res);
 		if (listen(sock, 100) < 0)
 			std::cerr << KYEL << "server: " << (*it)->host << ":" << (*it)->listen_port << " is unable to start." << KNRM << std::endl;
@@ -592,8 +559,6 @@ void	Sockets::startServers() {
 		(*it)->_socket = sock;
 		this->_kqueue.SET_QUEUE(sock, EVFILT_READ, 1);
 		this->_fd_to_server[ sock ] = *it;
-		/*initiate_server_html(true, sock, *it, *this);
-		_print_status(*this);*/
 		nbr++;
 	}
 	if (nbr == 0)
@@ -601,12 +566,6 @@ void	Sockets::startServers() {
 }
 
 void	Sockets::run() {
-	//////////////////	TEST:
-	/*std::cout << KGRN << "script execution TEST:\n" << KNRM;
-	std::string		jobs[1] = {"/usr/bin/wc"};
-	for (int i=0; i < 1; i++)	std::cout << KGRN << "OUTPUT:" << KNRM << this->execute_script(jobs[i]) << std::endl;
-	std::cout << "end test\n";*/
-	////////////////
 	this->startServers();
 	this->kqueueLoop();
 }

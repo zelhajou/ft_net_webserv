@@ -36,8 +36,8 @@ typedef struct s_post_body {
 }					t_post_body;
 
 enum e_status {
-	STATUS_NONE = 0,								// place holder for empty input
-	OK = 200,
+	STATUS_NONE = 0,						// place holder for empty input
+	OK = 200,								// The request has succeeded.
 	BAD_REQUEST = 400,						// The request could not be understood by the server due to malformed syntax.
 	NOT_FOUND = 404,						// The server has not found anything matching the Request-URI.
 	INTERNAL_SERVER_ERROR = 500,			// The server encountered an unexpected condition which prevented it from fulfilling the request.

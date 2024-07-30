@@ -72,14 +72,21 @@ static	size_t		get_dir_size(std::string path) {
 	return	output.st_size;
 }
 
+static	e_status	print_Cstatus(e_status st) {
+	int	status = (int)st;
+	std::cout << KBGR;
+	if (status == 200)		std::cout << KGRN;
+	else if (status >= 500)	std::cout << KYEL;
+	else if (status >= 400)	std::cout << KRED;
+	else if (status >= 300)	std::cout << KCYN;
+	std::cout << " " << st << " ";
+	return	st;
+}
+
 static	std::string	generate_auto_index(std::string uri, ServerConfig *server) {
 	std::string target =  CONFIG_PATH"/html_generated_files/"+ replace_characters(uri, "/", "#")+"S-"+std::to_string(get_dir_size(uri))+"Bytes"+".html";
-	std::cout << KRED << "directory listing requested:\n" << KNRM << KCYN << target << KNRM << std::endl;
 	struct	stat	demo;
-	if (stat(target.c_str(), &demo) != -1) {
-		std::cout << KRED << "already generated html file\n" << KNRM;
-		return	target;
-	}
+	if (stat(target.c_str(), &demo) != -1)	return target;
 	std::fstream	output(target, std::ios::out);
 	if (!output)	return	"";
 	output << "<html><head><title> | Directory Listing</title>\
@@ -208,10 +215,11 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	std::string	uri = this->_request->get_first_line().uri;
 	if (!this->_request->_cgi_info.second.empty()) {
 		sock._enrg_env_var("PATH_INFO", this->_request->_cgi_info.second);
+		std::cout << KCYN"PATH_INFO: "KNRM << this->_request->_cgi_info.second << std::endl;
 		uri = uri.substr(0, uri.find(this->_request->_cgi_info.second));
-	}
+	}	else	sock._enrg_env_var("PATH_INFO", "");
 	if (this->_request->get_first_line().method == "GET")	sock._enrg_env_var("QUERY_STRING", input);
-	else	to_stdin_input = input;
+	else	{ sock._enrg_env_var("QUERY_STRING", ""); to_stdin_input = input; }
 	try {
 		output = sock.execute_script(sock.format_env() + _M_DEL
 			+ get_executer(this->_request->_cgi_info, uri) + _M_DEL
@@ -269,15 +277,19 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			}
 		}
 		else if (this->_request->_location_type == CGI) {
-			std::cout << "////////////////////////CGI_STUFF//////\n";
-			std::cout << KCYN"uri:"KNRM << this->_request->get_first_line().uri << std::endl;
-			std::cout << KCYN"method:"KNRM << this->_request->get_first_line().method << std::endl;
+			std::cout << KWHT"// CGI_REQUEST\n"KNRM;
+			if (!this->_request->_cgi_info.second.empty()) {
+				int	pos = this->_request->_request.first_line.uri.rfind(this->_request->_cgi_info.second);
+				if (pos != std::string::npos)
+					this->_request->_request.first_line.uri = this->_request->_request.first_line.uri.substr(0, pos);
+			}
+			std::cout << KCYN"cgi_uri:"KNRM << this->_request->get_first_line().uri << std::endl;
+			std::cout << KCYN"cgi_method:"KNRM << this->_request->get_first_line().method << std::endl;
 			std::vector<std::pair<std::string, std::string> >::iterator	i = this->_request->_query_string.begin();
 			for (;i != this->_request->_query_string.end();++i)
-				std::cout << KCYN"query_string:"KNRM << i->first << "->" << i->second << std::endl;
-			//
+				std::cout << KCYN"cgi_query_string:"KNRM << i->first << "->" << i->second << std::endl;
 			target_file = this->process_cgi_exec(sock, server);
-			std::cout << "////////////////////////////////\n";
+			std::cout << KWHT"//\n"KNRM;
 		}
 		else if (this->_request->get_first_line().method == "GET") target_file = this->_request->get_first_line().uri;
 		else if (this->_request->get_first_line().method == "POST") {
@@ -389,12 +401,12 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		this->_sent[0] += sent_res;
 		if (this->_sent[0] >= this->_sent[1])	this->status = DONE;
 	}
-	std::cout << "sent " << sent_res <<" Bytes "<< "to "
-		<< KCYN << sock_fd << KNRM << std::endl;
 	if (this->status == DONE) {
 		this->_file.close();
-		std::cout << "done sending " << KCYN << this->_sent[1] << KNRM << " Bytes to " << KCYN << sock_fd
-			<< KNRM << " in session: " << KCYN << this->_session_id << KNRM << std::endl;
+		std::cout << KBGR" " << this->_request->get_first_line().method
+			<< " "KNRM << " ["KUND << this->_request->get_first_line().uri << KNRM"] : "
+			<< http_code_msg(print_Cstatus(this->_request->getStatus())) << " "KNRM" : "
+			<< KUND << this->_sent[1] << "B\n"KNRM;
 	}
 }
 

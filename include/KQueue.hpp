@@ -19,5 +19,4 @@ private:
 	int		current_events;
 };
 
-
 #endif

@@ -20,7 +20,7 @@
 # include "Parser.hpp"
 # include <signal.h> 
 
-# define FILE_READ_BUFFER_SIZE	1000
+# define FILE_READ_BUFFER_SIZE	50
 # define CRLF			"\r\n"
 # define CLR_TERM			"\e[1;1H\e[2J"
 # define PROJECT_PATH "/Users/beddinao/cursus-0/webserv/mainWebserver/"
@@ -34,7 +34,7 @@
 # define CGI_PIPE_MAX_SIZE	1000
 # define UNIX_SOCK_BUFFER	8000
 # define PYTHON_PATH	"/usr/local/bin/python3"
-# define PHP_PATH		"/usr/bin/php"
+# define PHP_PATH		"/Users/beddinao/php/php-8.3.9/bin/php-cgi"
 # define PERL_PATH		"/usr/bin/perl"
 # define JAVA_PATH		"/usr/bin/java"
 # define JS_PATH		"/usr/local/bin/node"
@@ -48,6 +48,8 @@
 # define KMAG  "\x1B[35m"
 # define KCYN  "\x1B[36m"
 # define KWHT  "\x1B[37m"
+# define KUND  "\033[4m"
+# define KBGR  "\033[7m"
 
 class	Response;
 class	Request;

@@ -188,7 +188,7 @@ bool	Sockets::initiate_master_process() {
 	if (!this->master_PID)	master_routine(this->socket_path);
 	if ((this->master_process = ::accept(this->cgi_controller, NULL, NULL)) < 0) return	false;
 	std::cout << "child created"KGRN" successfully"KNRM" and waiting for jobs in: "
-		<< KCYN << this->socket_path << KNRM << std::endl;
+		<< this->socket_path << std::endl;
 	return	true;
 }
 
@@ -212,7 +212,7 @@ Sockets::Sockets( void ) : _sess_id(1234), active_master(0) {
 Sockets::~Sockets() {
 	std::cout << KRED"cleaning...\n";
 	std::cout << "deleting unix socket: "KNRM
-		<< KCYN << this->socket_path << KNRM << std::endl;
+		<< this->socket_path << std::endl;
 	//
 	this->check_and_remove(this->socket_path);
 	if (this->update_master_state()) {
@@ -279,7 +279,6 @@ void	Sockets::accept(int sock_fd) {
 }
 
 void	Sockets::recvFrom(int sock_fd) {
-	std::cout << "receiving from: " << KCYN << sock_fd << KNRM << std::endl;
 	ServerConfig	*serv = this->_fd_to_server.find(sock_fd)->second;
 	std::map<int, std::pair<Request, Response> *>::iterator	pai = serv->_requests.find(sock_fd);
 	if (pai == serv->_requests.end()) {
@@ -292,7 +291,6 @@ void	Sockets::recvFrom(int sock_fd) {
 	}
 	pai->second->first.recvRequest();
 	if (pai->second->first.getState() == DONE || pai->second->first.getState() == ERROR) {
-		//
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second->second._initiate_response(&pai->second->first, *this, serv);
@@ -314,15 +312,15 @@ void	Sockets::sendTo(int sock_fd) {
 }
 
 void	Sockets::closeConn(int sock_fd) {
+	std::cout << KRED"closed connection: " << sock_fd << KNRM << std::endl;
 	this->resetConn(sock_fd);
 	this->_fd_to_server.erase(sock_fd);
-	//this->_Cookies.erase();
 	this->_kqueue.SET_QUEUE(sock_fd, 0, 0);
 	close(sock_fd);
+	std::cout << "remaining sockets: " << KBGR " "<<this->_kqueue.get_current_events()<<" \n"KNRM;
 }
 
 void	Sockets::resetConn(int sock_fd) {
-	std::cout << KWHT << "reseting request/response cycle: " << KNRM << KCYN << sock_fd << KNRM << std::endl;
 	this->_fd_to_server[ sock_fd ]->closeConn(sock_fd);
 }
 
@@ -397,12 +395,12 @@ void		Sockets::check_session(Response &response) {
 	if (!estab_session_id.empty()) {
 		std::string cur_session_id = get_cookie_value(estab_session_id, "session=");
 		if (s_encryptor(cur_session_id, user_name, -1) == session_id) {
-			std::cout << KCYN"already established/valid session: [" << cur_session_id << "] <- "<<session_id<<KNRM<<std::endl;
+			std::cout << "already established/valid session: "KCYN"[" << cur_session_id << "] <- "<<session_id<<KNRM<<std::endl;
 			response.set_session_id(s_encryptor(cur_session_id, user_name, 1));
 			return ;
 		}
 		else if (!session_id.empty()) {
-			std::cout << KCYN"remembering client of their id: [" << session_id << "]" << KNRM<<std::endl;
+			std::cout << "remembering client of their id: "KCYN"[" << session_id << "]" << KNRM<<std::endl;
 			response._new_session = true;
 			response.set_session_id(s_encryptor(session_id, user_name, 1));
 		}
@@ -414,7 +412,7 @@ void		Sockets::check_session(Response &response) {
 		std::string encr_id = s_encryptor(session_id, user_name, 1);
 		response.set_session_id(encr_id);
 		response._new_session = true;
-		std::cout << KCYN"registering a new session: [" << encr_id << "] <- " << session_id <<KNRM<<std::endl;
+		std::cout << "registering a new session: "KCYN"[" << encr_id << "] <- " << session_id <<KNRM<<std::endl;
 	}
 }
 

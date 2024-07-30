@@ -71,11 +71,7 @@ void	Request::handle_location(LocationConfig** loc) {
 	*loc = ::search(this->_location_tree, this->_request.first_line.uri, ::cmp);
 	if (*loc == NULL)
 		{setRequestState(LOC_NF, NOT_FOUND, ERROR); return ;}
-	if (is_cgi(*loc))
-		{
-			std::cout << KGRN"CGI ACCEPTED"KNRM << std::endl;
-			this->_location_type = CGI; return ;
-		}
+	if (is_cgi(*loc))	this->_location_type = CGI; return ;
 	if ((*loc)->return_url.first != STATUS_NONE)
 		{setRequestState((*loc)->return_url.second, (*loc)->return_url.first, DONE); this->_is_return = true;}
 	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_request.first_line.method) == (*loc)->allowed_methods.end())
@@ -157,14 +153,12 @@ void Request::handle_uri(LocationConfig* loc) {
 
 	this->_request.first_line.uri.replace(0, loc->path.size(), r);
 
-	//if (this->_location_type == CGI)	return ;
+	if (this->_location_type == CGI)	return ;
 
-	if (this->_request.first_line.method == "GET" ||
-		(this->_request.first_line.method == "POST" && this->_location_type == CGI)) {
+	if (this->_request.first_line.method == "GET" ) {
 		if (is_file(this->_request.first_line.uri))
 			handle_file();
-		else if (is_directory(this->_request.first_line.uri, R_OK)
-			&& this->_location_type != CGI)
+		else if (is_directory(this->_request.first_line.uri, R_OK))
 			handle_directory(loc);
 		else
 			setRequestState(NOT_FND, NOT_FOUND, ERROR);

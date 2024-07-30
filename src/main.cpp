@@ -6,7 +6,7 @@
 /*   By: hsobane <hsobane@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/29 05:54:25 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/07/30 04:14:03 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,11 +21,14 @@ void	sig_nan(int sig_num) {
 	exit(sig_num);
 }
 
+void	leaks_fun(void) {system("leaks webserv");}
+
 int main(int argc, char *argv[], char **env) {
+	std::cout << CLR_TERM;
 	fix_up_signals(sig_nan);
 	if (argc != 2) {
-		std::cerr << KRED"\nmissing configuration file"KNRM;
-		std::cerr << "\tUsage: " << argv[0] << " [config_file]\n" << std::endl;
+		std::cerr << KRED"->\tmissing configuration file"KNRM;
+		std::cerr << "\tUsage: " << argv[0] << " [config_file]" << std::endl;
 		return 1;
 	}
 	std::ifstream	file(argv[1]);

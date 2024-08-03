@@ -25,7 +25,7 @@
 # define CLR_TERM			"\e[1;1H\e[2J"
 # define PROJECT_PATH "/Users/beddinao/cursus-0/webserv/mainWebserver/"
 # define CONFIG_PATH PROJECT_PATH"config"
-# define CGI_OUTPUT CONFIG_PATH"/cgi_outputs"
+# define CGI_COMM CONFIG_PATH"/cgi_comm"
 # define SOCKETS_PATH CONFIG_PATH"/sockets"
 # define SERVER_ALL_ROOT PROJECT_PATH"www"
 # define _S_DEL "__S_"CRLF"_DEL__"
@@ -113,7 +113,7 @@ private:
 
 void		fix_up_signals(void (*)(int));
 std::string	clean_up_stuff(std::string, std::string, std::string);
-
+std::string	_generate_random_string(std::string, int);
 
 # include "Response.hpp"
 # include "Request.hpp"

@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 14:11:47 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/24 22:37:41 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/08/03 10:03:50 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,10 +50,12 @@ struct ServerConfig {
     std::string								client_max_body_size;
     std::map<std::string, LocationConfig>					locations;
     int				_socket;
+    bool		default_session_managment;
     std::map<int, std::pair<Request, Response> *>				_requests;
     //
     void	closeConn(int);	// remove entry from _requests
 	public:
+    ServerConfig();
 		~ServerConfig();
 };
 

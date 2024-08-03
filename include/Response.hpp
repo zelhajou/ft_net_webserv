@@ -29,6 +29,7 @@ public:
 	std::string	_connection_type;
 //private:
 	std::ifstream		_file;
+	std::string		target_file;
 	size_t			_file_size;
 	std::string		_file_type;
 	std::string		_cgi_cookie;

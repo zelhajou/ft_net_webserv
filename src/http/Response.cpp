@@ -139,15 +139,6 @@ static	std::string	generate_auto_index(std::string uri, ServerConfig *server) {
 	return	target;
 }
 
-static	std::string	_generate_random_string(std::string seed, int length) {
-	std::string	output = seed;
-	for (int i=0;i<length;i++) {
-		std::string    r(1, static_cast<char>(std::rand() % (122 - 48) + 48 ));
-		output.append( r );
-	}
-	return	clean_up_stuff(output, "[\\]^`:;<>=?/ ", "_____________");
-}
-
 
 static	int	file_to_disk(std::string content, std::string path, std::string filename) {
 	if (!filename.size())	filename = _generate_random_string(path, 15);
@@ -203,7 +194,7 @@ static	std::string	get_executer(std::pair<std::string, std::string> cgi_info, st
 }
 
 std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
-	std::string	out_file = CGI_OUTPUT"/"+ _generate_random_string(this->_request->get_headers().host, 15) +".html";
+	std::string	out_file = CGI_COMM"/"+ _generate_random_string(this->_request->get_headers().host, 15) +".html";
 	std::fstream	_file(out_file, std::ios::out);
 	if (!_file.is_open())	return	generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
 	std::string	input, to_stdin_input, output;
@@ -213,11 +204,11 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 			input.append(i->first+"="+i->second+"&");
 	}
 	else if (this->_request->get_first_line().method == "POST" && this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) {
-		for(std::vector<t_post_body>::iterator i = this->_request->_post_body.begin(); i != this->_request->_post_body.end(); ++i)
+		/*for(std::vector<t_post_body>::iterator i = this->_request->_post_body.begin(); i != this->_request->_post_body.end(); ++i)
 			if (is_binary_data(i->data)) {
 				if (_file.is_open())	_file.close();
 				return	generate_status_file(INTERNAL_SERVER_ERROR, server, "CGI: file no good");
-			}
+			}*/
 		input.append(this->_request->_request.body);
 	}
 	else	input.append(this->_request->_request.raw_body);
@@ -280,7 +271,6 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 
 void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *server) {
 	this->_request = req;
-	std::string	target_file;
 
 	if (this->_request->getStatus() == OK && !this->_request->_is_return) {
 		if (this->_request->_location_type == AUTOINDEX) {
@@ -382,7 +372,6 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	}
 	if (this->status == HEADERS)
 	{
-
 		sent_res = send(sock_fd, this->header.c_str(), this->header.size(), 0);
 		if (sent_res < 0)	this->_sent[0] = this->_sent[1];
 		else		this->_sent[0] += sent_res;
@@ -420,6 +409,7 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	}
 	if (this->status == DONE) {
 		this->_file.close();
+		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
 		std::cout << KBGR" "KNRM" "KBGR"  " << this->_request->get_first_line().method
 			<< " "KNRM << " ["KUND << this->_request->get_first_line().uri << KNRM"] : "
 			<< http_code_msg(print_Cstatus(this->_request->getStatus())) << " "KNRM" : "

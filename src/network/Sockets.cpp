@@ -20,53 +20,28 @@ static	void	child_ex(int sig_num) {
 	exit(sig_num);
 }
 
-static	std::string	exec_job(char *executer, char *script, char **env, std::string input)
-{
+static	std::string	exec_job(char *executer, char *script, char **env, std::string input) {
 	std::string	output;
 	char		buffer[CGI_PIPE_MAX_SIZE];
-	int		pi[2], pi_2[2], s, ss(0);
+	int		pi[2], s, ss(0), fd;
 	pid_t		grandchild;
-
-	if (pipe(pi) < 0 || pipe(pi_2) < 0) return "webserv_cgi_status=500; CGI pipe() failure";
-
+	std::string	file_name = CGI_COMM"/"+ _generate_random_string(executer, 15);
+	std::fstream	_file(file_name, std::ios::out|std::ios::binary);
+	if (!_file.is_open())	return	"webserv_cgi_status=500; CGI failure";
+	_file.write(input.c_str(), input.size());
+	_file.close();
+	if (pipe(pi) < 0 || (fd = open(file_name.c_str(), R_OK)) < 0)
+		return "webserv_cgi_status=500; CGI pipe()/open() failure";
 	if ((grandchild = fork()) < 0)
-		return "webserv_cgi_status=500; CGI fork() (grandchild born_operation) failure";
+		return "webserv_cgi_status=500; CGI fork() failure";
 	else if (!grandchild) {
 		char	*argv[] = {executer, script, 0};
-		dup2(pi_2[0], 0); close(pi_2[0]); /*close(pi_2[1]);*/
+		dup2(fd, 0);
 		dup2(pi[1], 1); close(pi[1]);
-		if (input.size()){
-			/*std::fstream	_file(input, std::ios::in|std::ios::binary);
-			if (_file.is_open()) {
-				char	buffer[UNIX_SOCK_BUFFER];
-				std::memset(buffer, 0, sizeof(buffer));
-				while (_file.read(buffer, UNIX_BUFFER)) {
-					write(pi_2[1], buffer, 64);
-					//std::cout << KGRN"buffer:" << buffer << std::endl<<KNRM;
-					std::memset(buffer, 0, sizeof(buffer));
-				}
-				_file.close();
-			}*/
-			////////////////////////
-			/*std::cout << KRED"input_start|" << input << "|input_end\n"KNRM;
-			FILE	*o = fdopen(pi_2[1], "w");
-			if (o)	fwrite(input.c_str(), 1, input.size(), o);
-			fclose(o);*/
-			///////////////////////
-			int size = input.size();
-			while (ss < size) {
-				s = write(pi_2[1], input.c_str(), input.size());
-				if (s <= 0)	break;
-				input = input.substr(s);
-				ss += s;
-			}
-		}
-		close(pi_2[1]);
 		execve(argv[0], argv, env);
 		std::cout << KRED"EXECVE_FAILURE:" << strerror(errno) << KNRM"\n";
 		exit(EXIT_FAILURE);
 	}
-	close(pi_2[0]); close(pi_2[1]);
 	close(pi[1]);
 	output.append("webserv_cgi_status=200;");
 	while (true) {
@@ -76,6 +51,8 @@ static	std::string	exec_job(char *executer, char *script, char **env, std::strin
 		output.append(buffer, s);
 	}
 	close(pi[0]);
+	close(fd);
+	std::remove(file_name.c_str());
 	return	output;
 }
 
@@ -108,21 +85,10 @@ static	std::string	prepare_launch_and_receive(std::string input, std::string del
 	input = input.substr(pos + del.size());
 	pos = input.find(del);
 	//////////////////////
-	//std::string	filename;
-	std::string	ii = input.substr(pos + del.size());
-	/*if (ii.size()) {
-		filename = "./testt";
-		std::fstream	io(filename, std::ios::out|std::ios::binary);
-		if (io.is_open()) {
-			io << ii;
-			io.close();
-		}
-	}*/
-	//////////////////////
 	std::string output = exec_job(const_cast<char*>(executer.c_str()),
 			const_cast<char*>(input.substr(0, pos).c_str()),
 			env,
-			ii);
+			input.substr(pos + del.size()));
 	//////////////////////
 	for (int i=0; env[i]; i++)	delete	env[i];
 	delete	[] env;
@@ -302,8 +268,9 @@ void	Sockets::accept(int sock_fd) {
 	//
 	ServerConfig		*target = this->_fd_to_server.find(sock_fd)->second;
 	this->_fd_to_server[ new_s_fd ] = target;
+	//
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, 1);
-	std::cout << KGRN << "Accept new connection: " << KNRM << KCYN << new_s_fd << KNRM << std::endl;
+	std::cout << KGRN"\t" << target->server_name <<KNRM": Accept new connection: "KCYN << new_s_fd << KNRM << std::endl;
 }
 
 void	Sockets::recvFrom(int sock_fd) {
@@ -340,9 +307,12 @@ void	Sockets::sendTo(int sock_fd) {
 }
 
 void	Sockets::closeConn(int sock_fd) {
-	std::cout << KRED"closed connection: " << sock_fd << KNRM << std::endl;
+	std::map<int, ServerConfig*>::iterator i = this->_fd_to_server.find(sock_fd);
+	if (i != this->_fd_to_server.end()) {
+		std::cout << KRED"\t" << i->second->server_name << KNRM": closed connection: " << sock_fd << KNRM << std::endl;
+		this->_fd_to_server.erase(sock_fd);
+	}
 	this->resetConn(sock_fd);
-	this->_fd_to_server.erase(sock_fd);
 	this->_kqueue.SET_QUEUE(sock_fd, 0, 0);
 	close(sock_fd);
 	std::cout << "remaining sockets: " << KBGR " "<<this->_kqueue.get_current_events()<<" \n"KNRM;
@@ -377,6 +347,15 @@ std::string	clean_up_stuff(std::string input, std::string garbage, std::string t
 		}
 	}
 	return	input;
+}
+
+std::string	_generate_random_string(std::string seed, int length) {
+	std::string	output = seed;
+	for (int i=0;i<length;i++) {
+		std::string    r(1, static_cast<char>(std::rand() % (122 - 48) + 48 ));
+		output.append( r );
+	}
+	return	clean_up_stuff(output, "[\\]^`:;<>=?/ ", "_____________");
 }
 
 int	__calc_new_range(int old_value, int old_min, int old_max, int new_min, int new_max) {
@@ -511,7 +490,7 @@ void	Sockets::kqueueLoop() {
 			{
 				if (events[i].flags & EV_ERROR || events[i].fflags & EV_ERROR
 					|| events[i].flags & EV_EOF || events[i].fflags & EV_EOF) {
-						std::cout << KRED << "eof/err on connection: " << KNRM << KCYN << events[i].ident << KNRM << std::endl;
+						//std::cout << KRED << "eof/err on connection: " << KNRM << KCYN << events[i].ident << KNRM << std::endl;
 						this->closeConn(events[i].ident);
 					}
 				else if (events[i].filter == EVFILT_READ)
@@ -560,9 +539,9 @@ static int createSocket(struct addrinfo *res, mit it) {
        			 }
 			}
 		}
+		else if (!tmp->ai_next)	return 0;
 		tmp = tmp->ai_next;
 	}
-	std::cerr << KYEL << "server: " << (*it)->host << ":" << (*it)->listen_port << " is enable to start." << KNRM << std::endl;
 	return (-1);
 }
 
@@ -571,20 +550,37 @@ void	Sockets::startServers() {
 	struct addrinfo		*res;
 	int					sock;
 	int					nbr = 0;
+	bool					this_status(true);
 	std::vector<ServerConfig* >			servers = this->_main_config.servers;
 
 	for (mit it = servers.begin(); it != servers.end(); it++) {
 		initAddInfo(hints);
 		if (getAddrInfo(&hints, &res, it) < 0) continue ;
-		if ((sock = createSocket(res, it)) < 0)	continue ;
+		if ((sock = createSocket(res, it)) < 0) {
+			std::map<int, ServerConfig*>::iterator	i = this->_fd_to_server.begin();
+			///
+			for(; i != this->_fd_to_server.end(); ++i)
+				if (i->second->host == (*it)->host && i->second->listen_port == (*it)->listen_port
+					/*&& i->second->server_name == (*it)->server_name*/) {
+					std::cout << KRED"CONFLICTED HOST,PORT: IGNORING SERVER"KNRM << std::endl;
+					this_status = false;
+				}
+		}
+		else if (!sock) {
+			std::cerr << KYEL << "server: " << (*it)->host << ":" << (*it)->listen_port << " is enable to start. socket() failure" << KNRM << std::endl;
+			continue ;
+		}
 		freeaddrinfo(res);
+		if (!this_status) { this_status = true; continue ; }
 		if (listen(sock, 100) < 0)
-			std::cerr << KYEL << "server: " << (*it)->host << ":" << (*it)->listen_port << " is unable to start." << KNRM << std::endl;
+			std::cerr << KYEL << "server: " << (*it)->host << ":" << (*it)->listen_port << " is unable to start. listen() failure" << KNRM << std::endl;
 		else	std::cout << KGRN << (*it)->server_name << KNRM << ": " << (*it)->host << ":"
 			<< (*it)->listen_port << ", " << (*it)->locations.size() << " locations " << KGRN << "STARTED successfully" << KNRM << std::endl;
 		(*it)->_socket = sock;
+		//
 		this->_kqueue.SET_QUEUE(sock, EVFILT_READ, 1);
 		this->_fd_to_server[ sock ] = *it;
+		//
 		nbr++;
 	}
 	if (nbr == 0)

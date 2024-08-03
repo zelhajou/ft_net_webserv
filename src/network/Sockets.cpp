@@ -24,20 +24,36 @@ static	std::string	exec_job(char *executer, char *script, char **env, std::strin
 {
 	std::string	output;
 	char		buffer[CGI_PIPE_MAX_SIZE];
-	std::memset(buffer, 0, sizeof(buffer));
-	int		pi[2], pi_2[2];
+	int		pi[2], pi_2[2], s, ss(0);
 	pid_t		grandchild;
-	//
+
 	if (pipe(pi) < 0 || pipe(pi_2) < 0) return "webserv_cgi_status=500; CGI pipe() failure";
+
 	if ((grandchild = fork()) < 0)
 		return "webserv_cgi_status=500; CGI fork() (grandchild born_operation) failure";
-	//
 	else if (!grandchild) {
 		char	*argv[] = {executer, script, 0};
-		dup2(pi_2[0], 0); close(pi_2[0]);
+		dup2(pi_2[0], 0); close(pi_2[0]); /*close(pi_2[1]);*/
 		dup2(pi[1], 1); close(pi[1]);
 		if (input.size()){
-			int size = input.size(), s, ss(0);
+			/*std::fstream	_file(input, std::ios::in|std::ios::binary);
+			if (_file.is_open()) {
+				char	buffer[UNIX_SOCK_BUFFER];
+				std::memset(buffer, 0, sizeof(buffer));
+				while (_file.read(buffer, UNIX_BUFFER)) {
+					write(pi_2[1], buffer, 64);
+					//std::cout << KGRN"buffer:" << buffer << std::endl<<KNRM;
+					std::memset(buffer, 0, sizeof(buffer));
+				}
+				_file.close();
+			}*/
+			////////////////////////
+			/*std::cout << KRED"input_start|" << input << "|input_end\n"KNRM;
+			FILE	*o = fdopen(pi_2[1], "w");
+			if (o)	fwrite(input.c_str(), 1, input.size(), o);
+			fclose(o);*/
+			///////////////////////
+			int size = input.size();
 			while (ss < size) {
 				s = write(pi_2[1], input.c_str(), input.size());
 				if (s <= 0)	break;
@@ -45,6 +61,7 @@ static	std::string	exec_job(char *executer, char *script, char **env, std::strin
 				ss += s;
 			}
 		}
+		close(pi_2[1]);
 		execve(argv[0], argv, env);
 		std::cout << KRED"EXECVE_FAILURE:" << strerror(errno) << KNRM"\n";
 		exit(EXIT_FAILURE);
@@ -54,8 +71,9 @@ static	std::string	exec_job(char *executer, char *script, char **env, std::strin
 	output.append("webserv_cgi_status=200;");
 	while (true) {
 		std::memset(buffer, 0, sizeof(buffer));
-		if (read(pi[0], buffer, CGI_PIPE_MAX_SIZE -1) <= 0)	break;
-		output.append(buffer);
+		s = read(pi[0], buffer, CGI_PIPE_MAX_SIZE -1);
+		if (s <= 0)	break ;
+		output.append(buffer, s);
 	}
 	close(pi[0]);
 	return	output;
@@ -90,10 +108,21 @@ static	std::string	prepare_launch_and_receive(std::string input, std::string del
 	input = input.substr(pos + del.size());
 	pos = input.find(del);
 	//////////////////////
+	//std::string	filename;
+	std::string	ii = input.substr(pos + del.size());
+	/*if (ii.size()) {
+		filename = "./testt";
+		std::fstream	io(filename, std::ios::out|std::ios::binary);
+		if (io.is_open()) {
+			io << ii;
+			io.close();
+		}
+	}*/
+	//////////////////////
 	std::string output = exec_job(const_cast<char*>(executer.c_str()),
 			const_cast<char*>(input.substr(0, pos).c_str()),
 			env,
-			input.substr(pos + del.size()));
+			ii);
 	//////////////////////
 	for (int i=0; env[i]; i++)	delete	env[i];
 	delete	[] env;
@@ -117,30 +146,24 @@ static	void	master_routine(std::string socket_path) {
 	for (;;) {
 		r_copy = r_set; w_copy = w_set;
 		n = select(sock + 1, &r_copy, &w_copy, NULL, NULL);
-		if (!n)		continue;
-		else if (n < 0)	break;
+		if (!n) continue; else if (n < 0) break;
 		if (FD_ISSET(sock, &r_copy)) {
-			n = 0;
 			char	buffer[UNIX_SOCK_BUFFER];
-			std::memset(buffer, 0, sizeof(buffer));
-			while (n < UNIX_SOCK_BUFFER) {
-				temp_n = recv(sock, buffer, UNIX_SOCK_BUFFER, MSG_DONTWAIT);
-				if (temp_n <= 0)	break;
-				input.append(buffer);
+			while (true) {	//	<--
 				std::memset(buffer, 0, sizeof(buffer));
-				n += temp_n;
+				temp_n = recv(sock, buffer, UNIX_SOCK_BUFFER - 1, MSG_DONTWAIT);
+				if (temp_n <= 0)	break;
+				input.append(buffer, temp_n);
 			}
 			output = prepare_launch_and_receive(input, _M_DEL, _S_DEL);
 			FD_CLR(sock, &r_set); FD_SET(sock, &w_set);
 			input.clear();
 		}
 		else if (FD_ISSET(sock, &w_copy)) {
-			n = 0;
-			while (n < output.size()) {
-				temp_n = send(sock, output.c_str(), output.size(), 0);
+			while (true) {	//	-->
+				temp_n = send(sock, output.c_str(), output.size(), MSG_DONTWAIT);
 				if (temp_n <= 0)	break;
-				else if (n < output.size()) output = output.substr(n);
-				n += temp_n;
+				output = output.substr(temp_n);
 			}
 			output.clear();
 			FD_CLR(sock, &w_set); FD_SET(sock, &r_set);
@@ -233,10 +256,8 @@ Sockets::~Sockets() {
 	}
 	//
 	std::cout << KRED"closing active connections..\n"KNRM;
-	for (std::map<int, ServerConfig*>::iterator i=this->_fd_to_server.begin(); i!=this->_fd_to_server.end();++i) {
+	for (std::map<int, ServerConfig*>::iterator i=this->_fd_to_server.begin(); i!=this->_fd_to_server.end();++i)
 		if (i->second && i->second->_socket == i->first)	close(i->first);
-		//else	this->closeConn(i->first);
-	}
 }
 
 std::string	Sockets::execute_script(std::string input) {
@@ -249,29 +270,25 @@ std::string	Sockets::execute_script(std::string input) {
 		}
 	fd_set	r_set; FD_ZERO(&r_set);
 	std::string	output;
-	int	send_res[2] = {0};
-	//	->
-	for (;send_res[1] < input.size();)
-	{
-		send_res[0] = send(this->master_process, input.c_str(), input.size(), 0);
-		if (send_res[0] <= 0)	break;
-		else	input = input.substr(send_res[0]);
-		send_res[1] += send_res[0];
+	int	_index(0);
+	for (;;) { //	-->
+		_index = send(this->master_process, input.c_str(), input.size(), 0);
+		if (_index <= 0)	break;
+		input = input.substr(_index);
 	}
-	//	<-
 	char	buffer[CGI_PIPE_MAX_SIZE];
 	struct	timeval	tv;
 	std::memset(&tv, 0, sizeof(tv));
 	tv.tv_sec = CGI_TIME_LIMIT;
 	FD_SET(this->master_process, &r_set);
-	send_res[1] = select(this->master_process + 1, &r_set, NULL, NULL, &tv);
-	if (send_res[1] <= 0)	return "webserv_cgi_status=504; CGI operation timeout";
+	_index = select(this->master_process + 1, &r_set, NULL, NULL, &tv);
+	if (_index <= 0)	return "webserv_cgi_status=504; CGI operation timeout";
 	else
-		while (true) {
+		for (;;) { //	<--
 			std::memset(buffer, 0, sizeof(buffer));
-			send_res[0] = recv(this->master_process, buffer, CGI_PIPE_MAX_SIZE -1, MSG_DONTWAIT);
-			if (send_res[0] <= 0)	break;
-			else		output.append(buffer);
+			_index = recv(this->master_process, buffer, CGI_PIPE_MAX_SIZE -1, MSG_DONTWAIT);
+			if (_index <= 0)	break;
+			else	output.append(buffer, _index);
 		}
 	return		output;
 }

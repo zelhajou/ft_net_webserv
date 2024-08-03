@@ -167,7 +167,7 @@ static	void	master_routine(std::string socket_path) {
 			}
 			output.clear();
 			FD_CLR(sock, &w_set); FD_SET(sock, &r_set);
-			std::cout << KCYN"master_process:"KNRM" job done successfully ->"
+			std::cout << "\t"KCYN"master_process:"KNRM" job done successfully ->"
 				<< " going back to sleep\n";
 		}
 	}
@@ -239,6 +239,7 @@ void	Sockets::check_and_remove(std::string target) {
 
 Sockets::Sockets( void ) : _sess_id(1234), active_master(0) {
 	std::srand(std::time(NULL));
+	std::cout << CLR_TERM;
 	this->active_master = this->initiate_master_process();
 }
 

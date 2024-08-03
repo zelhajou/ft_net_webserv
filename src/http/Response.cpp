@@ -196,14 +196,15 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	std::fstream	_file(out_file, std::ios::out);
 	if (!_file.is_open())	return	generate_status_file(INTERNAL_SERVER_ERROR, server, "");
 	std::string	input, to_stdin_input, output;
-	if (this->_request->_query_string.size()) {
+	if (this->_request->get_first_line().method == "GET" && this->_request->_query_string.size()) {
 		for (std::vector<std::pair<std::string, std::string> >::iterator i=this->_request->_query_string.begin();
 			i!=this->_request->_query_string.end();++i)
 			input.append(i->first+"="+i->second+"&");
 	}
-	if (this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos)
-		for (std::vector<t_post_body>::iterator i=this->_request->_post_body.begin();i!=this->_request->_post_body.end();++i)
-			input.append(i->name+"="+i->data+"&");
+	else if (this->_request->get_first_line().method == "POST" && this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos)
+		input.append(this->_request->_request.body);
+		/*for (std::vector<t_post_body>::iterator i=this->_request->_post_body.begin();i!=this->_request->_post_body.end();++i)
+			input.append((i->filename.size() ? i->filename : i->name)+"="+i->data+"&");*/
 	else	input.append(this->_request->_request.raw_body);
 	sock._enrg_env_var("CONTENT_LENGTH", std::to_string(input.size()));
 	sock._enrg_env_var("REQUEST_METHOD", this->_request->get_first_line().method);
@@ -218,6 +219,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 		std::cout << KCYN"PATH_INFO: "KNRM << this->_request->_cgi_info.second << std::endl;
 		uri = uri.substr(0, uri.find(this->_request->_cgi_info.second));
 	}	else	sock._enrg_env_var("PATH_INFO", "");
+	sock._enrg_env_var("REQUEST_URI", uri);
 	if (this->_request->get_first_line().method == "GET")	sock._enrg_env_var("QUERY_STRING", input);
 	else	{ sock._enrg_env_var("QUERY_STRING", ""); to_stdin_input = input; }
 	try {

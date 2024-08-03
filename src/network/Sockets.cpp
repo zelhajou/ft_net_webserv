@@ -14,6 +14,12 @@ void	fix_up_signals(void (*f)(int)) {
 	signal(SIGKILL, f);
 }
 
+static	void	child_ex(int sig_num) {
+	std::cout << KCYN"master_process:"KNRM" received signal("KGRN << sig_num
+		<< KNRM") exiting..\n";
+	exit(sig_num);
+}
+
 static	std::string	exec_job(char *executer, char *script, char **env, std::string input)
 {
 	std::string	output;
@@ -30,18 +36,28 @@ static	std::string	exec_job(char *executer, char *script, char **env, std::strin
 		char	*argv[] = {executer, script, 0};
 		dup2(pi_2[0], 0); close(pi_2[0]);
 		dup2(pi[1], 1); close(pi[1]);
-		if (input.size())	write(pi_2[1], input.c_str(), input.size());
+		if (input.size()){
+			int size = input.size(), s, ss(0);
+			while (ss < size) {
+				s = write(pi_2[1], input.c_str(), input.size());
+				if (s <= 0)	break;
+				input = input.substr(s);
+				ss += s;
+			}
+		}
 		execve(argv[0], argv, env);
+		std::cout << KRED"EXECVE_FAILURE:" << strerror(errno) << KNRM"\n";
 		exit(EXIT_FAILURE);
 	}
-	if (read(pi[0], buffer, CGI_PIPE_MAX_SIZE) < 0) {
-		kill(grandchild, SIGKILL);
-		return "webserv_cgi_status=500; CGI pipe read() failure()";
-	}
 	close(pi_2[0]); close(pi_2[1]);
-	close(pi[0]); close(pi[1]);
+	close(pi[1]);
 	output.append("webserv_cgi_status=200;");
-	output.append(buffer);
+	while (true) {
+		std::memset(buffer, 0, sizeof(buffer));
+		if (read(pi[0], buffer, CGI_PIPE_MAX_SIZE -1) <= 0)	break;
+		output.append(buffer);
+	}
+	close(pi[0]);
 	return	output;
 }
 
@@ -52,12 +68,6 @@ static	int	geta_unix_socket(struct sockaddr_un &address, std::string socket_path
 	address.sun_family = AF_UNIX;
 	std::strcpy(address.sun_path, socket_path.c_str());
 	return		sock;
-}
-
-static	void	child_ex(int sig_num) {
-	std::cout << KCYN"master_process:"KNRM" received signal("KGRN << sig_num
-		<< KNRM") exiting..\n";
-	exit(sig_num);
 }
 
 static	std::string	prepare_launch_and_receive(std::string input, std::string del, std::string semi_del) {
@@ -255,11 +265,11 @@ std::string	Sockets::execute_script(std::string input) {
 	tv.tv_sec = CGI_TIME_LIMIT;
 	FD_SET(this->master_process, &r_set);
 	send_res[1] = select(this->master_process + 1, &r_set, NULL, NULL, &tv);
-	if (send_res[1] <= 0)	return "webserv_cgi_status=406; CGI operation timeout";
+	if (send_res[1] <= 0)	return "webserv_cgi_status=504; CGI operation timeout";
 	else
 		while (true) {
 			std::memset(buffer, 0, sizeof(buffer));
-			send_res[0] = recv(this->master_process, buffer, CGI_PIPE_MAX_SIZE, MSG_DONTWAIT);
+			send_res[0] = recv(this->master_process, buffer, CGI_PIPE_MAX_SIZE -1, MSG_DONTWAIT);
 			if (send_res[0] <= 0)	break;
 			else		output.append(buffer);
 		}

@@ -42,7 +42,8 @@ static	std::string	http_code_msg(e_status code)
 static	std::string	generate_status_file(e_status status_code, ServerConfig *server, std::string addon) {
 	std::map<int, std::string>::iterator	it = server->error_pages.find(status_code);
 	if (it != server->error_pages.end() && access(it->second.c_str(), R_OK) == 0) return it->second;
-	std::string	status_file = CONFIG_PATH"/html_default_error_files/" + std::to_string(status_code) + ".html";
+	if (!addon.size())	addon = http_code_msg(status_code);
+	std::string	status_file = CONFIG_PATH"/html_default_error_files/" + std::to_string(status_code) + clean_up_stuff(addon, "[\\]^`:;<>=?/ ", "_____________") + ".html";
 	if (!access(status_file.c_str(), R_OK))	return status_file;
 	std::fstream	_file(status_file, std::ios::out);
 	if (!_file.is_open())	return "";
@@ -53,10 +54,20 @@ static	std::string	generate_status_file(e_status status_code, ServerConfig *serv
 				justify-content:center;flex-direction:column;font-family:monospace;}\
 			h1 {color:#fff;font-size:15em;font-style:italic;text-shadow:5px 5px #7a7a7a;}\
 			h2 {color:#7a7a7a;text-transform:uppercase;font-size:3em;}a{font-size:20px;}\
-		</style></head><body><h1>"<<std::to_string(status_code)<<"</h1><h2>"<<(addon.size()?addon:http_code_msg(status_code))<<"</h2>\
-		<a target='_blank' href=\""<<mdn_link<<"\">developer.mozilla.org</a></body></html>";
+		</style></head><body><h1>" << std::to_string(status_code) << "</h1><h2>" << addon << "</h2>\
+		<a target='_blank' href=\"" << mdn_link << "\">developer.mozilla.org</a></body></html>";
 	_file.close();
 	return	status_file;
+}
+
+static	bool	is_binary_data(std::string input) {
+	int	cha;
+	for (int i=0; i <input.size(); i++) {
+		cha = static_cast<int>(input[i]);
+		if (cha < 0 || cha > 126)
+			return	true;
+	}
+	return	false;
 }
 
 static	std::string	replace_characters(std::string input, std::string from, std::string to) {
@@ -194,17 +205,21 @@ static	std::string	get_executer(std::pair<std::string, std::string> cgi_info, st
 std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	std::string	out_file = CGI_OUTPUT"/"+ _generate_random_string(this->_request->get_headers().host, 15) +".html";
 	std::fstream	_file(out_file, std::ios::out);
-	if (!_file.is_open())	return	generate_status_file(INTERNAL_SERVER_ERROR, server, "");
+	if (!_file.is_open())	return	generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
 	std::string	input, to_stdin_input, output;
 	if (this->_request->get_first_line().method == "GET" && this->_request->_query_string.size()) {
 		for (std::vector<std::pair<std::string, std::string> >::iterator i=this->_request->_query_string.begin();
 			i!=this->_request->_query_string.end();++i)
 			input.append(i->first+"="+i->second+"&");
 	}
-	else if (this->_request->get_first_line().method == "POST" && this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos)
+	else if (this->_request->get_first_line().method == "POST" && this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) {
+		for(std::vector<t_post_body>::iterator i = this->_request->_post_body.begin(); i != this->_request->_post_body.end(); ++i)
+			if (is_binary_data(i->data)) {
+				if (_file.is_open())	_file.close();
+				return	generate_status_file(INTERNAL_SERVER_ERROR, server, "CGI: file no good");
+			}
 		input.append(this->_request->_request.body);
-		/*for (std::vector<t_post_body>::iterator i=this->_request->_post_body.begin();i!=this->_request->_post_body.end();++i)
-			input.append((i->filename.size() ? i->filename : i->name)+"="+i->data+"&");*/
+	}
 	else	input.append(this->_request->_request.raw_body);
 	sock._enrg_env_var("CONTENT_LENGTH", std::to_string(input.size()));
 	sock._enrg_env_var("REQUEST_METHOD", this->_request->get_first_line().method);
@@ -230,7 +245,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	} catch (std::exception &l) {
 		std::cout << KRED << "Response::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
-		return	generate_status_file(INTERNAL_SERVER_ERROR, server, "");
+		return	generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
 	}
 	int		pos = output.find("webserv_cgi_status=");
 	if (pos != std::string::npos) {
@@ -255,7 +270,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	} catch (std::exception &l) {
 		std::cout << KRED << "Response::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
-		return	generate_status_file(INTERNAL_SERVER_ERROR, server, "");
+		return	generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
 	}
 	//
 	_file << output;
@@ -285,13 +300,12 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 				if (pos != std::string::npos)
 					this->_request->_request.first_line.uri = this->_request->_request.first_line.uri.substr(0, pos);
 			}
-			std::cout << KCYN"cgi_uri:"KNRM << this->_request->get_first_line().uri << std::endl;
-			std::cout << KCYN"cgi_method:"KNRM << this->_request->get_first_line().method << std::endl;
+			std::cout << KCYN"script_path:"KNRM << this->_request->get_first_line().uri << std::endl;
 			std::vector<std::pair<std::string, std::string> >::iterator	i = this->_request->_query_string.begin();
 			for (;i != this->_request->_query_string.end();++i)
-				std::cout << KCYN"cgi_query_string:"KNRM << i->first << "->" << i->second << std::endl;
+				std::cout << KCYN"query_string["<< (i-this->_request->_query_string.begin()) <<"]:"KNRM << i->first << "->" << i->second << std::endl;
 			target_file = this->process_cgi_exec(sock, server);
-			std::cout << KWHT"//\n"KNRM;
+			std::cout << KWHT"//////////////\n"KNRM;
 		}
 		else if (this->_request->get_first_line().method == "GET") target_file = this->_request->get_first_line().uri;
 		else if (this->_request->get_first_line().method == "POST") {
@@ -331,7 +345,8 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 		}
 	}
 	this->_connection_type = (this->_request->get_headers().connection == "keep-alive") ? "keep-alive" : "close";
-	sock.check_session(*this);
+	if (server->default_session_managment)
+		sock.check_session(*this);
 }
 
 e_parser_state	Response::get_status() { return this->status; }
@@ -405,7 +420,7 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	}
 	if (this->status == DONE) {
 		this->_file.close();
-		std::cout << KBGR" " << this->_request->get_first_line().method
+		std::cout << KBGR" "KNRM" "KBGR"  " << this->_request->get_first_line().method
 			<< " "KNRM << " ["KUND << this->_request->get_first_line().uri << KNRM"] : "
 			<< http_code_msg(print_Cstatus(this->_request->getStatus())) << " "KNRM" : "
 			<< KUND << this->_sent[1] << "B\n"KNRM;

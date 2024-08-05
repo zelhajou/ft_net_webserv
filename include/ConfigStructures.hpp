@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 14:11:47 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/03 10:03:50 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/08/04 21:33:59 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,6 +51,7 @@ struct ServerConfig {
     std::map<std::string, LocationConfig>					locations;
     int				_socket;
     bool		default_session_managment;
+    bool		is_duplicated;
     std::map<int, std::pair<Request, Response> *>				_requests;
     //
     void	closeConn(int);	// remove entry from _requests

@@ -20,23 +20,22 @@ static	void	child_ex(int sig_num) {
 	exit(sig_num);
 }
 
-static	std::string	exec_job(char *executer, char *script, char **env, std::string input) {
+static	std::string	exec_job(char *executer, char *script, char **env, std::string file_name) {
 	std::string	output;
 	char		buffer[CGI_PIPE_MAX_SIZE];
-	int		pi[2], s, ss(0), fd;
+	int		pi[2], s, ss(0);
 	pid_t		grandchild;
-	std::string	file_name = CGI_COMM"/"+ _generate_random_string(executer, 15);
-	std::fstream	_file(file_name, std::ios::out|std::ios::binary);
-	if (!_file.is_open())	return	"webserv_cgi_status=500; CGI failure";
-	_file.write(input.c_str(), input.size());
-	_file.close();
-	if (pipe(pi) < 0 || (fd = open(file_name.c_str(), R_OK)) < 0)
-		return "webserv_cgi_status=500; CGI pipe()/open() failure";
+	if (pipe(pi) < 0)	return "webserv_cgi_status=500; CGI pipe()/open() failure";
 	if ((grandchild = fork()) < 0)
 		return "webserv_cgi_status=500; CGI fork() failure";
 	else if (!grandchild) {
 		char	*argv[] = {executer, script, 0};
-		dup2(fd, 0);
+		if (file_name.size()) {
+			int fd = open(file_name.c_str(), R_OK);
+			if (fd < 0)	exit(EXIT_FAILURE);
+			dup2(fd, 0);
+			close(fd);
+		}
 		dup2(pi[1], 1); close(pi[1]);
 		execve(argv[0], argv, env);
 		std::cout << KRED"EXECVE_FAILURE:" << strerror(errno) << KNRM"\n";
@@ -51,7 +50,6 @@ static	std::string	exec_job(char *executer, char *script, char **env, std::strin
 		output.append(buffer, s);
 	}
 	close(pi[0]);
-	close(fd);
 	std::remove(file_name.c_str());
 	return	output;
 }
@@ -115,9 +113,9 @@ static	void	master_routine(std::string socket_path) {
 		if (!n) continue; else if (n < 0) break;
 		if (FD_ISSET(sock, &r_copy)) {
 			char	buffer[UNIX_SOCK_BUFFER];
-			while (true) {	//	<--
+			{	//	<--
 				std::memset(buffer, 0, sizeof(buffer));
-				temp_n = recv(sock, buffer, UNIX_SOCK_BUFFER - 1, MSG_DONTWAIT);
+				temp_n = recv(sock, buffer, UNIX_SOCK_BUFFER - 1, 0/*MSG_DONTWAIT*/);
 				if (temp_n <= 0)	break;
 				input.append(buffer, temp_n);
 			}
@@ -127,7 +125,7 @@ static	void	master_routine(std::string socket_path) {
 		}
 		else if (FD_ISSET(sock, &w_copy)) {
 			while (true) {	//	-->
-				temp_n = send(sock, output.c_str(), output.size(), MSG_DONTWAIT);
+				temp_n = send(sock, output.c_str(), output.size(),0 /*MSG_DONTWAIT*/);
 				if (temp_n <= 0)	break;
 				output = output.substr(temp_n);
 			}
@@ -274,11 +272,18 @@ void	Sockets::accept(int sock_fd) {
 }
 
 void	Sockets::recvFrom(int sock_fd) {
+	//
+	std::vector<ServerConfig*>	servs;
 	ServerConfig	*serv = this->_fd_to_server.find(sock_fd)->second;
+	servs.push_back(serv);
+	if (serv->is_duplicated)
+		servs.push_back(this->_dup_servers.find(serv->host+":"+serv->listen_port)->second);
+	//
 	std::map<int, std::pair<Request, Response> *>::iterator	pai = serv->_requests.find(sock_fd);
 	if (pai == serv->_requests.end()) {
 		std::pair<Request, Response>	*new_pair = new std::pair<Request, Response>;
 		serv->_requests[ sock_fd ] = new_pair;
+		/*serv->_requests[ sock_fd ]->first.set_servers( servs );*/
 		serv->_requests[ sock_fd ]->first.setLocation( serv->locations );
 		serv->_requests[ sock_fd ]->first.set_fd( sock_fd );
 		this->recvFrom( sock_fd );
@@ -290,32 +295,39 @@ void	Sockets::recvFrom(int sock_fd) {
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second->second._initiate_response(&pai->second->first, *this, serv);
 	}
+	//else if (pai->second->first.getState() == ERROR)	this->closeConn(sock_fd);
 }
 
 void	Sockets::sendTo(int sock_fd) {
 	ServerConfig	*serv = this->_fd_to_server.find(sock_fd)->second;
 	std::map<int, std::pair<Request, Response>* >::iterator	pai = serv->_requests.find(sock_fd);
 	pai->second->second.sendResponse(sock_fd, serv);
-	if (pai->second->second.get_status() == DONE) {
-		if (pai->second->second._connection_type == "keep-alive") {
+	if (pai->second->second.get_status() == DONE ||
+		pai->second->second.get_status() == ERROR) {
+		if (pai->second->second._connection_type == "keep-alive"
+			&& pai->second->second.get_status() == DONE) {
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 0);
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 1);
 			this->resetConn(sock_fd);
 		}
-		else	this->closeConn(sock_fd);
+		else {
+			std::cout << "RESPONSE ERROR\n";
+			this->closeConn(sock_fd);
+		}
 	}
 }
 
 void	Sockets::closeConn(int sock_fd) {
+	this->resetConn(sock_fd);
+	//
 	std::map<int, ServerConfig*>::iterator i = this->_fd_to_server.find(sock_fd);
 	if (i != this->_fd_to_server.end()) {
 		std::cout << KRED"\t" << i->second->server_name << KNRM": closed connection: " << sock_fd << KNRM << std::endl;
 		this->_fd_to_server.erase(sock_fd);
 	}
-	this->resetConn(sock_fd);
 	this->_kqueue.SET_QUEUE(sock_fd, 0, 0);
 	close(sock_fd);
-	std::cout << "remaining sockets: " << KBGR " "<<this->_kqueue.get_current_events()<<" \n"KNRM;
+	std::cout << "\tremaining sockets: " << KBGR " "<<this->_kqueue.get_current_events()<<" \n"KNRM;
 }
 
 void	Sockets::resetConn(int sock_fd) {
@@ -329,6 +341,7 @@ void	Sockets::incr_sess_id() {
 	if (this->_sess_id + r_num >= ULONG_MAX) this->_sess_id = 0;
 	this->_sess_id += r_num;
 }
+
 size_t	Sockets::get_sess_id() { return this->_sess_id; }
 
 ///////
@@ -489,10 +502,8 @@ void	Sockets::kqueueLoop() {
 			for (int i=0; i < n; i++)
 			{
 				if (events[i].flags & EV_ERROR || events[i].fflags & EV_ERROR
-					|| events[i].flags & EV_EOF || events[i].fflags & EV_EOF) {
-						//std::cout << KRED << "eof/err on connection: " << KNRM << KCYN << events[i].ident << KNRM << std::endl;
+					|| events[i].flags & EV_EOF || events[i].fflags & EV_EOF) 
 						this->closeConn(events[i].ident);
-					}
 				else if (events[i].filter == EVFILT_READ)
 				{
 					it = this->_fd_to_server.find(events[i].ident);
@@ -500,9 +511,8 @@ void	Sockets::kqueueLoop() {
 						this->accept(events[i].ident);
 					else	this->recvFrom(events[i].ident);
 				}
-				else if (events[i].filter == EVFILT_WRITE) {
+				else if (events[i].filter == EVFILT_WRITE) 
 					this->sendTo(events[i].ident);
-				}
 			}
 	}
 }
@@ -558,12 +568,15 @@ void	Sockets::startServers() {
 		if (getAddrInfo(&hints, &res, it) < 0) continue ;
 		if ((sock = createSocket(res, it)) < 0) {
 			std::map<int, ServerConfig*>::iterator	i = this->_fd_to_server.begin();
-			///
 			for(; i != this->_fd_to_server.end(); ++i)
-				if (i->second->host == (*it)->host && i->second->listen_port == (*it)->listen_port
-					/*&& i->second->server_name == (*it)->server_name*/) {
-					std::cout << KRED"CONFLICTED HOST,PORT: IGNORING SERVER"KNRM << std::endl;
+				if (i->second->host == (*it)->host && i->second->listen_port == (*it)->listen_port) {
 					this_status = false;
+					if (i->second->server_name == (*it)->server_name)
+						std::cout << KYEL"warning: "KNRM"same host,port,server_name, IGNORING the second\n";
+					else {
+						this->_dup_servers[i->second->host+":"+i->second->listen_port] = *it;
+						i->second->is_duplicated = true;
+					}
 				}
 		}
 		else if (!sock) {
@@ -577,10 +590,8 @@ void	Sockets::startServers() {
 		else	std::cout << KGRN << (*it)->server_name << KNRM << ": " << (*it)->host << ":"
 			<< (*it)->listen_port << ", " << (*it)->locations.size() << " locations " << KGRN << "STARTED successfully" << KNRM << std::endl;
 		(*it)->_socket = sock;
-		//
 		this->_kqueue.SET_QUEUE(sock, EVFILT_READ, 1);
 		this->_fd_to_server[ sock ] = *it;
-		//
 		nbr++;
 	}
 	if (nbr == 0)

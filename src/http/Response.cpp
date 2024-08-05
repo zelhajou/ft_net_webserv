@@ -39,7 +39,9 @@ static	std::string	http_code_msg(e_status code)
 	}
 }
 
-static	std::string	generate_status_file(e_status status_code, ServerConfig *server, std::string addon) {
+
+
+std::string	Response::generate_status_file(e_status status_code, ServerConfig *server, std::string addon) {
 	std::map<int, std::string>::iterator	it = server->error_pages.find(status_code);
 	if (it != server->error_pages.end() && access(it->second.c_str(), R_OK) == 0) return it->second;
 	if (!addon.size())	addon = http_code_msg(status_code);
@@ -57,6 +59,7 @@ static	std::string	generate_status_file(e_status status_code, ServerConfig *serv
 		</style></head><body><h1>" << std::to_string(status_code) << "</h1><h2>" << addon << "</h2>\
 		<a target='_blank' href=\"" << mdn_link << "\">developer.mozilla.org</a></body></html>";
 	_file.close();
+	this->_response_status = status_code;
 	return	status_file;
 }
 
@@ -196,21 +199,15 @@ static	std::string	get_executer(std::pair<std::string, std::string> cgi_info, st
 std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	std::string	out_file = CGI_COMM"/"+ _generate_random_string(this->_request->get_headers().host, 15) +".html";
 	std::fstream	_file(out_file, std::ios::out);
-	if (!_file.is_open())	return	generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
-	std::string	input, to_stdin_input, output;
+	if (!_file.is_open())	return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
+	std::string	input, to_stdin_input, output, _file_name;
 	if (this->_request->get_first_line().method == "GET" && this->_request->_query_string.size()) {
 		for (std::vector<std::pair<std::string, std::string> >::iterator i=this->_request->_query_string.begin();
 			i!=this->_request->_query_string.end();++i)
 			input.append(i->first+"="+i->second+"&");
 	}
-	else if (this->_request->get_first_line().method == "POST" && this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) {
-		/*for(std::vector<t_post_body>::iterator i = this->_request->_post_body.begin(); i != this->_request->_post_body.end(); ++i)
-			if (is_binary_data(i->data)) {
-				if (_file.is_open())	_file.close();
-				return	generate_status_file(INTERNAL_SERVER_ERROR, server, "CGI: file no good");
-			}*/
+	else if (this->_request->get_first_line().method == "POST" && this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) 
 		input.append(this->_request->_request.body);
-	}
 	else	input.append(this->_request->_request.raw_body);
 	sock._enrg_env_var("CONTENT_LENGTH", std::to_string(input.size()));
 	sock._enrg_env_var("REQUEST_METHOD", this->_request->get_first_line().method);
@@ -229,20 +226,27 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	if (this->_request->get_first_line().method == "GET")	sock._enrg_env_var("QUERY_STRING", input);
 	else	{ sock._enrg_env_var("QUERY_STRING", ""); to_stdin_input = input; }
 	try {
+		if (!to_stdin_input.empty()) {
+			_file_name = CGI_COMM"/"+ _generate_random_string(uri, 20);
+			std::fstream	_cgi_file(_file_name, std::ios::out|std::ios::binary);
+			if (!_cgi_file.is_open())	throw std::runtime_error("can\'t setup comm. medium with cgi");
+			_cgi_file << to_stdin_input;
+			_cgi_file.close();
+		}
 		output = sock.execute_script(sock.format_env() + _M_DEL
 			+ get_executer(this->_request->_cgi_info, uri) + _M_DEL
 			+ uri + _M_DEL
-			+ to_stdin_input);
+			+ _file_name);
 	} catch (std::exception &l) {
-		std::cout << KRED << "Response::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
-		return	generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
+		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
 	}
 	int		pos = output.find("webserv_cgi_status=");
 	if (pos != std::string::npos) {
 		int	cgi_status = std::atoi(output.substr(pos+19, pos+22).c_str());
 		output = output.substr(pos+23);
-		if (cgi_status != 200)	return	generate_status_file((e_status)cgi_status, server, output);
+		if (cgi_status != 200)	return	this->generate_status_file((e_status)cgi_status, server, output);
 	}
 	try {
 		std::string	temp_c_t = _cgi_header(output, "Content-type:", "Content-Type:");
@@ -259,9 +263,9 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 			output = output.substr(pos + 2);
 		else	throw	std::runtime_error("invalid cgi output formatting");
 	} catch (std::exception &l) {
-		std::cout << KRED << "Response::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
-		return	generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
+		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
 	}
 	//
 	_file << output;
@@ -271,7 +275,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 
 void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *server) {
 	this->_request = req;
-
+	this->_response_status = this->_request->getStatus();
 	if (this->_request->getStatus() == OK && !this->_request->_is_return) {
 		if (this->_request->_location_type == AUTOINDEX) {
 			struct	stat	output;
@@ -284,18 +288,25 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			}
 		}
 		else if (this->_request->_location_type == CGI) {
-			std::cout << "\t"KWHT"// CGI_REQUEST\n"KNRM;
+			std::cout << "\t"KWHT"--> CGI_REQUEST\n"KNRM;
 			if (!this->_request->_cgi_info.second.empty()) {
 				int	pos = this->_request->_request.first_line.uri.rfind(this->_request->_cgi_info.second);
 				if (pos != std::string::npos)
 					this->_request->_request.first_line.uri = this->_request->_request.first_line.uri.substr(0, pos);
 			}
-			std::cout << "\t"KCYN"script_path:"KNRM << this->_request->get_first_line().uri << std::endl;
-			std::vector<std::pair<std::string, std::string> >::iterator	i = this->_request->_query_string.begin();
-			for (;i != this->_request->_query_string.end();++i)
-				std::cout << KCYN"query_string["<< (i-this->_request->_query_string.begin()) <<"]:"KNRM << i->first << "->" << i->second << std::endl;
-			target_file = this->process_cgi_exec(sock, server);
-			std::cout << "\t"KWHT"//////////////\n"KNRM;
+			/*std::cout << "\t"KCYN"script_path: "KNRM << this->_request->get_first_line().uri << std::endl;
+			std::cout << "\t"KCYN"script_ext: "KNRM << this->_request->_cgi_info.first << std::endl;*/
+			if (access(this->_request->get_first_line().uri.c_str(), R_OK) < 0) {
+				std::cout << KCYN"\tscript_path_not_found\n"KNRM;
+				target_file = this->generate_status_file(NOT_FOUND, server, "CGI script NOT FOUND");
+			}
+			else {
+				/*std::vector<std::pair<std::string, std::string> >::iterator	i = this->_request->_query_string.begin();
+				for (;i != this->_request->_query_string.end();++i)
+					std::cout << KCYN"query_string["<< (i-this->_request->_query_string.begin()) <<"]:"KNRM << i->first << "->" << i->second << std::endl;*/
+				target_file = this->process_cgi_exec(sock, server);
+			}
+			std::cout << "\t"KWHT"<--\n"KNRM;
 		}
 		else if (this->_request->get_first_line().method == "GET") target_file = this->_request->get_first_line().uri;
 		else if (this->_request->get_first_line().method == "POST") {
@@ -306,14 +317,14 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 				if (mini_post_status != this->_request->_post_body.size())	post_status = false;
 			}
 			else	post_status = file_to_disk(this->_request->_request.raw_body, this->_request->get_first_line().uri, "");
-			target_file = generate_status_file(post_status ? this->_request->getStatus() : INTERNAL_SERVER_ERROR, server, "");
+			target_file = this->generate_status_file(post_status ? this->_request->getStatus() : INTERNAL_SERVER_ERROR, server, "");
 		}
 		else if (this->_request->get_first_line().method == "DELETE")
-			target_file = generate_status_file((std::remove(this->_request->get_first_line().uri.c_str()))
+			target_file = this->generate_status_file((std::remove(this->_request->get_first_line().uri.c_str()))
 					? INTERNAL_SERVER_ERROR
 					: this->_request->getStatus(), server, "");
 	}
-	else	target_file = generate_status_file(this->_request->getStatus(), server, "");
+	else	target_file = this->generate_status_file(this->_request->getStatus(), server, "");
 	
 	if (this->_has_body) {
 		this->_file.open(target_file, std::ios::in|std::ios::binary);
@@ -343,7 +354,7 @@ e_parser_state	Response::get_status() { return this->status; }
 void		Response::set_session_id( std::string id ) { this->_session_id = id; }
 
 size_t	Response::form_headers(ServerConfig *server) {
-	e_status	req_scode = this->_request->getStatus();
+	e_status	req_scode = this->_response_status;
 	if (this->header.size())	this->header.clear();
 	this->header = "HTTP/1.1 " + std::to_string(req_scode) + " " + http_code_msg(req_scode) + CRLF;
 	this->header.append("Server: " + server->server_name + CRLF"Connection: " + this->_connection_type + CRLF);
@@ -377,11 +388,11 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		else		this->_sent[0] += sent_res;
 
 		if (this->_sent[0] >= this->_sent[1]) {
+			this->status = ERROR;
 			if (this->_has_body) {
 				this->_sent[1] = 0;
 				this->status = BODY;
 			}
-			else	this->status = DONE;
 		}
 		else	this->header = this->header.substr(sent_res);
 	}
@@ -407,12 +418,12 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		this->_sent[0] += sent_res;
 		if (this->_sent[0] >= this->_sent[1])	this->status = DONE;
 	}
-	if (this->status == DONE) {
+	if (this->status == DONE || this->status == ERROR) {
 		this->_file.close();
 		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
 		std::cout << KBGR" "KNRM" "KBGR"  " << this->_request->get_first_line().method
 			<< " "KNRM << " ["KUND << this->_request->get_first_line().uri << KNRM"] : "
-			<< http_code_msg(print_Cstatus(this->_request->getStatus())) << " "KNRM" : "
+			<< http_code_msg(print_Cstatus(this->_response_status)) << " "KNRM" : "
 			<< KUND << this->_sent[1] << "B\n"KNRM;
 	}
 }

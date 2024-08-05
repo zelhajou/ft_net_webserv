@@ -26,6 +26,7 @@ public:
 	void		set_session_id(std::string);
 	bool		_new_session;
 	std::string	process_cgi_exec(Sockets&, ServerConfig*);
+	std::string	generate_status_file(e_status, ServerConfig*, std::string);
 	std::string	_connection_type;
 //private:
 	std::ifstream		_file;
@@ -40,6 +41,7 @@ public:
 	Request			*_request;
 	e_parser_state		status;
 	std::string		header;
+	e_status			_response_status;
 	bool			_has_body;
 };
 

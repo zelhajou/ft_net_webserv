@@ -102,6 +102,7 @@ private:
 	MainConfig					_main_config;
 	KQueue						_kqueue;
 	std::map<int, ServerConfig *>				_fd_to_server;
+	std::map<std::string, ServerConfig *>			_dup_servers;
 	std::map<std::string, std::map<std::string, std::string> >	_Cookies;
 	size_t						_sess_id;
 	pid_t						master_PID;

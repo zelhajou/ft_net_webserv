@@ -24,16 +24,15 @@ void	sig_nan(int sig_num) {
 void	leaks_fun(void) {system("leaks webserv");}
 
 int main(int argc, char *argv[], char **env) {
-	// std::cout << CLR_TERM;
 	fix_up_signals(sig_nan);
 	if (argc != 2) {
-		std::cerr << KRED"->\tmissing configuration file"KNRM;
+		std::cerr << KRED << "->\tmissing configuration file" << KNRM;
 		std::cerr << "\tUsage: " << argv[0] << " [config_file]" << std::endl;
 		return 1;
 	}
 	std::ifstream	file(argv[1]);
 	if (!file) {
-		std::cerr << KRED"Failed to open file: "KNRM << argv[1] << std::endl;
+		std::cerr << KRED << "Failed to open file: " << KNRM << argv[1] << std::endl;
 		return	1;
 	}
 	std::stringstream	buffer;

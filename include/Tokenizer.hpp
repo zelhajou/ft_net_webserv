@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/24 10:54:23 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/26 20:41:41 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/06 10:52:29 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ enum TokenType
     TOKEN_CLIENT_BODY_TEMP_PATH,
 	TOKEN_ADD_CGI,
 	TOKEN_CGI_PATH,
-	TOKEN_ALLOWED_CGI_METHODS,
+	TOKEN_CGI_ALLOWED_METHODS,
     TOKEN_OPEN_BRACE,
     TOKEN_CLOSE_BRACE,
     TOKEN_SEMICOLON,

@@ -214,27 +214,6 @@ void Parser::parseLocationDirective(LocationConfig& location)
             location.return_url.second = values[1];
             location.return_url.first = static_cast<e_status>(std::stoi(values[0]));
             break;
-        /*case TOKEN_FASTCGI_PASS:
-			if (values.empty())
-				reportError("Missing value for 'fastcgi_pass' at line " + std::to_string(line_number));
-            if (values.size() != 1)
-                reportError("Unexpected multiple values for 'fastcgi_pass' at line " + std::to_string(line_number));
-            location.fastcgi_pass = values[0];
-            break;
-        case TOKEN_FASTCGI_INDEX:
-			if (values.empty())
-				reportError("Missing value for 'fastcgi_index' at line " + std::to_string(line_number));
-            if (values.size() != 1)
-                reportError("Unexpected multiple values for 'fastcgi_index' at line " + std::to_string(line_number));
-            location.fastcgi_index = values[0];
-            break;*/
-        /*case TOKEN_INCLUDE:
-			if (values.empty())
-				reportError("Missing value for 'include' at line " + std::to_string(line_number));
-            if (values.size() != 1)
-                reportError("Unexpected multiple values for 'include' at line " + std::to_string(line_number));
-            location.include = values[0];
-            break;*/
         case TOKEN_AUTOINDEX:
 			if (values.empty())
 				reportError("Missing value for 'autoindex' at line " + std::to_string(line_number));
@@ -254,7 +233,7 @@ void Parser::parseLocationDirective(LocationConfig& location)
 				reportError("Unexpected multiple values for 'cgi_path' at line " + std::to_string(line_number));
 			location.cgi_path = values[0];
 			break;
-		case TOKEN_ALLOWED_CGI_METHODS:
+		case TOKEN_CGI_ALLOWED_METHODS:
 			if (values.empty())
 				reportError("Missing value for 'allow_cgi_methods' at line " + std::to_string(line_number));
 			for (size_t i = 0; i < values.size(); ++i)
@@ -345,13 +324,12 @@ std::string Parser::tokenTypeToString(TokenType type) const
         case TOKEN_RETURN: return "return";
         case TOKEN_FASTCGI_PASS: return "fastcgi_pass";
         case TOKEN_FASTCGI_INDEX: return "fastcgi_index";
-        case TOKEN_INCLUDE: return "include";
         case TOKEN_AUTOINDEX: return "autoindex";
         case TOKEN_UPLOAD_STORE: return "upload_store";
         case TOKEN_CLIENT_BODY_TEMP_PATH: return "client_body_temp_path";
 		case TOKEN_ADD_CGI: return "add_cgi";
 		case TOKEN_CGI_PATH: return "cgi_path";
-		case TOKEN_ALLOWED_CGI_METHODS: return "allow_cgi_methods";
+		case TOKEN_CGI_ALLOWED_METHODS: return "cgi_allow_methods";
         case TOKEN_OPEN_BRACE: return "{";
         case TOKEN_CLOSE_BRACE: return "}";
         case TOKEN_SEMICOLON: return ";";
@@ -382,4 +360,64 @@ MainConfig::~MainConfig()
 	std::cout << KRED << "cleaning " << KNRM << "configuration structure..\n";
 	for (std::vector<ServerConfig *>::iterator i = this->servers.begin(); i != this->servers.end(); ++i)
 	 	delete *i;
+}
+void Parser::displayMainConfig(const MainConfig& main_config)
+{
+    for (size_t i = 0; i < main_config.servers.size(); ++i)
+	{
+        const ServerConfig* server = main_config.servers[i];
+        std::cout << "Server Configuration:" << std::endl;
+        std::cout << "  Listen Port: " << server->listen_port << std::endl;
+        std::cout << "  Host: " << server->host << std::endl;
+		std::cout << "  Server Name: " << server->server_name << std::endl;
+        std::cout << "  Client Max Body Size: " << server->client_max_body_size << std::endl;
+
+        std::cout << "  Error Pages:" << std::endl;
+        for (std::map<int, std::string>::const_iterator ep = server->error_pages.begin(); ep != server->error_pages.end(); ++ep) {
+            std::cout << "    " << ep->first << ": " << ep->second << std::endl;
+        }
+        std::cout << "  Locations:" << std::endl;
+        for (std::map<std::string, LocationConfig>::const_iterator loc = server->locations.begin(); loc != server->locations.end(); ++loc) {
+            const LocationConfig& location = loc->second;
+			if (!location.path.empty())
+				std::cout << "    Path: " << location.path << std::endl;
+			
+			if (!location.allowed_methods.empty())
+			{
+				std::cout << "      Allowed Methods: ";
+				for (size_t k = 0; k < location.allowed_methods.size(); ++k) {
+					std::cout << location.allowed_methods[k] << " ";
+				}
+				std::cout << std::endl;
+			}
+			if (!location.index.empty())
+            	std::cout << "      Index: " << location.index << std::endl;
+			if (!location.root.empty())
+           		std::cout << "      Root: " << location.root << std::endl;
+			if (!location.upload_store.empty())
+            	std::cout << "      Upload Store: " << location.upload_store << std::endl;
+			if (!location.client_body_temp_path.empty())
+            	std::cout << "      Client Body Temp Path: " << location.client_body_temp_path << std::endl;
+			if (!location.return_url.second.empty() && location.return_url.first)
+            	std::cout << "      Return URL: " << location.return_url.second << " (Status: " << location.return_url.first << ")" << std::endl;
+			if (!location.add_cgi.empty()){
+				std::cout << "      Add CGI: ";
+				for (size_t k = 0; k < location.add_cgi.size(); ++k) {
+					std::cout << location.add_cgi[k] << " ";
+				}
+				std::cout << std::endl;
+			}
+			if (!location.cgi_path.empty())
+				std::cout << "      CGI Path: " << location.cgi_path << std::endl;
+			if (!location.cgi_allowed_methods.empty())
+			{
+				std::cout << "      Allowed CGI Methods: ";
+				for (size_t k = 0; k < location.cgi_allowed_methods.size(); ++k) {
+					std::cout << location.cgi_allowed_methods[k] << " ";
+				}
+			}
+			if (location.auto_index)
+            	std::cout << "      Auto Index: " << (location.auto_index ? "on" : "off") << std::endl;
+        }
+    }
 }

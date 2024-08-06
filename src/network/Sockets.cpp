@@ -259,27 +259,21 @@ void	Sockets::accept(int sock_fd) {
 	socklen_t	si = sizeof(address);
 	int new_s_fd = ::accept(sock_fd, &address, &si);
 	if (new_s_fd < 0)	return ;
-	//
 	ServerConfig		*target = this->_fd_to_server.find(sock_fd)->second;
 	this->_fd_to_server[ new_s_fd ] = target;
-	//
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, 1);
-	std::cout << KGRN"\t" << target->server_name <<KNRM": Accept new connection: "KCYN << new_s_fd << KNRM << std::endl;
+	std::cout << "\t" << target->server_name << ": Accept new connection: "KGRN << new_s_fd << KNRM << std::endl;
 }
 
 void	Sockets::recvFrom(int sock_fd) {
-	//
-	std::vector<ServerConfig*>	servs;
 	ServerConfig *serv = this->_fd_to_server.find(sock_fd)->second;
-	servs.push_back(serv);
-	if (serv->is_duplicated)
-		for (std::map<std::string, ServerConfig*>::iterator it = this->_dup_servers.begin(); it != this->_dup_servers.end(); ++it) {
-			if (it->first == serv->host+":"+serv->listen_port)
-				servs.push_back(it->second);
-		}
-	//
 	std::map<int, std::pair<Request, Response> *>::iterator	pai = serv->_requests.find(sock_fd);
 	if (pai == serv->_requests.end()) {
+		std::vector<ServerConfig*>	servs;
+		servs.push_back(serv);
+		if (serv->is_duplicated)
+			for (std::map<std::string, ServerConfig*>::iterator it = this->_dup_servers.begin(); it != this->_dup_servers.end(); ++it) 
+				if (it->first == serv->host+":"+serv->listen_port)	servs.push_back(it->second);
 		std::pair<Request, Response>	*new_pair = new std::pair<Request, Response>;
 		serv->_requests[ sock_fd ] = new_pair;
 		/*serv->_requests[ sock_fd ]->first.set_servers( servs );*/
@@ -296,12 +290,11 @@ void	Sockets::recvFrom(int sock_fd) {
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second->second._initiate_response(&pai->second->first, *this, serv);
 	}
-	//else if (pai->second->first.getState() == ERROR)	this->closeConn(sock_fd);
 }
 
 void	Sockets::sendTo(int sock_fd) {
-	ServerConfig	*serv = this->_fd_to_server.find(sock_fd)->second;
-	std::map<int, std::pair<Request, Response>* >::iterator	pai = serv->_requests.find(sock_fd);
+	ServerConfig *serv = this->_fd_to_server.find(sock_fd)->second;
+	std::map<int, std::pair<Request, Response>* >::iterator pai = serv->_requests.find(sock_fd);
 	pai->second->second.sendResponse(sock_fd, serv);
 	if (pai->second->second.get_status() == DONE ||
 		pai->second->second.get_status() == ERROR) {
@@ -311,8 +304,7 @@ void	Sockets::sendTo(int sock_fd) {
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 1);
 			this->resetConn(sock_fd);
 		}
-		else 
-			this->closeConn(sock_fd);
+		else 	this->closeConn(sock_fd);
 	}
 }
 
@@ -320,12 +312,12 @@ void	Sockets::closeConn(int sock_fd) {
 	this->resetConn(sock_fd);
 	std::map<int, ServerConfig*>::iterator i = this->_fd_to_server.find(sock_fd);
 	if (i != this->_fd_to_server.end()) {
-		std::cout << KRED"\t" << i->second->server_name << KNRM": closed connection: " << sock_fd << KNRM << std::endl;
+		std::cout << "\t" << i->second->server_name << ": Close connection: "KRED << sock_fd << KNRM;
+		std::cout << " , remaining sockets: " << KBGR " "<< this->_kqueue.get_current_events() << " \n"KNRM;
 		this->_fd_to_server.erase(sock_fd);
 	}
 	this->_kqueue.SET_QUEUE(sock_fd, 0, 0);
 	close(sock_fd);
-	std::cout << "\tremaining sockets: " << KBGR " "<<this->_kqueue.get_current_events()<<" \n"KNRM;
 }
 
 void	Sockets::resetConn(int sock_fd) {
@@ -585,8 +577,8 @@ void	Sockets::startServers() {
 		if (!this_status) { this_status = true; continue ; }
 		if (listen(sock, 100) < 0)
 			std::cerr << KYEL << "server: " << (*it)->host << ":" << (*it)->listen_port << " is unable to start. listen() failure" << KNRM << std::endl;
-		else	std::cout << KGRN << (*it)->server_name << KNRM << ": " << (*it)->host << ":"
-			<< (*it)->listen_port << ", " << (*it)->locations.size() << " locations " << KGRN << "STARTED successfully" << KNRM << std::endl;
+		else	std::cout << "\n\t["KGRN << (*it)->server_name << KNRM << ": " << (*it)->host << ":"
+			<< (*it)->listen_port << ", " << (*it)->locations.size() << " locations " << KGRN << "STARTED successfully" << KNRM"]" << std::endl;
 		(*it)->_socket = sock;
 		this->_kqueue.SET_QUEUE(sock, EVFILT_READ, 1);
 		this->_fd_to_server[ sock ] = *it;

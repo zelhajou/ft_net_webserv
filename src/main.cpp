@@ -3,46 +3,71 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hsobane <hsobane@student.42.fr>            +#+  +:+       +#+        */
+/*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/03 10:13:13 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/08/06 18:21:38 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Sockets.hpp"
+#include <unistd.h>
+#include <pwd.h>
 
 Sockets		S;
 
-void	sig_nan(int sig_num) {
+void	sig_nan(int sig_num)
+{
 	std::cout << KCYN << "main_process:" << KNRM
 		<< " received signal(" << KGRN << sig_num
 		<< KNRM << ") exiting..\n";
 	exit(sig_num);
 }
 
-void	leaks_fun(void) {system("leaks webserv");}
+void	leaks_fun(void)
+{
+	system("leaks webserv");
+}
 
-int main(int argc, char *argv[], char **env) {
+std::string readFile(const std::string& filepath)
+{
+    std::ifstream file(filepath.c_str());
+    if (!file.is_open())
+        throw std::runtime_error("Unable to open file: " + filepath);
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
+int main(int argc, char *argv[], char **env)
+{
 	fix_up_signals(sig_nan);
 	if (argc != 2) {
 		std::cerr << KRED"->\tmissing configuration file"KNRM;
 		std::cerr << "\tUsage: " << argv[0] << " [config_file]" << std::endl;
 		return 1;
 	}
-	std::ifstream	file(argv[1]);
-	if (!file) {
-		std::cerr << KRED"Failed to open file: "KNRM << argv[1] << std::endl;
-		return	1;
-	}
-	std::stringstream	buffer;
-	buffer << file.rdbuf();
-	std::string	config = buffer.str();
-	Tokenizer	tokenizer(config);
-	std::vector<Token>	tokens = tokenizer.tokenize();
-	Parser	parser(tokens);
-	try {
+
+	std::string config_file = argv[1];
+
+	try
+	{
+        std::string config_content = readFile(config_file);
+		Tokenizer	tokenizer(config_content);
+		std::vector<Token>	tokens = tokenizer.tokenize();
+
+		Parser	parser(tokens);
 		MainConfig	main_config = parser.parse();
+		//parser.displayMainConfig(main_config);
+		
+		std::string cwd = getcwd(NULL, 0);
+		if (cwd.empty())
+			throw std::runtime_error("Unable to get current working directory");
+		cwd += "/";
+		ConfigValidator validator(main_config, cwd);
+        validator.validate();
+		parser.displayMainConfig(main_config);
 		S.initiate_servers(main_config, env);
 		S.run();
 	}

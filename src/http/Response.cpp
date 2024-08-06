@@ -219,7 +219,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	std::string	uri = this->_request->get_first_line().uri;
 	if (!this->_request->_cgi_info.second.empty()) {
 		sock._enrg_env_var("PATH_INFO", this->_request->_cgi_info.second);
-		std::cout << "\t" << KCYN << "PATH_INFO: " << KNRM << this->_request->_cgi_info.second << std::endl;
+		std::cout << "\t"KCYN"PATH_INFO: "KNRM << this->_request->_cgi_info.second << std::endl;
 		uri = uri.substr(0, uri.find(this->_request->_cgi_info.second));
 	}	else	sock._enrg_env_var("PATH_INFO", "");
 	sock._enrg_env_var("REQUEST_URI", uri);
@@ -240,7 +240,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	} catch (std::exception &l) {
 		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
-		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
+		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, l.what());
 	}
 	int		pos = output.find("webserv_cgi_status=");
 	if (pos != std::string::npos) {
@@ -250,23 +250,27 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	}
 	try {
 		std::string	temp_c_t = _cgi_header(output, "Content-type:", "Content-Type:");
+		if (temp_c_t.empty()) temp_c_t = _cgi_header(output, "content-type:", "CONTENT-TYPE:");
 		if (!temp_c_t.empty() && sock.is_valid_mime(temp_c_t))
 			this->_file_type = temp_c_t;
 		temp_c_t = _cgi_header(output, "set-cookie:", "Set-cookie:");
+		if (temp_c_t.empty()) temp_c_t = _cgi_header(output, "Set-Cookie:", "SET-COOKIE:");
 		if (!temp_c_t.empty()) {
 			this->_cgi_cookie = temp_c_t;
 			this->_has_cookies = true;
 		}
 		//
-		pos = output.find("\n\n");
-		if (pos != std::string::npos)
-			output = output.substr(pos + 2);
-		else	throw	std::runtime_error("invalid cgi output formatting");
+		pos = output.find("\r\n\r\n");
+		if (pos != std::string::npos)	output = output.substr(pos + 4);
+		else {
+			pos = output.find("\n\n");
+			if (pos != std::string::npos) output = output.substr(pos + 2);
+			else	throw	std::runtime_error("invalid cgi output formatting");
+		}
 	} catch (std::exception &l) {
 		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
-		
 		if (_file.is_open())	_file.close();
-		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
+		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, l.what());
 	}
 	//
 	_file << output;
@@ -289,25 +293,18 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			}
 		}
 		else if (this->_request->_location_type == CGI) {
-			std::cout << "\t" << KWHT << "--> CGI_REQUEST\n" << KNRM;
+			std::cout << "\t"KWHT"--> CGI_REQUEST\n"KNRM;
 			if (!this->_request->_cgi_info.second.empty()) {
 				int	pos = this->_request->_request.first_line.uri.rfind(this->_request->_cgi_info.second);
 				if (pos != std::string::npos)
 					this->_request->_request.first_line.uri = this->_request->_request.first_line.uri.substr(0, pos);
 			}
-			/*std::cout << "\t" << KCYN << "script_path: " << KNRM << this->_request->get_first_line().uri << std::endl;
-			std::cout << "\t" << KCYN << "script_ext: " << KNRM << this->_request->_cgi_info.first << std::endl;*/
 			if (access(this->_request->get_first_line().uri.c_str(), R_OK) < 0) {
-				std::cout << KCYN << "\tscript_path_not_found\n" << KNRM;
+				std::cout << KCYN"\tscript_path_not_found\n"KNRM;
 				target_file = this->generate_status_file(NOT_FOUND, server, "CGI script NOT FOUND");
 			}
-			else {
-				/*std::vector<std::pair<std::string, std::string> >::iterator	i = this->_request->_query_string.begin();
-				for (;i != this->_request->_query_string.end();++i)
-					std::cout << KCYN << "query_string["<< (i-this->_request->_query_string.begin()) <<"]:" << KNRM << i->first << "->" << i->second << std::endl;*/
-				target_file = this->process_cgi_exec(sock, server);
-			}
-			std::cout << "\t" << KWHT << "<--\n" << KNRM;
+			else	target_file = this->process_cgi_exec(sock, server);
+			std::cout << "\t"KWHT"<--\n"KNRM;
 		}
 		else if (this->_request->get_first_line().method == "GET") target_file = this->_request->get_first_line().uri;
 		else if (this->_request->get_first_line().method == "POST") {
@@ -315,11 +312,6 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			if (this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) {
 				for (std::vector<t_post_body>::iterator i = this->_request->_post_body.begin(); i!=this->_request->_post_body.end(); ++i)
 					if (i->filename.size() > 0) mini_post_status += file_to_disk(i->data, this->_request->get_first_line().uri, i->filename);
-
-
-				/*if (mini_post_status != this->_request->_post_body.size() - 1) {
-					post_status = false;
-				}*/
 			}
 			else	post_status = file_to_disk(this->_request->_request.raw_body, this->_request->get_first_line().uri, "");
 			target_file = this->generate_status_file(post_status ? this->_request->getStatus() : INTERNAL_SERVER_ERROR, server, "");
@@ -426,10 +418,10 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	if (this->status == DONE || this->status == ERROR) {
 		this->_file.close();
 		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
-		std::cout << KBGR << " " << KNRM << " " << KBGR << "  " << this->_request->get_first_line().method
-			<< " " << KNRM << " [" << KUND << this->_request->get_first_line().uri << KNRM << "] : "
-			<< http_code_msg(print_Cstatus(this->_response_status)) << " " << KNRM << " : "
-			<< KUND << this->_sent[1] << "B\n" << KNRM;
+		std::cout << KBGR" "KNRM" "KBGR"  " << this->_request->get_first_line().method
+			<< " "KNRM << " ["KUND << this->_request->get_first_line().uri << KNRM"] : "
+			<< http_code_msg(print_Cstatus(this->_response_status)) << " "KNRM" : "
+			<< KUND << this->_sent[1] << "B\n"KNRM;
 	}
 }
 

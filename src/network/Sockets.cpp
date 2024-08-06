@@ -104,7 +104,7 @@ static	void	master_routine(std::string socket_path) {
 	FD_ZERO(&r_copy); FD_ZERO(&w_copy);
 	if ((sock = geta_unix_socket(address, socket_path)) < 0)	exit(1);
 	FD_SET(sock, &r_set);
-	for (int i=15;i;i--) {
+	for (int i = 15 ; i ; i--) {
 		if (connect(sock, (struct sockaddr*)&address, sizeof(address)) == 0)	break;
 		else if (i == 1) { exit(1); } }
 	for (;;) {
@@ -146,7 +146,7 @@ std::string	Sockets::format_env() {
 	std::string	output;
 	std::map<std::string, std::string>::iterator	i = this->env_variables.begin();
 	for (; i!=this->env_variables.end(); ++i)
-		output.append(i->first+"="+i->second+_S_DEL);
+		output.append(i->first + "=" + i->second + _S_DEL);
 	return	output;
 }
 
@@ -235,25 +235,25 @@ std::string	Sockets::execute_script(std::string input) {
 		}
 	fd_set	r_set; FD_ZERO(&r_set);
 	std::string	output;
-	int	_index(0);
-	for (;;) { //	-->
-		_index = send(this->master_process, input.c_str(), input.size(), 0);
-		if (_index <= 0)	break;
-		input = input.substr(_index);
+	int	index = 0;
+	for (;;) {
+		index = send(this->master_process, input.c_str(), input.size(), 0);
+		if (index <= 0)	break;
+		input = input.substr(index);
 	}
 	char	buffer[CGI_PIPE_MAX_SIZE];
 	struct	timeval	tv;
 	std::memset(&tv, 0, sizeof(tv));
 	tv.tv_sec = CGI_TIME_LIMIT;
 	FD_SET(this->master_process, &r_set);
-	_index = select(this->master_process + 1, &r_set, NULL, NULL, &tv);
-	if (_index <= 0)	return "webserv_cgi_status=504; CGI operation timeout";
+	index = select(this->master_process + 1, &r_set, NULL, NULL, &tv);
+	if (index <= 0)	return "webserv_cgi_status=504; CGI operation timeout";
 	else
-		for (;;) { //	<--
+		for (;;) {
 			std::memset(buffer, 0, sizeof(buffer));
-			_index = recv(this->master_process, buffer, CGI_PIPE_MAX_SIZE -1, MSG_DONTWAIT);
-			if (_index <= 0)	break;
-			else	output.append(buffer, _index);
+			index = recv(this->master_process, buffer, CGI_PIPE_MAX_SIZE -1, MSG_DONTWAIT);
+			if (index <= 0)	break;
+			else	output.append(buffer, index);
 		}
 	return		output;
 }
@@ -286,11 +286,16 @@ void	Sockets::recvFrom(int sock_fd) {
 		/*serv->_requests[ sock_fd ]->first.set_servers( servs );*/
 		serv->_requests[ sock_fd ]->first.setLocation( serv->locations );
 		serv->_requests[ sock_fd ]->first.set_fd( sock_fd );
+		size_t max_body_size = std::strtoul(serv->client_max_body_size.c_str(), NULL, 10);
+		serv->_requests[ sock_fd ]->first._max_body_size = max_body_size;
 		this->recvFrom( sock_fd );
 		return ;
 	}
 	pai->second->first.recvRequest();
 	if (pai->second->first.getState() == DONE || pai->second->first.getState() == ERROR) {
+		if (pai->second->first._request.first_line.method == "POST" && pai->second->first._post_body.size() > 0) {
+			std::cout << "BODY_SIZE :: " << pai->second->first._post_body[0].data.size() << std::endl;
+		}
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second->second._initiate_response(&pai->second->first, *this, serv);

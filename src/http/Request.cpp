@@ -1,12 +1,14 @@
 #include "Request.hpp"
 
-Request::Request() : _fd(-1), _total_body_size(0), _state(FIRST_LINE), _status(OK), _chunk_size(0), _is_return(0) {
+Request::Request() : _fd(-1), _max_body_size(0), _state(FIRST_LINE), _status(OK), _chunk_size(0), _is_return(0) {
 	this->_method = MTH_NONE;
 	this->_request.status = STATUS_NONE;
 	this->_request.state = FIRST_LINE;
 	this->_request.headers.content_length = 0;
+	this->_request.body.clear();
+	this->_request.raw_body.clear();
 	this->_location_type = LOC_NONE;
-
+	this->_total_body_size = 0;
 }
 
 Request::Request(const Request &R) { *this = R; }
@@ -40,8 +42,11 @@ static std::string sanitizeURI(std::string uri) {
 	return ret;
 }
 
-void	Request::handle_cgi() {
+static bool match_extension(std::string uri, std::string ext, size_t& pos) {
 
+	if ((pos = uri.find_last_of(".")) == std::string::npos)
+		return false;
+	return uri.substr(pos) == ext;
 }
 
 bool	Request::is_cgi(LocationConfig *loc) {
@@ -51,19 +56,17 @@ bool	Request::is_cgi(LocationConfig *loc) {
 		|| !loc->add_cgi.size() || !loc->cgi_path.size()
 		|| !loc->cgi_allowed_methods.size())	return false;
 	std::string uri = this->_request.first_line.uri;
-	//
-	for (std::vector<std::string>::iterator i = loc->add_cgi.begin();i != loc->add_cgi.end(); ++i)
-		if ((pos = uri.find(*i)) != std::string::npos && uri[pos] == '.') {
+	for (std::vector<std::string>::iterator it = loc->add_cgi.begin();it != loc->add_cgi.end(); ++it)
+		if (match_extension(uri, *it, pos)) {
 			std::string	temp_uri = uri.substr(pos);
 			npos = temp_uri.find("/");
 			if (npos != std::string::npos) {
 				this->_cgi_info.second = temp_uri.substr(npos);
 				temp_uri = temp_uri.substr(0, npos);
 			}
-			if (temp_uri == *i) { this->_cgi_info.first = *i; return true; }
+			if (temp_uri == *it) { this->_cgi_info.first = *it; return true; }
 			else	this->_cgi_info.second.clear();
 		}
-	//
 	return false;
 }
 
@@ -76,7 +79,6 @@ void	Request::handle_location(LocationConfig** loc) {
 		{setRequestState((*loc)->return_url.second, (*loc)->return_url.first, DONE); this->_is_return = true;}
 	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_request.first_line.method) == (*loc)->allowed_methods.end())
 		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
-	//
 	if (this->_location_type == CGI && std::find((*loc)->cgi_allowed_methods.begin(), (*loc)->cgi_allowed_methods.end(), this->_request.first_line.method) == (*loc)->cgi_allowed_methods.end())
 		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
 }
@@ -197,8 +199,7 @@ void	Request::parse_uri() {
 	std::string			uri;
 
 	uri = this->_request.first_line.uri;
-	while ((pos = uri.find("//")) != std::string::npos)
-		uri = uri.substr(0, pos) + uri.substr(pos + 1);
+	this->_request.first_line.uri = sanitizeURI(uri);
 	if (is_valid_uri(uri) == false)
 		{setRequestState(INV_URI, BAD_REQUEST, ERROR); return ;}
 	extract_query_string();
@@ -217,6 +218,7 @@ void Request::set_first_line() {
 		return ;
 	this->_request.raw_first_line = this->_request_buffer.substr(0, pos);
 	this->_request_buffer = this->_request_buffer.substr(pos + 2);
+	this->_recv_bytes -= (pos + 2);
 	parse_first_line();
 	this->_state = HEADERS;
 }
@@ -232,6 +234,7 @@ void	Request::set_headers() {
 		return ;
 	std::string headers = this->_request_buffer.substr(0, pos);
 	this->_request_buffer = this->_request_buffer.substr(pos + 4);
+	this->_recv_bytes -= (pos + 4);
 	while ((pos = headers.find("\r\n")) != std::string::npos) {
 		std::string line = headers.substr(0, pos);
 		headers = headers.substr(pos + 2);
@@ -259,27 +262,32 @@ void	Request::set_method() {
 		this->_method = NOT_IMP;
 }
 
+static void print_headers(std::map<std::string, std::string> headers) {
+	for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
+		std::cout << it->first << ": " << it->second << std::endl;
+}
+
 void	Request::set_body() {
 	if (this->_state != BODY || this->_request.state == ERROR || this->_request.status != STATUS_NONE) {
 		this->_status = this->_request.status;
 		this->_state = this->_request.state;
-		// std::cout << "STATE: " << this->_state << std::endl;
-		// std::cout << "STATUS: " << this->_status << std::endl;
-		// std::cout << "ERROR MESSAGE: " << this->_request.error_message << std::endl;
-		// std::cout << "request_buffer size: " << this->_request_buffer.size() << std::endl;
-		// std::cout << "raw_body size: " << this->_request.raw_body.size() << std::endl;
-		// std::cout << "raw_first_line size: " << this->_request.raw_first_line.size() << std::endl;
-		// std::cout << "raw_headers size: " << this->_request.raw_headers.size() << std::endl;
-		// std::cout << "request_buffer : \n" << this->_request_buffer << std::endl;
 		return ;
 	}
 	if (this->_method == GET || this->_method == DELETE)
 		{this->_state = DONE; return ;}
 	if (this->_request.headers.transfer_encoding == "chunked")
 		handle_chunked();
+	else if (this->_request.headers.content_length > this->_max_body_size) {
+		setRequestState(BD_TOO_BIG, PAYLOAD_TOO_LARGE, ERROR);
+		this->_state = ERROR;
+		this->_status = PAYLOAD_TOO_LARGE;
+	}
 	else if (this->_request.headers.content_length > 0)
 		handle_centent_length();
 	else {
+		this->_request.raw_body.clear();
+		this->_request.body.clear();
+		this->_recv_bytes = 0;
 		setRequestState(LEN_REQ, LENGTH_REQUIRED, ERROR);
 		this->_state = ERROR;
 		this->_status = LENGTH_REQUIRED;
@@ -354,13 +362,21 @@ static bool is_hex(std::string str) {
 }
 
 void Request::handle_centent_length() {
-	//std::cout << "CONTENT LENGTH" << std::endl;
-	this->_request.raw_body.append(this->_request_buffer);
+
+	// std::cout << "Handling content length" << std::endl;
+	this->_request.raw_body.append(this->_request_buffer, 0, this->_recv_bytes);
+	this->_total_body_size += this->_recv_bytes;
 	this->_request_buffer.clear();
-	if (this->_request.raw_body.size() >= this->_request.headers.content_length) {
+	// std::cout << "Total body size: " << this->_total_body_size << std::endl;
+	// std::cout << "Content length: " << this->_request.headers.content_length << std::endl;
+	if (this->_total_body_size == this->_request.headers.content_length) {
 		this->_request.raw_body = this->_request.raw_body.substr(0, this->_request.headers.content_length);
 		parse_body();
-		this->_state = DONE;
+	}
+	else if (this->_total_body_size > this->_request.headers.content_length) {
+		setRequestState(BD_TOO_BIG, PAYLOAD_TOO_LARGE, ERROR);
+		this->_state = ERROR;
+		this->_status = PAYLOAD_TOO_LARGE;
 	}
 }
 
@@ -368,17 +384,21 @@ void Request::handle_chunked() {
 	size_t			pos;
 	std::string		tmp;
 
+	// std::cout << "Handling chunked" << std::endl;
 	while ((pos = this->_request_buffer.find("\r\n")) != std::string::npos || this->_chunk_size > 0) {
 		if (this->_chunk_size > 0) {
-			if (this->_chunk_size > this->_request_buffer.size()) {
-				this->_request.raw_body.append(this->_request_buffer);
-				this->_chunk_size -= this->_request_buffer.size();
+			if (this->_chunk_size > this->_recv_bytes) {
+				this->_request.raw_body.append(this->_request_buffer, 0, this->_recv_bytes);
+				this->_chunk_size -= this->_recv_bytes;
+				this->_total_body_size += this->_recv_bytes;
 				this->_request_buffer.clear();
 				break ;
 			}
 			else {
-				this->_request.raw_body.append(this->_request_buffer.substr(0, this->_chunk_size));
+				this->_request.raw_body.append(this->_request_buffer.substr(0, this->_chunk_size), 0, this->_chunk_size);
 				this->_request_buffer = this->_request_buffer.substr(this->_chunk_size);
+				this->_total_body_size += this->_chunk_size;
+				this->_recv_bytes -= this->_chunk_size;
 				this->_chunk_size = 0;
 				continue ;
 			}
@@ -392,25 +412,27 @@ void Request::handle_chunked() {
 		else
 			{setRequestState(LEN_NOT_MATCH, BAD_REQUEST, ERROR); return ;}
 	}
+	if (this->_total_body_size > this->_max_body_size) {
+		setRequestState(BD_TOO_BIG, PAYLOAD_TOO_LARGE, ERROR);
+		this->_state = ERROR;
+		this->_status = PAYLOAD_TOO_LARGE;
+		return ;
+	}
 }
 
 void Request::parse_body() {
-	// std::cout << "BODY PARSE: \n|" << this->_request.raw_body << "|" << std::endl;
-	// std::cout << "BODY PARSE: " << this->_request.raw_body << std::endl;
-	if (this->_request.raw_body.size() == 0)
+
+	std::cout << "Parsing body" << std::endl;
+	std::cout << (this->_request.boundary.size() > 0 ? this->_request.boundary : "Not multipart") << std::endl;
+	if (this->_request.body.size() == 0) {
+		this->_request.body = this->_request.raw_body;
+		std::cout << "Rq body size: " << this->_request.body.size() << std::endl;
+	}
+	if (this->_total_body_size == 0)
 		{this->_state = DONE; return ;}
 	if (this->_request.boundary.size() > 0)
 		parse_multipart();
-	else
-		this->_request.body = this->_request.raw_body;
 	this->_state = DONE;
-	/*for (std::vector<t_post_body>::iterator it = this->_post_body.begin(); it != this->_post_body.end(); it++) {
-		std::cout << "NAME: " << it->name << std::endl;
-		std::cout << "FILENAME: " << it->filename << std::endl;
-		std::cout << "CONTENT TYPE: " << it->content_type << std::endl;
-		std::cout << "BODY: \n" << it->data << std::endl;
-		std::cout << "---------------------------------------------------------------------------" << std::endl;
-	}*/
 }
 
 void	Request::recvRequest() {
@@ -419,6 +441,7 @@ void	Request::recvRequest() {
 
 	if (this->_state == DONE || this->_state == ERROR) return ;
 	ret = recv(this->_fd, buffer, BUFFER_SIZE, 0);
+	this->_recv_bytes = ret;
 	if (ret == -1 || ret == 0) {
 		this->_status = INTERNAL_SERVER_ERROR;
 		this->_state = ERROR;
@@ -460,6 +483,8 @@ void	Request::extract_query_string() {
 	size_t		pos;
 	std::string	uri;
 
+	if ((pos = this->_request.first_line.uri.find("#")) == std::string::npos)
+		this->_request.first_line.uri = this->_request.first_line.uri.substr(0, pos);
 	if ((pos = this->_request.first_line.uri.find("?")) == std::string::npos)
 		return ;
 
@@ -517,8 +542,7 @@ void	Request::parse_multipart() {
 	std::string		boundary;
 	std::string		section;
 	std::string		line;
-
-	// std::cout << KRED << "PARSE_MULTIPART" << KNRM << std::endl;
+	pos = this->_request.raw_body.find(boundary);
 	boundary = this->_request.boundary;
 	while ((pos = this->_request.raw_body.find(boundary)) != std::string::npos) {
 		section = this->_request.raw_body.substr(0, pos);
@@ -556,7 +580,8 @@ static std::string get_field_value(std::string line, std::string field) {
 }
 
 void	Request::handle_post_file(std::string section) {
-	// std::cout << KRED << "HANDLE_POST_FILE" << KNRM << std::endl;
+
+	// std::cout << "Handling post file" << std::endl;
 	size_t pos = section.find("\r\n");
 	std::string line = section.substr(0, pos);
 
@@ -564,21 +589,22 @@ void	Request::handle_post_file(std::string section) {
 	std::string filename = get_field_value(line, "filename=");
 	section = section.substr(pos + 2);
 	pos = section.find("Content-Type: ");
-	std::string content_type = section.substr(pos + 14);
+	std::string content_type = section.substr(pos + 14, section.find("\r\n") - pos - 14);
 	content_type = content_type.substr(0, content_type.find("\r\n"));
 	section = section.substr(section.find("\r\n\r\n") + 4);
-	section = section.substr(0, section.find("\r\n"));
+	section = section.substr(0, section.find_last_of("\r\n"));
 	t_post_body post_body = {name, filename, content_type, section};
 	this->_post_body.push_back(post_body);
 }
 
 void	Request::handle_post_fields(std::string section) {
-	// std::cout << KRED << "HANDLE_POST_FIELDS" << KNRM << std::endl;
+
+	// std::cout << "Handling post fields" << std::endl;
 	size_t pos = section.find("\r\n");
 	std::string line = section.substr(0, pos);
 	std::string name = get_field_value(line, "name=");
 	section = section.substr(pos + 4);
-	section = section.substr(0, section.find("\r\n"));
+	section = section.substr(0, section.find_last_of("\r\n"));
 	t_post_body post_body = {name, "", "", section};
 	this->_post_body.push_back(post_body);
 }

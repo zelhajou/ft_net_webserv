@@ -31,6 +31,7 @@
 # define INV_LOC_FILE	"Invalid location file"
 # define INV_LOC_DIR	"Invalid location directory"
 # define CANT_DELL		"Can't delete file/directory"
+# define BD_TOO_BIG		"Body too large"
 
 
 struct	LocationNode;
@@ -56,7 +57,6 @@ public:
 	bool						is_cgi(LocationConfig *);
 	bool						is_file(std::string& path);
 	bool						is_directory(std::string& path, int flag);
-	void						handle_cgi();
 	void						handle_chunked();
 	void						handle_centent_length();
 	void						handle_file();
@@ -80,23 +80,25 @@ public:
 
 
 public:
-	int							_fd;
-	size_t						_total_body_size;
-	e_parser_state				_state;
-	e_status					_status;
-	t_request					_request;
-	bool						_chunked;
-	std::vector<LocationNode*>	_location_tree;
-	e_location_type				_location_type;
-	size_t						_chunk_size;
-	std::string					_unchunked_body;
-	t_vpair						_query_string;
-	std::vector<t_post_body>	_post_body;
-	std::string					_request_buffer;
-	e_method					_method;
-	LocationConfig				*_c_location;
+	int										_fd;
+	size_t									_max_body_size;
+	size_t									_total_body_size;
+	e_parser_state							_state;
+	e_status								_status;
+	t_request								_request;
+	bool									_chunked;
+	std::vector<LocationNode*>				_location_tree;
+	e_location_type							_location_type;
+	size_t									_chunk_size;
+	std::string								_unchunked_body;
+	t_vpair									_query_string;
+	std::vector<t_post_body>				_post_body;
+	std::string								_request_buffer;
+	e_method								_method;
+	LocationConfig							*_c_location;
 	std::pair<std::string, std::string>		_cgi_info;
-	bool					_is_return;
+	bool									_is_return;
+	size_t									_recv_bytes;
 };
 
 #endif

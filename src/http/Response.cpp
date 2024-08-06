@@ -197,14 +197,14 @@ static	std::string	get_executer(std::pair<std::string, std::string> cgi_info, st
 }
 
 std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
-	std::string	out_file = CGI_COMM"/"+ _generate_random_string(this->_request->get_headers().host, 15) +".html";
+	std::string		out_file = CGI_COMM"/"+ _generate_random_string(this->_request->get_headers().host, 15) +".html";
 	std::fstream	_file(out_file, std::ios::out);
 	if (!_file.is_open())	return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
 	std::string	input, to_stdin_input, output, _file_name;
 	if (this->_request->get_first_line().method == "GET" && this->_request->_query_string.size()) {
-		for (std::vector<std::pair<std::string, std::string> >::iterator i=this->_request->_query_string.begin();
-			i!=this->_request->_query_string.end();++i)
-			input.append(i->first+"="+i->second+"&");
+		for (std::vector<std::pair<std::string, std::string> >::iterator it = this->_request->_query_string.begin();
+			it != this->_request->_query_string.end(); ++it)
+			input.append(it->first + "=" + it->second + "&");
 	}
 	else if (this->_request->get_first_line().method == "POST" && this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) 
 		input.append(this->_request->_request.body);
@@ -264,6 +264,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 		else	throw	std::runtime_error("invalid cgi output formatting");
 	} catch (std::exception &l) {
 		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		
 		if (_file.is_open())	_file.close();
 		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
 	}
@@ -314,7 +315,11 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			if (this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) {
 				for (std::vector<t_post_body>::iterator i = this->_request->_post_body.begin(); i!=this->_request->_post_body.end(); ++i)
 					if (i->filename.size() > 0) mini_post_status += file_to_disk(i->data, this->_request->get_first_line().uri, i->filename);
-				if (mini_post_status != this->_request->_post_body.size())	post_status = false;
+
+
+				/*if (mini_post_status != this->_request->_post_body.size() - 1) {
+					post_status = false;
+				}*/
 			}
 			else	post_status = file_to_disk(this->_request->_request.raw_body, this->_request->get_first_line().uri, "");
 			target_file = this->generate_status_file(post_status ? this->_request->getStatus() : INTERNAL_SERVER_ERROR, server, "");

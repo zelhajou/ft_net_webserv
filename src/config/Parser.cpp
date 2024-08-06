@@ -214,27 +214,6 @@ void Parser::parseLocationDirective(LocationConfig& location)
             location.return_url.second = values[1];
             location.return_url.first = static_cast<e_status>(std::stoi(values[0]));
             break;
-        /*case TOKEN_FASTCGI_PASS:
-			if (values.empty())
-				reportError("Missing value for 'fastcgi_pass' at line " + std::to_string(line_number));
-            if (values.size() != 1)
-                reportError("Unexpected multiple values for 'fastcgi_pass' at line " + std::to_string(line_number));
-            location.fastcgi_pass = values[0];
-            break;
-        case TOKEN_FASTCGI_INDEX:
-			if (values.empty())
-				reportError("Missing value for 'fastcgi_index' at line " + std::to_string(line_number));
-            if (values.size() != 1)
-                reportError("Unexpected multiple values for 'fastcgi_index' at line " + std::to_string(line_number));
-            location.fastcgi_index = values[0];
-            break;*/
-        /*case TOKEN_INCLUDE:
-			if (values.empty())
-				reportError("Missing value for 'include' at line " + std::to_string(line_number));
-            if (values.size() != 1)
-                reportError("Unexpected multiple values for 'include' at line " + std::to_string(line_number));
-            location.include = values[0];
-            break;*/
         case TOKEN_AUTOINDEX:
 			if (values.empty())
 				reportError("Missing value for 'autoindex' at line " + std::to_string(line_number));
@@ -254,7 +233,7 @@ void Parser::parseLocationDirective(LocationConfig& location)
 				reportError("Unexpected multiple values for 'cgi_path' at line " + std::to_string(line_number));
 			location.cgi_path = values[0];
 			break;
-		case TOKEN_ALLOWED_CGI_METHODS:
+		case TOKEN_CGI_ALLOWED_METHODS:
 			if (values.empty())
 				reportError("Missing value for 'allow_cgi_methods' at line " + std::to_string(line_number));
 			for (size_t i = 0; i < values.size(); ++i)
@@ -345,13 +324,12 @@ std::string Parser::tokenTypeToString(TokenType type) const
         case TOKEN_RETURN: return "return";
         case TOKEN_FASTCGI_PASS: return "fastcgi_pass";
         case TOKEN_FASTCGI_INDEX: return "fastcgi_index";
-        case TOKEN_INCLUDE: return "include";
         case TOKEN_AUTOINDEX: return "autoindex";
         case TOKEN_UPLOAD_STORE: return "upload_store";
         case TOKEN_CLIENT_BODY_TEMP_PATH: return "client_body_temp_path";
 		case TOKEN_ADD_CGI: return "add_cgi";
 		case TOKEN_CGI_PATH: return "cgi_path";
-		case TOKEN_ALLOWED_CGI_METHODS: return "allow_cgi_methods";
+		case TOKEN_CGI_ALLOWED_METHODS: return "cgi_allow_methods";
         case TOKEN_OPEN_BRACE: return "{";
         case TOKEN_CLOSE_BRACE: return "}";
         case TOKEN_SEMICOLON: return ";";

@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/24 10:58:44 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/07/29 05:48:24 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/08/06 10:58:31 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,8 +91,6 @@ Token Tokenizer::tokenizeWord(const std::string& word)
 		return (Token(TOKEN_FASTCGI_PASS, word, line));
     if (word == "fastcgi_index")
 		return (Token(TOKEN_FASTCGI_INDEX, word, line));
-    if (word == "include")
-		return (Token(TOKEN_INCLUDE, word, line));
     if (word == "autoindex")
 		return (Token(TOKEN_AUTOINDEX, word, line));
     if (word == "upload_store")
@@ -104,7 +102,7 @@ Token Tokenizer::tokenizeWord(const std::string& word)
 	if (word == "cgi_path")
 		return (Token(TOKEN_CGI_PATH, word, line));
 	if (word == "cgi_allowed_methods")
-		return (Token(TOKEN_ALLOWED_CGI_METHODS, word, line));
+		return (Token(TOKEN_CGI_ALLOWED_METHODS, word, line));
 	
     return (Token(TOKEN_STRING, word, line));
 }

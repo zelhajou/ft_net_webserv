@@ -16,6 +16,7 @@
 # include "util.h"
 # include "sys/un.h"
 # include "ConfigStructures.hpp"
+# include "ConfigValidator.hpp"
 # include "Tokenizer.hpp"
 # include "Parser.hpp"
 # include <signal.h> 

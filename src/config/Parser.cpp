@@ -361,3 +361,63 @@ MainConfig::~MainConfig()
 	for (std::vector<ServerConfig *>::iterator i = this->servers.begin(); i != this->servers.end(); ++i)
 	 	delete *i;
 }
+void Parser::displayMainConfig(const MainConfig& main_config)
+{
+    for (size_t i = 0; i < main_config.servers.size(); ++i)
+	{
+        const ServerConfig* server = main_config.servers[i];
+        std::cout << "Server Configuration:" << std::endl;
+        std::cout << "  Listen Port: " << server->listen_port << std::endl;
+        std::cout << "  Host: " << server->host << std::endl;
+		std::cout << "  Server Name: " << server->server_name << std::endl;
+        std::cout << "  Client Max Body Size: " << server->client_max_body_size << std::endl;
+
+        std::cout << "  Error Pages:" << std::endl;
+        for (std::map<int, std::string>::const_iterator ep = server->error_pages.begin(); ep != server->error_pages.end(); ++ep) {
+            std::cout << "    " << ep->first << ": " << ep->second << std::endl;
+        }
+        std::cout << "  Locations:" << std::endl;
+        for (std::map<std::string, LocationConfig>::const_iterator loc = server->locations.begin(); loc != server->locations.end(); ++loc) {
+            const LocationConfig& location = loc->second;
+			if (!location.path.empty())
+				std::cout << "    Path: " << location.path << std::endl;
+			
+			if (!location.allowed_methods.empty())
+			{
+				std::cout << "      Allowed Methods: ";
+				for (size_t k = 0; k < location.allowed_methods.size(); ++k) {
+					std::cout << location.allowed_methods[k] << " ";
+				}
+				std::cout << std::endl;
+			}
+			if (!location.index.empty())
+            	std::cout << "      Index: " << location.index << std::endl;
+			if (!location.root.empty())
+           		std::cout << "      Root: " << location.root << std::endl;
+			if (!location.upload_store.empty())
+            	std::cout << "      Upload Store: " << location.upload_store << std::endl;
+			if (!location.client_body_temp_path.empty())
+            	std::cout << "      Client Body Temp Path: " << location.client_body_temp_path << std::endl;
+			if (!location.return_url.second.empty() && location.return_url.first)
+            	std::cout << "      Return URL: " << location.return_url.second << " (Status: " << location.return_url.first << ")" << std::endl;
+			if (!location.add_cgi.empty()){
+				std::cout << "      Add CGI: ";
+				for (size_t k = 0; k < location.add_cgi.size(); ++k) {
+					std::cout << location.add_cgi[k] << " ";
+				}
+				std::cout << std::endl;
+			}
+			if (!location.cgi_path.empty())
+				std::cout << "      CGI Path: " << location.cgi_path << std::endl;
+			if (!location.cgi_allowed_methods.empty())
+			{
+				std::cout << "      Allowed CGI Methods: ";
+				for (size_t k = 0; k < location.cgi_allowed_methods.size(); ++k) {
+					std::cout << location.cgi_allowed_methods[k] << " ";
+				}
+			}
+			if (location.auto_index)
+            	std::cout << "      Auto Index: " << (location.auto_index ? "on" : "off") << std::endl;
+        }
+    }
+}

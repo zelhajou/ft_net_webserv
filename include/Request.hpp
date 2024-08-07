@@ -33,6 +33,12 @@
 # define CANT_DELL		"Can't delete file/directory"
 # define BD_TOO_BIG		"Body too large"
 
+# define GREEN "\033[1,32m"
+# define RED "\033[1,31m"
+# define YELLOW "\033[1,33m"
+# define BLUE "\033[1,34m"
+# define RESET "\033[1,0m"
+
 
 struct	LocationNode;
 
@@ -61,8 +67,8 @@ public:
 	void						handle_centent_length();
 	void						handle_file();
 	void						handle_directory(LocationConfig* loc);
-	void						handle_uri(LocationConfig* loc);
-	void						handle_location(LocationConfig** loc);
+	void						handle_uri();
+	void						handle_location();
 	void						extract_query_string();
 	void						parse_query_string();
 	void						parse_multipart();
@@ -72,11 +78,10 @@ public:
 	void						set_headers();
 	void						set_body();
 	void						set_method();
-	void						set_content_type();
-	void						set_transfer_encoding();
 	void						setStatus(e_status status);
-	void						setLocation(std::map<std::string, LocationConfig> &locations);
+	void						setLocation();
 	void						setRequestState(std::string msg, e_status status, e_parser_state state);
+	void						set_servers(std::vector<ServerConfig*>& servers);
 
 
 public:
@@ -99,6 +104,7 @@ public:
 	std::pair<std::string, std::string>		_cgi_info;
 	bool									_is_return;
 	size_t									_recv_bytes;
+	std::vector<ServerConfig*>				_servers;
 };
 
 #endif

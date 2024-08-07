@@ -4,6 +4,9 @@ webserv
 .vscode
 .DS_Store
 video_audio.mp4
-
-
+video-sample.mp4
+audio-sample.mp3
+config/cgi_comm/*
+config/html_generated_files/*
+config/html_default_error_files/*
 config/config_files/2.conf

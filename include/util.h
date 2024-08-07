@@ -54,6 +54,7 @@ enum e_status {
 	FORBIDDEN = 403,						// The server understood the request, but is refusing to fulfill it.
 	NOT_ACCEPTABLE = 406,					// The server can only generate a response that is not accepted by the client.
 	PAYLOAD_TOO_LARGE = 413,				// The server is refusing to process a request because the request payload is larger than the server is willing or able to process.
+	METHOD_NOT_ALLOWED = 405,				// The method specified in the Request-Line is not allowed for the resource identified by the Request-URI.
 };
 
 enum e_parser_state {

@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/06 13:39:35 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/07 17:39:19 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/07 17:59:55 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -148,12 +148,7 @@ void ConfigValidator::validateCGI(std::vector<std::string> add_cgi, std::string 
 void ConfigValidator::validateUploadStore(const std::string& upload_store, const std::string& project_root)
 {
 	if (!upload_store.empty())
-	{
-		if (upload_store[0] != '/')
-			throw std::runtime_error("Upload store path must be an absolute path");
-		if (upload_store[upload_store.size() - 1] == '/')
-			throw std::runtime_error("Upload store path must not end with a slash");
-		
+	{		
 		std::string path = project_root + "/" + upload_store;
 		if (access(path.c_str(), F_OK) == -1)
 			throw std::runtime_error("Upload store path does not exist: " + path);

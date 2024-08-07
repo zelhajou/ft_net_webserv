@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/06 13:39:35 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/07 12:58:54 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/07 17:39:19 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,7 +59,7 @@ void ConfigValidator::validateServerConfig(const ServerConfig& server)
 
     std::map<std::string, LocationConfig>::const_iterator it;
     for (it = server.locations.begin(); it != server.locations.end(); ++it) {
-        validateLocationConfig(it->second);
+        validateLocationConfig(it->second, project_root);
     }
 }
 
@@ -106,18 +106,68 @@ void ConfigValidator::validateClientMaxBodySize(const std::string& size)
 	}
 }
 
-void ConfigValidator::validateLocationConfig(const LocationConfig& location)
+void ConfigValidator::validateLocationConfig(const LocationConfig& location, const std::string& project_root)
 {
-    validateAllowedMethods(location.allowed_methods);
+	validateRoot(location.root, project_root);
+	validateAllowedMethods(location.allowed_methods);
+	validateUploadStore(location.upload_store, project_root);
+	validateCGI(location.add_cgi, location.cgi_path, location.cgi_allowed_methods, location.root, project_root);
 }
 
+void ConfigValidator::validateRoot(const std::string& root, const std::string& project_root)
+{
+	if (root.empty())
+		throw std::runtime_error("Missing 'root' directive in location block");
+
+	std::string path = project_root + "/" + root;
+	if (access(path.c_str(), F_OK) == -1)
+		throw std::runtime_error("Root path does not exist: " + path);
+}
+
+void ConfigValidator::validateCGI(std::vector<std::string> add_cgi, std::string cgi_path, std::vector<std::string> cgi_allowed_methods, const std::string& location_root, const std::string& project_root)
+{
+	if (!add_cgi.empty())
+	{
+		// check extensions	are valid .py .php
+		std::vector<std::string>::const_iterator it;
+		for (it = add_cgi.begin(); it != add_cgi.end(); ++it)
+		{
+			if (*it != ".py" && *it != ".php")
+				throw std::runtime_error("Invalid CGI extension: " + *it);
+		}
+		if (cgi_path.empty())
+			throw std::runtime_error("Missing 'cgi_path' directive in location block");
+			
+		std::string path = project_root + "/" + location_root + "/" + cgi_path;
+		if (access(path.c_str(), F_OK) == -1)
+			throw std::runtime_error("CGI path does not exist: " + path);
+		validateAllowedMethods(cgi_allowed_methods);
+	}
+}
+
+void ConfigValidator::validateUploadStore(const std::string& upload_store, const std::string& project_root)
+{
+	if (!upload_store.empty())
+	{
+		if (upload_store[0] != '/')
+			throw std::runtime_error("Upload store path must be an absolute path");
+		if (upload_store[upload_store.size() - 1] == '/')
+			throw std::runtime_error("Upload store path must not end with a slash");
+		
+		std::string path = project_root + "/" + upload_store;
+		if (access(path.c_str(), F_OK) == -1)
+			throw std::runtime_error("Upload store path does not exist: " + path);
+	}
+}
 
 void ConfigValidator::validateAllowedMethods(const std::vector<std::string>& methods)
 {
+	if (methods.empty())
+		throw std::runtime_error("No allowed methods specified");
     std::vector<std::string>::const_iterator it;
     for (it = methods.begin(); it != methods.end(); ++it)
 	{
-        if (*it != "GET" && *it != "POST" && *it != "DELETE" && *it != "PUT")
+        if (*it != "GET" && *it != "POST" && *it != "DELETE")
             throw std::runtime_error("Invalid allowed method: " + *it);
     }
 }

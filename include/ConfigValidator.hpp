@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/06 12:52:53 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/06 18:37:38 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/07 17:50:37 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,28 +29,19 @@ private:
     const std::string project_root;
 
     void validateServerConfig(const ServerConfig& server);
-    void validateLocationConfig(const LocationConfig& location);
-
     void checkEssentialDirectives(const ServerConfig& server);
     void validatePort(const std::string& port);
     void validateHost(const std::string& host);
-    void validateServerName(const std::string& server_name);
-    void validateErrorPages(const std::map<int, std::string>& error_pages);
-    void validateClientMaxBodySize(const std::string& size);
-    
-	
-	void validateAllowedMethods(const std::vector<std::string>& methods);
-    void validatePath(const std::string& path);
-    void validateCGIPath(const std::string& path);
-    void validateReturnURL(const std::pair<e_status, std::string>& return_url);
-
-    void checkDuplicateListenPorts();
-    void checkDuplicateServerNames();
-
     bool isValidDomainName(const std::string& domain);
     bool isValidIPAddress(const std::string& ip);
+    void validateClientMaxBodySize(const std::string& size);
+    
+    void validateLocationConfig(const LocationConfig& location, const std::string& project_root);	
+	void validateAllowedMethods(const std::vector<std::string>& methods);
+	void validateRoot(const std::string& root, const std::string& project_root);
+	void validateUploadStore(const std::string& upload_store, const std::string& project_root);
 
-    void processPath(std::string& path);
+	void validateCGI(std::vector<std::string> add_cgi, std::string cgi_path, std::vector<std::string> cgi_allowed_methods, const std::string &location_root, const std::string &project_root);
 };
 
 #endif

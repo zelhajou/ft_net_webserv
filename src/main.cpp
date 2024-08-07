@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/07 12:58:29 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/07 17:42:59 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,8 +40,6 @@ std::string readFile(const std::string& filepath)
     return buffer.str();
 }
 
-// get current working directory
-
 std::string get_cwd(char *buf, size_t size)
 {
 	char *cwd = getcwd(buf, size);
@@ -49,8 +47,6 @@ std::string get_cwd(char *buf, size_t size)
 		return "";
 	return std::string(cwd);
 }
-
-//
 
 MainConfig push_valid_servers(MainConfig &main_config)
 {
@@ -91,7 +87,6 @@ int main(int argc, char *argv[], char **env)
 
 		MainConfig main_config_validated = push_valid_servers(main_config);
 
-		parser.displayMainConfig(main_config_validated);
 		S.initiate_servers(main_config_validated, env);
 		S.run();
 	}

@@ -284,7 +284,12 @@ static void print_headers(std::map<std::string, std::string> headers) {
 }
 
 void	Request::set_body() {
+	char	buffer[BUFFER_SIZE];
+	int		ret;
+
 	if (this->_state != BODY || this->_request.state == ERROR || this->_request.status != STATUS_NONE) {
+		while ((ret = recv(this->_fd, buffer, BUFFER_SIZE, MSG_DONTWAIT)) > 0)
+			;
 		this->_status = this->_request.status;
 		this->_state = this->_request.state;
 		return ;
@@ -350,7 +355,6 @@ void Request::parse_headers() {
 	this->_request.headers.host = this->_request.raw_headers["Host"].substr(0, this->_request.raw_headers["Host"].find(":"));
 	this->_request.headers.connection = this->_request.raw_headers["Connection"];
 	size_t content_length = std::strtoll(this->_request.raw_headers["Content-Length"].c_str(), NULL, 10);
-	std::cout << "Content length: " << content_length << std::endl;
 	this->_request.headers.content_length = content_length;
 	this->_request.headers.transfer_encoding = this->_request.raw_headers["Transfer-Encoding"];
 	this->_request.headers.content_type = this->_request.raw_headers["Content-Type"];
@@ -379,8 +383,6 @@ void Request::handle_centent_length() {
 	this->_request.raw_body.append(this->_request_buffer, 0, this->_recv_bytes);
 	this->_total_body_size += this->_recv_bytes;
 	this->_request_buffer.clear();
-	// std::cout << "Total body size: " << this->_total_body_size << std::endl;
-	// std::cout << "Content length: " << this->_request.headers.content_length << std::endl;
 	if (this->_total_body_size == this->_request.headers.content_length) {
 		this->_request.raw_body = this->_request.raw_body.substr(0, this->_request.headers.content_length);
 		parse_body();

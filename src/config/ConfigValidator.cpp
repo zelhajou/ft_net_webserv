@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/06 13:39:35 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/06 18:38:41 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/07 18:03:01 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,46 +22,56 @@ ConfigValidator::ConfigValidator(const MainConfig& config, const std::string& pr
 
 void ConfigValidator::validate()
 {
-    // checkDuplicateListenPorts();
-    // checkDuplicateServerNames();
+	std::vector<std::string> errors;
     for (size_t i = 0; i < config.servers.size(); ++i)
-        validateServerConfig(*config.servers[i]);
+    {
+		config.servers[i]->valid = true;
+		try
+		{
+			validateServerConfig(*config.servers[i]);
+		}
+   		catch (const std::runtime_error& e)
+		{
+            errors.push_back(e.what());
+			config.servers[i]->valid = false;			
+		}
+	}
+    if (!errors.empty())
+	{
+        for (size_t i = 0; i < errors.size(); ++i) {
+            std::cerr << "Error: " << errors[i] << std::endl;
+        }
+
+        if (errors.size() == config.servers.size()) {
+            throw std::runtime_error("All server blocks are invalid");
+        }
+    }
+		
 }
 
 void ConfigValidator::validateServerConfig(const ServerConfig& server)
 {
-	// Check for essential directives
     checkEssentialDirectives(server);
 
-	// Validate all directives
     validatePort(server.listen_port);
     validateHost(server.host);
-    validateServerName(server.server_name);
-    validateErrorPages(server.error_pages);
     validateClientMaxBodySize(server.client_max_body_size);
 
-	// Validate all locations
     std::map<std::string, LocationConfig>::const_iterator it;
     for (it = server.locations.begin(); it != server.locations.end(); ++it) {
-        validateLocationConfig(it->second);
+        validateLocationConfig(it->second, project_root);
     }
 }
 
-
-// Check for essential directives
-// ------------------------------------ //
 void ConfigValidator::checkEssentialDirectives(const ServerConfig& server)
 {
-    if (server.listen_port.empty())
+	if (server.listen_port.empty())
         throw std::runtime_error("Missing 'listen' directive in server block");
-    if (server.server_name.empty())
-        throw std::runtime_error("Missing 'server_name' directive in server block");
+
+	if (server.locations.empty())
+		throw std::runtime_error("No locations found in server block");
 }
-// ------------------------------------ //
 
-
-// Validate all directives of a server block
-// ------------------------------------ //
 void ConfigValidator::validatePort(const std::string& port)
 {
     std::regex port_regex("^[0-9]{1,5}$");
@@ -69,7 +79,6 @@ void ConfigValidator::validatePort(const std::string& port)
         throw std::runtime_error("Invalid port: " + port);
 }
 
-// ------------------------------------ //
 void ConfigValidator::validateHost(const std::string& host)
 {
     if (!isValidIPAddress(host) && !isValidDomainName(host))
@@ -86,27 +95,6 @@ bool ConfigValidator::isValidDomainName(const std::string& domain)
     std::regex domain_regex("(^([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$)|(^localhost$)");
     return std::regex_match(domain, domain_regex);
 }
-// ------------------------------------ //
-
-void ConfigValidator::validateServerName(const std::string& server_name)
-{
-    if (server_name.empty())
-        throw std::runtime_error("Invalid server name: " + server_name);
-}
-
-
-void ConfigValidator::validateErrorPages(const std::map<int, std::string>& error_pages)
-{
-    std::map<int, std::string>::const_iterator it;
-    for (it = error_pages.begin(); it != error_pages.end(); ++it)
-	{
-        if (it->first < 400 || it->first > 599)
-            throw std::runtime_error("Invalid error code: " + std::to_string(it->first));
-        if (it->second.empty())
-            throw std::runtime_error("Error page path cannot be empty for code: " + std::to_string(it->first));
-        processPath(const_cast<std::string&>(it->second));
-    }
-}
 
 void ConfigValidator::validateClientMaxBodySize(const std::string& size)
 {
@@ -117,79 +105,64 @@ void ConfigValidator::validateClientMaxBodySize(const std::string& size)
         	throw std::runtime_error("Invalid client_max_body_size: " + size);
 	}
 }
-// ------------------------------------ //
-void ConfigValidator::validateLocationConfig(const LocationConfig& location)
+
+void ConfigValidator::validateLocationConfig(const LocationConfig& location, const std::string& project_root)
 {
-    //validatePath(location.path);
-    validateAllowedMethods(location.allowed_methods);
-    //validatePath(location.root);
-    //validatePath(location.upload_store);
-    //validatePath(location.client_body_temp_path);
-    //validateReturnURL(location.return_url);
+	validateRoot(location.root, project_root);
+	validateAllowedMethods(location.allowed_methods);
+	validateUploadStore(location.upload_store, location.root, project_root);
+	validateCGI(location.add_cgi, location.cgi_path, location.cgi_allowed_methods, location.root, project_root);
 }
 
-// Validate all directives of a location block
-// ------------------------------------ //
-
-void ConfigValidator::validatePath(const std::string& path)
+void ConfigValidator::validateRoot(const std::string& root, const std::string& project_root)
 {
-    if (path.empty())
-        throw std::runtime_error("Path cannot be empty");
-    processPath(const_cast<std::string&>(path));
+	if (root.empty())
+		throw std::runtime_error("Missing 'root' directive in location block");
+
+	std::string path = project_root + "/" + root;
+	if (access(path.c_str(), F_OK) == -1)
+		throw std::runtime_error("Root path does not exist: " + path);
+}
+
+void ConfigValidator::validateCGI(std::vector<std::string> add_cgi, std::string cgi_path, std::vector<std::string> cgi_allowed_methods, const std::string& location_root, const std::string& project_root)
+{
+	if (!add_cgi.empty())
+	{
+		// check extensions	are valid .py .php
+		std::vector<std::string>::const_iterator it;
+		for (it = add_cgi.begin(); it != add_cgi.end(); ++it)
+		{
+			if (*it != ".py" && *it != ".php")
+				throw std::runtime_error("Invalid CGI extension: " + *it);
+		}
+		if (cgi_path.empty())
+			throw std::runtime_error("Missing 'cgi_path' directive in location block");
+			
+		std::string path = project_root + "/" + location_root + "/" + cgi_path;
+		if (access(path.c_str(), F_OK) == -1)
+			throw std::runtime_error("CGI path does not exist: " + path);
+		validateAllowedMethods(cgi_allowed_methods);
+	}
+}
+
+void ConfigValidator::validateUploadStore(const std::string& upload_store, const std::string& location_root, const std::string& project_root)
+{
+	if (!upload_store.empty())
+	{		
+		std::string path = project_root + "/" + location_root + "/" + upload_store;
+		if (access(path.c_str(), F_OK) == -1)
+			throw std::runtime_error("Upload store path does not exist: " + path);
+	}
 }
 
 void ConfigValidator::validateAllowedMethods(const std::vector<std::string>& methods)
 {
+	if (methods.empty())
+		throw std::runtime_error("No allowed methods specified");
     std::vector<std::string>::const_iterator it;
     for (it = methods.begin(); it != methods.end(); ++it)
 	{
-        if (*it != "GET" && *it != "POST" && *it != "DELETE" && *it != "PUT")
+        if (*it != "GET" && *it != "POST" && *it != "DELETE")
             throw std::runtime_error("Invalid allowed method: " + *it);
     }
 }
-void ConfigValidator::validateCGIPath(const std::string& path)
-{
-    if (path.empty())
-        throw std::runtime_error("CGI path cannot be empty");
-    processPath(const_cast<std::string&>(path));
-}
-
-void ConfigValidator::processPath(std::string& path)
-{
-    if (!path.empty() && path[0] == '/')
-        path = project_root + path;
-}
-
-void ConfigValidator::validateReturnURL(const std::pair<e_status, std::string>& return_url)
-{
-    if (return_url.first < 300 || return_url.first > 399)
-        throw std::runtime_error("Invalid return status code: " + std::to_string(return_url.first));
-    if (return_url.second.empty())
-        throw std::runtime_error("Return URL cannot be empty");
-}
-// ------------------------------------ //
-
-
-// Check for duplicate listen ports and server names
-// -------------------------------------------------- //
-void ConfigValidator::checkDuplicateListenPorts()
-{
-    std::set<std::string> listen_ports;
-    for (size_t i = 0; i < config.servers.size(); ++i)
-	{
-        if (listen_ports.find(config.servers[i]->listen_port) != listen_ports.end())
-            throw std::runtime_error("Duplicate listen port: " + config.servers[i]->listen_port);
-        listen_ports.insert(config.servers[i]->listen_port);
-    }
-}
-void ConfigValidator::checkDuplicateServerNames()
-{
-    std::set<std::string> server_names;
-    for (size_t i = 0; i < config.servers.size(); ++i)
-	{
-        if (server_names.find(config.servers[i]->server_name) != server_names.end())
-            throw std::runtime_error("Duplicate server name: " + config.servers[i]->server_name);
-        server_names.insert(config.servers[i]->server_name);
-    }
-}
-// -------------------------------------------------- //

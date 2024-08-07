@@ -187,7 +187,7 @@ bool	Sockets::initiate_master_process() {
 }
 
 bool	Sockets::update_master_state() {
-	if (kill(this->master_PID, 0) < 0) this->active_master = false;
+	if (this->master_PID < 0 || kill(this->master_PID, 0) < 0) this->active_master = false;
 	else	this->active_master = true;
 	return	this->active_master;
 }
@@ -224,12 +224,8 @@ Sockets::~Sockets() {
 
 std::string	Sockets::execute_script(std::string input) {
 	if (!this->update_master_state())
-		for (int i=0; i < 10; i++) {
-			if ((this->active_master = this->initiate_master_process()))
-				break ;
-			else if (i == 9)
-				return "webserv_cgi_status=500; CGI child fork() failure";
-		}
+		if (!(this->active_master = this->initiate_master_process()))
+			return "webserv_cgi_status=500; CGI child fork() failure";
 	fd_set	r_set; FD_ZERO(&r_set);
 	std::string	output;
 	int	index = 0;
@@ -300,7 +296,7 @@ void	Sockets::sendTo(int sock_fd) {
 	std::map<int, std::pair<Request, Response>* >::iterator pai = serv->_requests.find(sock_fd);
 	pai->second->second.sendResponse(sock_fd, serv);
 	if (pai->second->second.get_status() == DONE) {
-		if (pai->second->second._connection_type == "keep-alive") {
+		if (pai->second->second._connection_type == "keep-alive" && pai->second->second._has_body) {
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 0);
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 1);
 			this->resetConn(sock_fd);

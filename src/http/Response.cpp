@@ -392,6 +392,10 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 				this->_sent[1] = 0;
 				this->status = BODY;
 			}
+			else{
+				std::cout << "GOT IN HERE\n";
+				send(sock_fd, "\r\n\r\n", 4, 0);
+			}
 		}
 		else	this->header = this->header.substr(sent_res);
 	}

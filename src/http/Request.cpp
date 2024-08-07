@@ -12,7 +12,7 @@ Request::Request() : _fd(-1), _max_body_size(0), _state(FIRST_LINE), _status(OK)
 }
 
 Request::Request(const Request &R) { *this = R; }
-Request	&Request::operator = (const Request &R) { return *this; }
+Request	&Request::operator = (const Request &R) { (void)R; return *this; }
 
 Request::~Request() {}
 
@@ -207,9 +207,6 @@ static bool	is_valid_uri(std::string uri) {
 }
 
 void	Request::parse_uri() {
-	struct stat			st;
-	LocationConfig*		loc;
-	size_t				pos;
 	std::string			uri;
 
 	uri = this->_request.first_line.uri;
@@ -276,11 +273,6 @@ void	Request::set_method() {
 		this->_method = DELETE;
 	else
 		this->_method = NOT_IMP;
-}
-
-static void print_headers(std::map<std::string, std::string> headers) {
-	for (std::map<std::string, std::string>::iterator it = headers.begin(); it != headers.end(); it++)
-		std::cout << it->first << ": " << it->second << std::endl;
 }
 
 void	Request::set_body() {
@@ -520,7 +512,7 @@ void	Request::extract_query_string() {
 static bool in_quotes(std::string str, size_t pos) {
 	int	c = 0;
 
-	for (int i = 0; i < pos; i++)
+	for (size_t i = 0; i < pos; i++)
 		if (str[i] == '"')
 			c++;
 	return (c % 2 == 1);

@@ -1,13 +1,13 @@
 #include "Response.hpp"
 
 
-Response::Response(): status(FIRST_LINE), _has_body(true), _new_session(false), _file_type("NONE"), _has_cookies(false) {
+Response::Response():_new_session(false),  _file_type("NONE"), _has_cookies(false), status(FIRST_LINE), _has_body(true) {
 	this->_sent.push_back(0);
 	this->_sent.push_back(0);
 }
 
 Response::Response(const Response &R) { *this = R; }
-Response	&Response::operator = (const Response &R) { return *this; }
+Response	&Response::operator = (const Response &R) { (void)R; return *this; }
 Response::~Response() {}
 
 size_t	Response::get_file_size() {
@@ -64,19 +64,19 @@ std::string	Response::generate_status_file(e_status status_code, ServerConfig *s
 	return	status_file;
 }
 
-static	bool	is_binary_data(std::string input) {
-	int	cha;
-	for (int i=0; i <input.size(); i++) {
-		cha = static_cast<int>(input[i]);
-		if (cha < 0 || cha > 126)
-			return	true;
-	}
-	return	false;
-}
+// static	bool	is_binary_data(std::string input) {
+// 	int	cha;
+// 	for (size_t i=0; i <input.size(); i++) {
+// 		cha = static_cast<int>(input[i]);
+// 		if (cha < 0 || cha > 126)
+// 			return	true;
+// 	}
+// 	return	false;
+// }
 
 static	std::string	replace_characters(std::string input, std::string from, std::string to) {
-	int	i;
-	while ((i = input.find(from)) != input.npos)
+	size_t	i;
+	while ((i = input.find(from)) != std::string::npos)
 		input.replace(i, from.size(), to);
 	return	input;
 }
@@ -99,6 +99,7 @@ static	e_status	print_Cstatus(e_status st) {
 }
 
 static	std::string	generate_auto_index(std::string uri, ServerConfig *server) {
+	(void)server;
 	std::string target =  CONFIG_PATH"/html_generated_files/"+ replace_characters(uri, "/", "#")+"S-"+std::to_string(get_dir_size(uri))+"Bytes"+".html";
 	struct	stat	demo;
 	if (stat(target.c_str(), &demo) != -1)	return target;
@@ -173,7 +174,7 @@ static	std::string	_conc_(std::string input, char c) {
 
 static	std::string	_cgi_header(std::string input, std::string v_name, std::string v_name_2) {
 		std::string		temp_c_t;
-		int	pos = input.find(v_name);
+		size_t	pos = input.find(v_name);
 		if (pos == std::string::npos) pos = input.find(v_name_2);
 		if (pos != std::string::npos) {
 			temp_c_t = input.substr(pos + v_name.size());
@@ -243,7 +244,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 		if (_file.is_open())	_file.close();
 		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, l.what());
 	}
-	int		pos = output.find("webserv_cgi_status=");
+	size_t		pos = output.find("webserv_cgi_status=");
 	if (pos != std::string::npos) {
 		int	cgi_status = std::atoi(output.substr(pos+19, pos+22).c_str());
 		output = output.substr(pos+23);
@@ -296,7 +297,7 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 		else if (this->_request->_location_type == CGI) {
 			std::cout << "\t"KWHT"--> CGI_REQUEST\n" << KNRM;
 			if (!this->_request->_cgi_info.second.empty()) {
-				int	pos = this->_request->_request.first_line.uri.rfind(this->_request->_cgi_info.second);
+				size_t	pos = this->_request->_request.first_line.uri.rfind(this->_request->_cgi_info.second);
 				if (pos != std::string::npos)
 					this->_request->_request.first_line.uri = this->_request->_request.first_line.uri.substr(0, pos);
 			}
@@ -337,7 +338,7 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 		}
 		else {
 			this->_file_size = this->get_file_size();
-			int	ppos = target_file.rfind(".");
+			size_t	ppos = target_file.rfind(".");
 			if (ppos == target_file.npos)	ppos = 0;
 			if (this->_file_type == "NONE")
 				this->_file_type = sock.get_mime_type(target_file.substr(ppos));
@@ -391,10 +392,6 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 			if (this->_has_body) {
 				this->_sent[1] = 0;
 				this->status = BODY;
-			}
-			else{
-				std::cout << "GOT IN HERE\n";
-				send(sock_fd, "\r\n\r\n", 4, 0);
 			}
 		}
 		else	this->header = this->header.substr(sent_res);

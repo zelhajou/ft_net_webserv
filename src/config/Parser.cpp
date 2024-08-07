@@ -163,7 +163,7 @@ void Parser::parseLocationDirective(LocationConfig& location)
 				reportError("Missing value for 'allowed_methods' at line " + std::to_string(line_number));
 			for (size_t i = 0; i < values.size(); ++i)
 			{
-				if (values[i] == "GET" || values[i] == "POST" || values[i] == "DELETE" || values[i] == "PUT")
+				if (values[i] == "GET" || values[i] == "POST" || values[i] == "DELETE")
 					continue;
 				else
 					reportError("Invalid method: " + values[i] + " at line " + std::to_string(line_number));

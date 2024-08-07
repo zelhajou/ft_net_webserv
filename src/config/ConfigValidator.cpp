@@ -119,7 +119,7 @@ void ConfigValidator::validateRoot(const std::string& root, const std::string& p
 	if (root.empty())
 		throw std::runtime_error("Missing 'root' directive in location block");
 
-	std::string path = project_root + "/" + root;
+	std::string path = root;
 	if (access(path.c_str(), F_OK) == -1)
 		throw std::runtime_error("Root path does not exist: " + path);
 }
@@ -132,13 +132,13 @@ void ConfigValidator::validateCGI(std::vector<std::string> add_cgi, std::string 
 		std::vector<std::string>::const_iterator it;
 		for (it = add_cgi.begin(); it != add_cgi.end(); ++it)
 		{
-			if (*it != ".py" && *it != ".php")
+			if ((*it)[0] != '.')
 				throw std::runtime_error("Invalid CGI extension: " + *it);
 		}
 		if (cgi_path.empty())
 			throw std::runtime_error("Missing 'cgi_path' directive in location block");
 			
-		std::string path = project_root + "/" + location_root + "/" + cgi_path;
+		std::string path = location_root + "/" + cgi_path;
 		if (access(path.c_str(), F_OK) == -1)
 			throw std::runtime_error("CGI path does not exist: " + path);
 		validateAllowedMethods(cgi_allowed_methods);
@@ -149,7 +149,7 @@ void ConfigValidator::validateUploadStore(const std::string& upload_store, const
 {
 	if (!upload_store.empty())
 	{		
-		std::string path = project_root + "/" + location_root + "/" + upload_store;
+		std::string path = location_root + "/" + upload_store;
 		if (access(path.c_str(), F_OK) == -1)
 			throw std::runtime_error("Upload store path does not exist: " + path);
 	}
@@ -162,6 +162,7 @@ void ConfigValidator::validateAllowedMethods(const std::vector<std::string>& met
     std::vector<std::string>::const_iterator it;
     for (it = methods.begin(); it != methods.end(); ++it)
 	{
+        if (*it != "GET" && *it != "POST" && *it != "DELETE")
         if (*it != "GET" && *it != "POST" && *it != "DELETE")
             throw std::runtime_error("Invalid allowed method: " + *it);
     }

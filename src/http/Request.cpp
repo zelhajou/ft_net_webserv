@@ -321,7 +321,6 @@ void Request::parse_first_line() {
 	first_line = first_line.substr(pos + 1);
 	pos = first_line.find("\r\n");
 	this->_request.first_line.version = first_line.substr(0, pos);
-	first_line = first_line.substr(pos + 2);
 	if (this->_request.first_line.method != "GET"
 		&& this->_request.first_line.method != "POST"
 		&& this->_request.first_line.method != "DELETE")
@@ -351,6 +350,7 @@ void Request::parse_headers() {
 	this->_request.headers.host = this->_request.raw_headers["Host"].substr(0, this->_request.raw_headers["Host"].find(":"));
 	this->_request.headers.connection = this->_request.raw_headers["Connection"];
 	size_t content_length = std::strtoll(this->_request.raw_headers["Content-Length"].c_str(), NULL, 10);
+	std::cout << "Content length: " << content_length << std::endl;
 	this->_request.headers.content_length = content_length;
 	this->_request.headers.transfer_encoding = this->_request.raw_headers["Transfer-Encoding"];
 	this->_request.headers.content_type = this->_request.raw_headers["Content-Type"];

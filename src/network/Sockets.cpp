@@ -12,8 +12,8 @@ void	fix_up_signals(void (*f)(int)) {
 }
 
 static	void	child_ex(int sig_num) {
-	std::cout << KCYN"master_process:"KNRM" received signal("KGRN << sig_num
-		<< KNRM") exiting..\n";
+	std::cout << KCYN"master_process:" << KNRM << " received signal(" << KGRN << sig_num
+		<< KNRM << ") exiting..\n";
 	exit(sig_num);
 }
 
@@ -35,7 +35,7 @@ static	std::string	exec_job(char *executer, char *script, char **env, std::strin
 		}
 		dup2(pi[1], 1); close(pi[1]);
 		execve(argv[0], argv, env);
-		std::cout << KRED"EXECVE_FAILURE:" << strerror(errno) << KNRM"\n";
+		std::cout << KRED"EXECVE_FAILURE:" << strerror(errno) << KNRM << "\n";
 		exit(EXIT_FAILURE);
 	}
 	close(pi[1]);
@@ -128,7 +128,7 @@ static	void	master_routine(std::string socket_path) {
 			}
 			output.clear();
 			FD_CLR(sock, &w_set); FD_SET(sock, &r_set);
-			std::cout << "\t"KCYN"master_process:"KNRM" job done successfully ->"
+			std::cout << "\t" << KCYN"master_process:" << KNRM << " job done successfully ->"
 				<< " going back to sleep\n";
 		}
 	}
@@ -177,11 +177,11 @@ bool	Sockets::initiate_master_process() {
 	if ((this->cgi_controller = geta_unix_socket(address, this->socket_path)) < 0) return	false;
 	if (bind(this->cgi_controller, (struct sockaddr*)&address, sizeof(address)) < 0) return	false;
 	if (listen(this->cgi_controller, 5) < 0) return	false;
-	std::cout << KCYN"initiating"KNRM" connection with master process over unix socket..\n";
+	std::cout << KCYN"initiating" << KNRM << " connection with master process over unix socket..\n";
 	if ((this->master_PID = fork()) < 0)	return	false;
 	if (!this->master_PID)	master_routine(this->socket_path);
 	if ((this->master_process = ::accept(this->cgi_controller, NULL, NULL)) < 0) return	false;
-	std::cout << "child created"KGRN" successfully"KNRM" and waiting for jobs in: "
+	std::cout << "child created" << KGRN << " successfully" << KNRM << " and waiting for jobs in: "
 		<< this->socket_path << std::endl;
 	return	true;
 }
@@ -206,18 +206,18 @@ Sockets::Sockets( void ) : _sess_id(1234), active_master(0) {
 
 Sockets::~Sockets() {
 	std::cout << KRED"cleaning...\n";
-	std::cout << "deleting unix socket: "KNRM
+	std::cout << "deleting unix socket: " << KNRM
 		<< this->socket_path << std::endl;
 	//
 	this->check_and_remove(this->socket_path);
 	if (this->update_master_state()) {
-		std::cout << KRED"killing master process\n"KNRM;
+		std::cout << KRED"killing master process\n" << KNRM;
 		close(this->master_process);
 		close(this->cgi_controller);
 		kill(this->master_PID, SIGKILL);
 	}
 	//
-	std::cout << KRED"closing active connections..\n"KNRM;
+	std::cout << KRED"closing active connections..\n" << KNRM;
 	for (std::map<int, ServerConfig*>::iterator i=this->_fd_to_server.begin(); i!=this->_fd_to_server.end();++i)
 		if (i->second && i->second->_socket == i->first)	close(i->first);
 }
@@ -259,7 +259,7 @@ void	Sockets::accept(int sock_fd) {
 	ServerConfig		*target = this->_fd_to_server.find(sock_fd)->second;
 	this->_fd_to_server[ new_s_fd ] = target;
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, 1);
-	std::cout << "\t" << target->server_name << ": Accept new connection: "KGRN << new_s_fd << KNRM << std::endl;
+	std::cout << target->server_name << ": Accept new connection: " << KGRN << new_s_fd << KNRM << std::endl;
 }
 
 void	Sockets::recvFrom(int sock_fd) {
@@ -273,18 +273,15 @@ void	Sockets::recvFrom(int sock_fd) {
 				if (it->first == serv->host+":"+serv->listen_port)	servs.push_back(it->second);
 		std::pair<Request, Response>	*new_pair = new std::pair<Request, Response>;
 		serv->_requests[ sock_fd ] = new_pair;
-		//serv->_requests[ sock_fd ]->first.setLocation( serv->locations );
 		serv->_requests[ sock_fd ]->first.set_servers( servs );
 		serv->_requests[ sock_fd ]->first.set_fd( sock_fd );
-		size_t max_body_size = std::strtoul(serv->client_max_body_size.c_str(), NULL, 10);
-		serv->_requests[ sock_fd ]->first._max_body_size = max_body_size;
 		this->recvFrom( sock_fd );
 		return ;
 	}
 	pai->second->first.recvRequest();
 	if (pai->second->first.getState() == DONE || pai->second->first.getState() == ERROR) {
-		char	buffer[1001];
-		while (recv(sock_fd, buffer, 1000, MSG_DONTWAIT) >= 0);
+		char	buffer[10];
+		while (recv(sock_fd, buffer, 10, MSG_DONTWAIT) >= 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second->second._initiate_response(&pai->second->first, *this, serv);
@@ -402,12 +399,12 @@ void		Sockets::check_session(Response &response) {
 	if (!estab_session_id.empty()) {
 		std::string cur_session_id = get_cookie_value(estab_session_id, "session=");
 		if (s_encryptor(cur_session_id, user_name, -1) == session_id) {
-			std::cout << "already established/valid session: "KCYN"[" << cur_session_id << "] <- "<<session_id<<KNRM<<std::endl;
+			std::cout << "already established/valid session: " << KCYN"[" << cur_session_id << "] <- "<<session_id<<KNRM<<std::endl;
 			response.set_session_id(s_encryptor(cur_session_id, user_name, 1));
 			return ;
 		}
 		else if (!session_id.empty()) {
-			std::cout << "remembering client of their id: "KCYN"[" << session_id << "]" << KNRM<<std::endl;
+			std::cout << "remembering client of their id: " << KCYN"[" << session_id << "]" << KNRM<<std::endl;
 			response._new_session = true;
 			response.set_session_id(s_encryptor(session_id, user_name, 1));
 		}
@@ -419,7 +416,7 @@ void		Sockets::check_session(Response &response) {
 		std::string encr_id = s_encryptor(session_id, user_name, 1);
 		response.set_session_id(encr_id);
 		response._new_session = true;
-		std::cout << "registering a new session: "KCYN"[" << encr_id << "] <- " << session_id <<KNRM<<std::endl;
+		std::cout << "registering a new session: " << KCYN"[" << encr_id << "] <- " << session_id <<KNRM<<std::endl;
 	}
 }
 
@@ -559,7 +556,7 @@ void	Sockets::startServers() {
 				if (i->second->host == (*it)->host && i->second->listen_port == (*it)->listen_port) {
 					this_status = false;
 					if (i->second->server_name == (*it)->server_name)
-						std::cout << KYEL"warning: "KNRM"same host,port,server_name, IGNORING the second\n";
+						std::cout << KYEL"warning: " << KNRM << "same host, port, server_name, IGNORING the second\n";
 					else {
 						this->_dup_servers[i->second->host+":"+i->second->listen_port] = *it;
 						i->second->is_duplicated = true;
@@ -574,7 +571,7 @@ void	Sockets::startServers() {
 		if (!this_status) { this_status = true; continue ; }
 		if (listen(sock, 100) < 0)
 			std::cerr << KYEL << "server: " << (*it)->host << ":" << (*it)->listen_port << " is unable to start. listen() failure" << KNRM << std::endl;
-		else	std::cout << "\n\t["KGRN << (*it)->server_name << KNRM << ": " << (*it)->host << ":"
+		else	std::cout << "\n[" << KGRN << (*it)->server_name << KNRM << ": " << (*it)->host << ":"
 			<< (*it)->listen_port << ", " << (*it)->locations.size() << " locations " << KGRN << "STARTED successfully" << KNRM"]" << std::endl;
 		(*it)->_socket = sock;
 		this->_kqueue.SET_QUEUE(sock, EVFILT_READ, 1);

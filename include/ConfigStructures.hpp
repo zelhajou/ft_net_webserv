@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 14:11:47 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/04 21:33:59 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/08/07 11:55:32 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,6 +53,7 @@ struct ServerConfig {
     bool		default_session_managment;
     bool		is_duplicated;
     std::map<int, std::pair<Request, Response> *>				_requests;
+	bool valid;
     //
     void	closeConn(int);	// remove entry from _requests
 	public:

@@ -422,11 +422,11 @@ void Request::handle_chunked() {
 
 void Request::parse_body() {
 
-	std::cout << "Parsing body" << std::endl;
-	std::cout << (this->_request.boundary.size() > 0 ? this->_request.boundary : "Not multipart") << std::endl;
+	//std::cout << "Parsing body" << std::endl;
+	//std::cout << (this->_request.boundary.size() > 0 ? this->_request.boundary : "Not multipart") << std::endl;
 	if (this->_request.body.size() == 0) {
 		this->_request.body = this->_request.raw_body;
-		std::cout << "Rq body size: " << this->_request.body.size() << std::endl;
+		//std::cout << "Rq body size: " << this->_request.body.size() << std::endl;
 	}
 	if (this->_total_body_size == 0)
 		{this->_state = DONE; return ;}

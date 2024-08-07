@@ -342,7 +342,8 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 				this->_file_type = sock.get_mime_type(target_file.substr(ppos));
 		}
 	}
-	this->_connection_type = (this->_request->get_headers().connection == "keep-alive") ? "keep-alive" : "close";
+	this->_connection_type = (/*this->_request->getState() != ERROR
+		&& */this->_request->get_headers().connection == "keep-alive") ? "keep-alive" : "close";
 	if (server->default_session_managment)
 		sock.check_session(*this);
 }
@@ -385,7 +386,7 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		else		this->_sent[0] += sent_res;
 
 		if (this->_sent[0] >= this->_sent[1]) {
-			this->status = ERROR;
+			this->status = DONE;
 			if (this->_has_body) {
 				this->_sent[1] = 0;
 				this->status = BODY;
@@ -415,7 +416,7 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		this->_sent[0] += sent_res;
 		if (this->_sent[0] >= this->_sent[1])	this->status = DONE;
 	}
-	if (this->status == DONE || this->status == ERROR) {
+	if (this->status == DONE) {
 		this->_file.close();
 		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
 		std::cout << KBGR" "KNRM" "KBGR"  " << this->_request->get_first_line().method

@@ -1,5 +1,6 @@
 #include "Response.hpp"
 
+
 Response::Response(): status(FIRST_LINE), _has_body(true), _new_session(false), _file_type("NONE"), _has_cookies(false) {
 	this->_sent.push_back(0);
 	this->_sent.push_back(0);

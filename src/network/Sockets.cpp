@@ -1,5 +1,6 @@
 #include "Sockets.hpp"
 
+
 Sockets::Sockets(const Sockets &S) {*this = S;}
 Sockets	&Sockets::operator = (const Sockets &S) {return *this;}
 
@@ -276,7 +277,8 @@ void	Sockets::recvFrom(int sock_fd) {
 				if (it->first == serv->host+":"+serv->listen_port)	servs.push_back(it->second);
 		std::pair<Request, Response>	*new_pair = new std::pair<Request, Response>;
 		serv->_requests[ sock_fd ] = new_pair;
-		serv->_requests[ sock_fd ]->first.setLocation( serv->locations );
+		//serv->_requests[ sock_fd ]->first.setLocation( serv->locations );
+		serv->_requests[ sock_fd ]->first.set_servers( servs );
 		serv->_requests[ sock_fd ]->first.set_fd( sock_fd );
 		size_t max_body_size = std::strtoul(serv->client_max_body_size.c_str(), NULL, 10);
 		serv->_requests[ sock_fd ]->first._max_body_size = max_body_size;

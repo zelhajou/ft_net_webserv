@@ -116,6 +116,7 @@ void ConfigValidator::validateLocationConfig(const LocationConfig& location, con
 
 void ConfigValidator::validateRoot(const std::string& root, const std::string& project_root)
 {
+	(void)project_root;
 	if (root.empty())
 		throw std::runtime_error("Missing 'root' directive in location block");
 
@@ -126,6 +127,7 @@ void ConfigValidator::validateRoot(const std::string& root, const std::string& p
 
 void ConfigValidator::validateCGI(std::vector<std::string> add_cgi, std::string cgi_path, std::vector<std::string> cgi_allowed_methods, const std::string& location_root, const std::string& project_root)
 {
+	(void)project_root;
 	if (!add_cgi.empty())
 	{
 		// check extensions	are valid .py .php
@@ -147,6 +149,7 @@ void ConfigValidator::validateCGI(std::vector<std::string> add_cgi, std::string 
 
 void ConfigValidator::validateUploadStore(const std::string& upload_store, const std::string& location_root, const std::string& project_root)
 {
+	(void)project_root;
 	if (!upload_store.empty())
 	{		
 		std::string path = location_root + "/" + upload_store;

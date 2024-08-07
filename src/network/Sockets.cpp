@@ -2,7 +2,7 @@
 
 
 Sockets::Sockets(const Sockets &S) {*this = S;}
-Sockets	&Sockets::operator = (const Sockets &S) {return *this;}
+Sockets	&Sockets::operator = (const Sockets &S) { (void)S; return *this;}
 
 void	fix_up_signals(void (*f)(int)) {
 	signal(SIGPIPE, SIG_IGN);
@@ -20,7 +20,7 @@ static	void	child_ex(int sig_num) {
 static	std::string	exec_job(char *executer, char *script, char **env, std::string file_name) {
 	std::string	output;
 	char		buffer[CGI_PIPE_MAX_SIZE];
-	int		pi[2], s, ss(0);
+	int		pi[2], s;
 	pid_t		grandchild;
 	if (pipe(pi) < 0)	return "webserv_cgi_status=500; CGI pipe()/open() failure";
 	if ((grandchild = fork()) < 0)
@@ -61,7 +61,7 @@ static	int	geta_unix_socket(struct sockaddr_un &address, std::string socket_path
 }
 
 static	std::string	prepare_launch_and_receive(std::string input, std::string del, std::string semi_del) {
-	int		pos = input.find(del);
+	size_t		pos = input.find(del);
 	std::string	s_env = input.substr(0, pos);
 	input = input.substr(pos + del.size());
 	std::vector<std::string>	v_env;
@@ -95,7 +95,7 @@ static	void	master_routine(std::string socket_path) {
 	std::string	input, output;
 	std::string	executer, script;
 	struct	sockaddr_un	address;
-	int	sock, n, temp_n, scri_del;
+	int	sock, n, temp_n;
 	fd_set	r_set, w_set, r_copy, w_copy;
 	FD_ZERO(&r_set); FD_ZERO(&w_set);
 	FD_ZERO(&r_copy); FD_ZERO(&w_copy);
@@ -148,7 +148,9 @@ std::string	Sockets::format_env() {
 }
 
 void	Sockets::_initiate_env_variables(char **env) {
-	int		size(0), pos(0);
+	int		size(0);
+	size_t	pos = 0;
+
 	std::string	f_half, s_half;
 	if (env)	for (;env[size]; size++);
 	if (size) {
@@ -332,8 +334,8 @@ size_t	Sockets::get_sess_id() { return this->_sess_id; }
 
 std::string	clean_up_stuff(std::string input, std::string garbage, std::string target) {
 	if (input.empty()||garbage.empty()||garbage.size() != target.size())	return "";
-	int				pos;
-	for (int i=0; i < garbage.size(); i++)
+	size_t				pos;
+	for (size_t i=0; i < garbage.size(); i++)
 	{
 		std::string	shgarbage(1, garbage[i]);
 		while (true) {
@@ -363,7 +365,7 @@ int	__calc_new_range(int old_value, int old_min, int old_max, int new_min, int n
 }
 
 static	std::string	s_encryptor(std::string input, std::string key, int mode) {
-	int		i=0;
+	size_t		i=0;
 	while (key.size() < input.size()) { if (i >= key.size()) i = 0; key.append(&key[i]); }
 	for (i=0; i < input.size();i++) input[i]+=mode*13;
 	return	input;
@@ -371,14 +373,13 @@ static	std::string	s_encryptor(std::string input, std::string key, int mode) {
 
 static	std::string	get_cookie_value(std::string input, std::string name)
 {
-	int	pos = input.find(name), epos;
+	size_t	pos = input.find(name), epos;
 	if (pos == input.npos) return "";
 	pos += name.size();
 	epos = pos;
 	try {
-		if (epos > input.size() || input[epos] == input.npos) return "";
+		if (epos > input.size()) return "";
 		while (epos < input.size() 
-			&& input[epos] != input.npos 
 			&& input[epos] != ';' 
 			&& input[epos] != ' ')
 			epos += 1;
@@ -436,11 +437,11 @@ void	Sockets::set_Cookies(std::string client, std::string cookie) {
 	char				buffer[cookie.size()];
 	std::memset(buffer, 0, sizeof(buffer));
 
-	int	pos = cookie.find("; ");
+	size_t	pos = cookie.find("; ");
 	while (input.read(buffer, pos))
 	{
 		std::string buff(buffer);	// something
-		int eq_pos = buff.find("=");
+		size_t eq_pos = buff.find("=");
 		if (eq_pos != buff.npos) {
 			f_half = buff.substr(0, eq_pos);
 			s_half = buff.substr(eq_pos + 1);
@@ -523,6 +524,7 @@ static int createSocket(struct addrinfo *res, mit it) {
 	int					sock;
 	int					yes = 1;
 
+	(void)it;
 	tmp = res;
 	while (tmp) {
 		sock = socket(tmp->ai_family, tmp->ai_socktype, tmp->ai_protocol);

@@ -64,7 +64,7 @@ int main(int argc, char *argv[], char **env)
 {
 	fix_up_signals(sig_nan);
 	if (argc != 2) {
-		std::cerr << KRED"->\tmissing configuration file"KNRM;
+		std::cerr << KRED"->\tmissing configuration file" << KNRM;
 		std::cerr << "\tUsage: " << argv[0] << " [config_file]" << std::endl;
 		return 1;
 	}

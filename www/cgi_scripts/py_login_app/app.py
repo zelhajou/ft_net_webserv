@@ -11,13 +11,17 @@ import shutil
 cgitb.enable()
 
 class Session:
-	def __init__(self, name):
+	def __init__(self, name, sid):
 		self.name = name
-		self.sid = hashlib.sha1(str(time.time()).encode("utf-8")).hexdigest()
+		if sid:
+			self.sid = sid
+		else:
+			self.sid = hashlib.sha1(str(time.time()).encode("utf-8")).hexdigest()
 		current_dir = os.path.dirname(os.path.abspath(__file__))
 		if not os.path.exists(current_dir + '/sessions'):
 			os.makedirs(current_dir + '/sessions')
 		with open(current_dir + '/sessions/session_' + self.sid, 'wb') as f:
+			print(f"Session file created: session_{self.sid}", file=sys.stderr)
 			pickle.dump(self, f)
 
 	def getSid(self):
@@ -48,8 +52,15 @@ def authUser(name, password):
 	with open(current_dir + '/database/user_database', 'rb') as f:
 		database = pickle.load(f)
 		if name in database.user_pass and database.user_pass[name] == password:
-			session = Session(name)
-			return session
+			if 'HTTP_COOKIE' in os.environ:
+				if "SID" in cook:
+					if os.path.exists(current_dir + '/sessions/session_' + cook["SID"].value):
+						with open(current_dir + '/sessions/session_' + cook["SID"].value, 'rb') as f:
+							session = pickle.load(f)
+							if session.name == name:
+								return session
+					session = Session(name, cook["SID"].value)
+					return session
 		else:
 			return None
 
@@ -88,10 +99,16 @@ def handleLogin():
 	firstname = form.getvalue('firstname')
 
 	if username == None:
-		print(f"Username is None", file=sys.stderr)
+		print(f"Login page requested", file=sys.stderr)
+		sess = check_session()
+		if sess:
+			print(f"Session found: {sess.getSid()}, {sess.name}", file=sys.stderr)
+			username = sess.name
+			if isLoggedIN(username, sess.getSid()):
+				printHomePage()
 		printLogin()
 	elif firstname == None:
-		print(f"Firstname is None", file=sys.stderr)
+		print(f"Login requested", file=sys.stderr)
 		session = authUser(username, password)
 		if(session == None):
 			printUserMsg("Failed To Login, Username or Passowrd is wrong!")
@@ -105,6 +122,7 @@ def handleLogin():
 		setLoggedIN(username, True)
 		printHomePage()
 	else :
+		print(f"Register requested", file=sys.stderr)
 		current_dir = os.path.dirname(os.path.abspath(__file__))
 		if os.path.exists(current_dir + '/database/user_database'):
 			with open(current_dir + '/database/user_database', 'rb') as f:
@@ -129,8 +147,8 @@ def printLogin():
 	print(html_content)
 
 def read_html_file(file_name):
-	parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-	file_path = os.path.join(parent_dir, file_name)
+	current_dir = os.path.dirname(os.path.abspath(__file__))
+	file_path = os.path.join(current_dir, file_name)
 	with open(file_path, 'r') as file:
 		return file.read()
 
@@ -307,6 +325,13 @@ def printUserMsg(msg):
 	print(html_content)
 
 def main():
+	if 'HTTP_COOKIE' in os.environ:
+		if "SID" in cook:
+			print(f"MAIN {cook['SID'].value}", file=sys.stderr)
+		else :
+			print(f"MAIN no SID", file=sys.stderr)
+	else:
+		print(f"MAIN no cookie", file=sys.stderr)
 	if os.environ['REQUEST_METHOD'] == 'GET':
 		print(f"GET request", file=sys.stderr)
 		printHomePage()
@@ -331,11 +356,6 @@ def main():
 		printUserMsg(result)
 
 form = cgi.FieldStorage()
-# print(f"Form: [", file=sys.stderr)
-# for field in form.keys():
-# 	value = form.getvalue(field)
-# 	print(f"\t{field}: {value}", file=sys.stderr)
-# print(f"]", file=sys.stderr)
 
 if 'HTTP_COOKIE' in os.environ:
 	cook = Cookies.SimpleCookie()

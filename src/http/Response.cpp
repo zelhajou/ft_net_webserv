@@ -220,7 +220,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	std::string	uri = this->_request->get_first_line().uri;
 	if (!this->_request->_cgi_info.second.empty()) {
 		sock._enrg_env_var("PATH_INFO", this->_request->_cgi_info.second);
-		std::cout << "\t"KCYN"PATH_INFO: "KNRM << this->_request->_cgi_info.second << std::endl;
+		std::cout << "\t" << KCYN"PATH_INFO: " << KNRM << this->_request->_cgi_info.second << std::endl;
 		uri = uri.substr(0, uri.find(this->_request->_cgi_info.second));
 	}	else	sock._enrg_env_var("PATH_INFO", "");
 	sock._enrg_env_var("REQUEST_URI", uri);
@@ -294,18 +294,18 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			}
 		}
 		else if (this->_request->_location_type == CGI) {
-			std::cout << "\t"KWHT"--> CGI_REQUEST\n"KNRM;
+			std::cout << "\t"KWHT"--> CGI_REQUEST\n" << KNRM;
 			if (!this->_request->_cgi_info.second.empty()) {
 				int	pos = this->_request->_request.first_line.uri.rfind(this->_request->_cgi_info.second);
 				if (pos != std::string::npos)
 					this->_request->_request.first_line.uri = this->_request->_request.first_line.uri.substr(0, pos);
 			}
 			if (access(this->_request->get_first_line().uri.c_str(), R_OK) < 0) {
-				std::cout << KCYN"\tscript_path_not_found\n"KNRM;
+				std::cout << KCYN"\tscript_path_not_found\n" << KNRM;
 				target_file = this->generate_status_file(NOT_FOUND, server, "CGI script NOT FOUND");
 			}
 			else	target_file = this->process_cgi_exec(sock, server);
-			std::cout << "\t"KWHT"<--\n"KNRM;
+			std::cout << "\t"KWHT"<--\n" << KNRM;
 		}
 		else if (this->_request->get_first_line().method == "GET") target_file = this->_request->get_first_line().uri;
 		else if (this->_request->get_first_line().method == "POST") {
@@ -424,10 +424,10 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	if (this->status == DONE) {
 		this->_file.close();
 		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
-		std::cout << KBGR" "KNRM" "KBGR"  " << this->_request->get_first_line().method
-			<< " "KNRM << " ["KUND << this->_request->get_first_line().uri << KNRM"] : "
-			<< http_code_msg(print_Cstatus(this->_response_status)) << " "KNRM" : "
-			<< KUND << this->_sent[1] << "B\n"KNRM;
+		std::cout << KBGR"  " << this->_request->get_first_line().method
+			<< " " << KNRM << " ["KUND << this->_request->get_first_line().uri << KNRM << "] : "
+			<< http_code_msg(print_Cstatus(this->_response_status)) << " " << KNRM << " : "
+			<< KUND << this->_sent[1] << "B" << KNRM << std::endl;
 	}
 }
 

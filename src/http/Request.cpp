@@ -16,11 +16,22 @@ Request	&Request::operator = (const Request &R) { return *this; }
 
 Request::~Request() {}
 
-void Request::setLocation(std::map<std::string, LocationConfig> &locations) {
-	for (std::map<std::string, LocationConfig>::iterator it = locations.begin(); it != locations.end(); it++) {
+void Request::setLocation() {
+	ServerConfig*	server = this->_servers[0];
+	std::vector<ServerConfig*>::iterator it = this->_servers.begin();
+	for (; it != this->_servers.end(); it++) {
+		if ((*it)->server_name == this->_request.headers.host) {
+			server = *it;
+			break ;
+		}
+	}
+	this->_max_body_size = std::strtoll(server->client_max_body_size.c_str(), NULL, 10);
+
+	std::map<std::string, LocationConfig>::iterator itm;
+	for (itm = server->locations.begin(); itm != server->locations.end(); itm++) {
 		LocationNode*	node = new LocationNode;
-		node->name = it->first;
-		node->location = &it->second;
+		node->name = itm->first;
+		node->location = &itm->second;
 		::insert(this->_location_tree, node, ::cmp);
 	}
 	setlvl(this->_location_tree);
@@ -52,8 +63,10 @@ static bool match_extension(std::string uri, std::string ext, size_t& pos) {
 bool	Request::is_cgi(LocationConfig *loc) {
 	size_t	pos, npos;
 
-	if (this->_request.state == ERROR || this->_request.state == DONE
-		|| !loc->add_cgi.size() || !loc->cgi_path.size()
+	if (this->_request.state == ERROR
+		|| this->_request.state == DONE
+		|| !loc->add_cgi.size()
+		|| !loc->cgi_path.size()
 		|| !loc->cgi_allowed_methods.size())	return false;
 	std::string uri = this->_request.first_line.uri;
 	for (std::vector<std::string>::iterator it = loc->add_cgi.begin();it != loc->add_cgi.end(); ++it)
@@ -70,16 +83,18 @@ bool	Request::is_cgi(LocationConfig *loc) {
 	return false;
 }
 
-void	Request::handle_location(LocationConfig** loc) {
-	*loc = ::search(this->_location_tree, this->_request.first_line.uri, ::cmp);
-	if (*loc == NULL)
+void	Request::handle_location() {
+	if (this->_c_location == NULL)
 		{setRequestState(LOC_NF, NOT_FOUND, ERROR); return ;}
-	if (is_cgi(*loc))	this->_location_type = CGI; return ;
-	if ((*loc)->return_url.first != STATUS_NONE)
-		{setRequestState((*loc)->return_url.second, (*loc)->return_url.first, DONE); this->_is_return = true;}
-	if (std::find((*loc)->allowed_methods.begin(), (*loc)->allowed_methods.end(), this->_request.first_line.method) == (*loc)->allowed_methods.end())
+	if (is_cgi(this->_c_location))	this->_location_type = CGI; return ;
+	if (this->_c_location->return_url.first != STATUS_NONE)
+		{setRequestState(this->_c_location->return_url.second, this->_c_location->return_url.first, DONE); this->_is_return = true;}
+	if (std::find(this->_c_location->allowed_methods.begin(), this->_c_location->allowed_methods.end(), this->_request.first_line.method) == this->_c_location->allowed_methods.end())
 		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
-	if (this->_location_type == CGI && std::find((*loc)->cgi_allowed_methods.begin(), (*loc)->cgi_allowed_methods.end(), this->_request.first_line.method) == (*loc)->cgi_allowed_methods.end())
+	if (this->_location_type == CGI
+		&& std::find(this->_c_location->cgi_allowed_methods.begin(),
+			this->_c_location->cgi_allowed_methods.end(),
+			this->_request.first_line.method) == this->_c_location->cgi_allowed_methods.end())
 		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
 }
 
@@ -147,10 +162,9 @@ void	Request::handle_directory(LocationConfig* loc) {
 		this->_location_type = AUTOINDEX;
 }
 
-void Request::handle_uri(LocationConfig* loc) {
-	/*if (this->_location_type == CGI)
-		return ;*/
+void Request::handle_uri() {
 
+	LocationConfig*	loc = this->_c_location;
 	std::string r = loc->root + "/" + ((this->_location_type == CGI) ? (loc->cgi_path+"/") : "");
 
 	this->_request.first_line.uri.replace(0, loc->path.size(), r);
@@ -203,9 +217,9 @@ void	Request::parse_uri() {
 	if (is_valid_uri(uri) == false)
 		{setRequestState(INV_URI, BAD_REQUEST, ERROR); return ;}
 	extract_query_string();
-	handle_location(&loc);
-	this->_c_location = loc;
-	handle_uri(loc);
+	this->_c_location = ::search(this->_location_tree, this->_request.first_line.uri, ::cmp);
+	handle_location();
+	handle_uri();
 }
 
 void Request::set_first_line() {
@@ -245,6 +259,8 @@ void	Request::set_headers() {
 		this->_request.raw_headers[key] = value;
 	}
 	parse_headers();
+	setLocation();
+	parse_uri();
 	this->_state = BODY;
 }
 
@@ -285,9 +301,6 @@ void	Request::set_body() {
 	else if (this->_request.headers.content_length > 0)
 		handle_centent_length();
 	else {
-		this->_request.raw_body.clear();
-		this->_request.body.clear();
-		this->_recv_bytes = 0;
 		setRequestState(LEN_REQ, LENGTH_REQUIRED, ERROR);
 		this->_state = ERROR;
 		this->_status = LENGTH_REQUIRED;
@@ -297,28 +310,27 @@ void	Request::set_body() {
 void Request::parse_first_line() {
 	size_t			pos;
 	std::string		uri;
+	std::string		first_line;
 
-	if (this->_request_buffer.size() > BUFFER_SIZE * 2)
-		setRequestState(FL_TL, URI_TOO_LONG, ERROR);
-	if ((pos = this->_request.raw_first_line.find(" ")) == std::string::npos)
-		setRequestState(NO_SP_FL, BAD_REQUEST, ERROR);
-	this->_request.first_line.method = this->_request.raw_first_line.substr(0, pos);
-	this->_request.raw_first_line = this->_request.raw_first_line.substr(pos + 1);
-	if ((pos = this->_request.raw_first_line.find(" ")) == std::string::npos)
-		setRequestState(NO_SP_FL, BAD_REQUEST, ERROR);
-	this->_request.first_line.uri = this->_request.raw_first_line.substr(0, pos);
-	this->_request.raw_first_line = this->_request.raw_first_line.substr(pos + 1);
-	pos = this->_request.raw_first_line.find("\r\n");
-	this->_request.first_line.version = this->_request.raw_first_line.substr(0, pos);
-	this->_request.raw_first_line = this->_request.raw_first_line.substr(pos + 2);
+	first_line = this->_request.raw_first_line;
+	pos = first_line.find(" ");
+	this->_request.first_line.method = first_line.substr(0, pos);
+	first_line = first_line.substr(pos + 1);
+	pos = first_line.find(" ");
+	this->_request.first_line.uri = first_line.substr(0, pos);
+	first_line = first_line.substr(pos + 1);
+	pos = first_line.find("\r\n");
+	this->_request.first_line.version = first_line.substr(0, pos);
+	first_line = first_line.substr(pos + 2);
 	if (this->_request.first_line.method != "GET"
 		&& this->_request.first_line.method != "POST"
 		&& this->_request.first_line.method != "DELETE")
-		setRequestState(INV_MTH, NOT_IMPLEMENTED, ERROR);
+		setRequestState(INV_MTH, METHOD_NOT_ALLOWED, ERROR);
+	if (this->_request.first_line.uri.empty())
+		setRequestState(INV_URI, BAD_REQUEST, ERROR);
 	if (this->_request.first_line.version != "HTTP/1.1")
 		setRequestState(INV_VER, NOT_IMPLEMENTED, ERROR);
 	set_method();
-	parse_uri();
 }
 
 static std::string get_boundary(std::string content_type) {
@@ -336,7 +348,7 @@ static std::string get_boundary(std::string content_type) {
 void Request::parse_headers() {
 	if (this->_state != HEADERS && this->_state != ERROR) return ;
 
-	this->_request.headers.host = this->_request.raw_headers["Host"];
+	this->_request.headers.host = this->_request.raw_headers["Host"].substr(0, this->_request.raw_headers["Host"].find(":"));
 	this->_request.headers.connection = this->_request.raw_headers["Connection"];
 	size_t content_length = std::strtoll(this->_request.raw_headers["Content-Length"].c_str(), NULL, 10);
 	this->_request.headers.content_length = content_length;
@@ -422,12 +434,9 @@ void Request::handle_chunked() {
 
 void Request::parse_body() {
 
-	//std::cout << "Parsing body" << std::endl;
-	//std::cout << (this->_request.boundary.size() > 0 ? this->_request.boundary : "Not multipart") << std::endl;
-	if (this->_request.body.size() == 0) {
+	// std::cout << "Parsing body" << std::endl;
+	if (this->_request.body.size() == 0)
 		this->_request.body = this->_request.raw_body;
-		//std::cout << "Rq body size: " << this->_request.body.size() << std::endl;
-	}
 	if (this->_total_body_size == 0)
 		{this->_state = DONE; return ;}
 	if (this->_request.boundary.size() > 0)
@@ -622,3 +631,4 @@ t_headers		Request::get_headers() { return this->_request.headers; }
 e_location_type	Request::get_location_type() { return this->_location_type; }
 void			Request::set_fd(int sock_fd) { this->_fd = sock_fd; }
 void			Request::setStatus(e_status status) { this->_status = status; }
+void			Request::set_servers(std::vector<ServerConfig*>& servers) { this->_servers = servers; }

@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/06 13:39:35 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/07 17:59:55 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/07 18:03:01 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,7 +110,7 @@ void ConfigValidator::validateLocationConfig(const LocationConfig& location, con
 {
 	validateRoot(location.root, project_root);
 	validateAllowedMethods(location.allowed_methods);
-	validateUploadStore(location.upload_store, project_root);
+	validateUploadStore(location.upload_store, location.root, project_root);
 	validateCGI(location.add_cgi, location.cgi_path, location.cgi_allowed_methods, location.root, project_root);
 }
 
@@ -145,11 +145,11 @@ void ConfigValidator::validateCGI(std::vector<std::string> add_cgi, std::string 
 	}
 }
 
-void ConfigValidator::validateUploadStore(const std::string& upload_store, const std::string& project_root)
+void ConfigValidator::validateUploadStore(const std::string& upload_store, const std::string& location_root, const std::string& project_root)
 {
 	if (!upload_store.empty())
 	{		
-		std::string path = project_root + "/" + upload_store;
+		std::string path = project_root + "/" + location_root + "/" + upload_store;
 		if (access(path.c_str(), F_OK) == -1)
 			throw std::runtime_error("Upload store path does not exist: " + path);
 	}

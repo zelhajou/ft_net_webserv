@@ -276,7 +276,6 @@ void	Sockets::recvFrom(int sock_fd) {
 				if (it->first == serv->host+":"+serv->listen_port)	servs.push_back(it->second);
 		std::pair<Request, Response>	*new_pair = new std::pair<Request, Response>;
 		serv->_requests[ sock_fd ] = new_pair;
-		/*serv->_requests[ sock_fd ]->first.set_servers( servs );*/
 		serv->_requests[ sock_fd ]->first.setLocation( serv->locations );
 		serv->_requests[ sock_fd ]->first.set_fd( sock_fd );
 		size_t max_body_size = std::strtoul(serv->client_max_body_size.c_str(), NULL, 10);
@@ -286,6 +285,8 @@ void	Sockets::recvFrom(int sock_fd) {
 	}
 	pai->second->first.recvRequest();
 	if (pai->second->first.getState() == DONE || pai->second->first.getState() == ERROR) {
+		char	buffer[1001];
+		while (recv(sock_fd, buffer, 1000, MSG_DONTWAIT) >= 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 0);
 		this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 1);
 		pai->second->second._initiate_response(&pai->second->first, *this, serv);
@@ -296,15 +297,13 @@ void	Sockets::sendTo(int sock_fd) {
 	ServerConfig *serv = this->_fd_to_server.find(sock_fd)->second;
 	std::map<int, std::pair<Request, Response>* >::iterator pai = serv->_requests.find(sock_fd);
 	pai->second->second.sendResponse(sock_fd, serv);
-	if (pai->second->second.get_status() == DONE ||
-		pai->second->second.get_status() == ERROR) {
-		if (pai->second->second._connection_type == "keep-alive"
-			&& pai->second->second.get_status() == DONE) {
+	if (pai->second->second.get_status() == DONE) {
+		if (pai->second->second._connection_type == "keep-alive") {
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_WRITE, 0);
 			this->_kqueue.SET_QUEUE(sock_fd, EVFILT_READ, 1);
 			this->resetConn(sock_fd);
 		}
-		else 	this->closeConn(sock_fd);
+		else	this->closeConn(sock_fd);
 	}
 }
 

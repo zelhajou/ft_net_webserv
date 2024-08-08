@@ -21,7 +21,7 @@
 # include "Parser.hpp"
 # include <signal.h> 
 
-# define FILE_READ_BUFFER_SIZE	50
+# define FILE_READ_BUFFER_SIZE	4096
 # define CRLF			"\r\n"
 # define CLR_TERM			"\e[1;1H\e[2J"
 

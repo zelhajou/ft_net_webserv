@@ -183,6 +183,7 @@ bool	Sockets::initiate_master_process() {
 	if ((this->master_PID = fork()) < 0)	return	false;
 	if (!this->master_PID)	master_routine(this->socket_path);
 	if ((this->master_process = ::accept(this->cgi_controller, NULL, NULL)) < 0) return	false;
+	close(this->cgi_controller);
 	std::cout << "child created" << KGRN << " successfully" << KNRM << " and waiting for jobs in: "
 		<< this->socket_path << std::endl;
 	return	true;

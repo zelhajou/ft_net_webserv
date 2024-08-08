@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/08 05:17:05 by beddinao         ###   ########.fr       */
+/*   Updated: 2024/08/08 20:03:06 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,12 +70,13 @@ int main(int argc, char *argv[], char **env)
 {
 	// atexit(leaks_fun);
 	fix_up_signals(sig_nan);
-	if (argc != 2) {
-		std::cerr << KRED"->\tmissing configuration file" << KNRM;
-		std::cerr << "\tUsage: " << argv[0] << " [config_file]" << std::endl;
+	std::string	config_file;
+	if (argc > 2) {
+		std::cerr << KRED"->\ttoo many arguments" << KNRM;
+		std::cerr << "\tUsage: " << argv[0] << " (config_file)" << std::endl;
 		return 1;
 	}
-	std::string config_file = argv[1];
+	else  config_file = (argc == 2 ? argv[1] : DEFAULT_CONFIG );
 	try {
 		std::string config_content = readFile(config_file);	
 		Tokenizer	tokenizer(config_content);

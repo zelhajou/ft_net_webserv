@@ -263,6 +263,7 @@ void	Sockets::accept(int sock_fd) {
 	this->_fd_to_server[ new_s_fd ] = target;
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, 1);
 	std::cout << target->server_name << ": Accept new connection: " << KGRN << new_s_fd << KNRM << std::endl;
+	////
 }
 
 void	Sockets::recvFrom(int sock_fd) {

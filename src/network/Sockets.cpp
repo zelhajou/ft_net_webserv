@@ -261,7 +261,7 @@ void	Sockets::accept(int sock_fd) {
 	ServerConfig		*target = this->_fd_to_server.find(sock_fd)->second;
 	this->_fd_to_server[ new_s_fd ] = target;
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, 1);
-	std::cout << target->server_name << ": Accept new connection: " << KGRN << new_s_fd << KNRM << std::endl;
+	std::cout << "\t  [" << target->server_name << std::setw(15-target->server_name.size()) << ": Accept connection: " << KGRN << new_s_fd << KNRM << "]" << std::endl;
 	////
 }
 
@@ -309,8 +309,8 @@ void	Sockets::closeConn(int sock_fd) {
 	this->resetConn(sock_fd);
 	std::map<int, ServerConfig*>::iterator i = this->_fd_to_server.find(sock_fd);
 	if (i != this->_fd_to_server.end()) {
-		std::cout << "\t" << i->second->server_name << ": Close connection: "KRED << sock_fd << KNRM;
-		std::cout << " , remaining sockets: " << KBGR " "<< this->_kqueue.get_current_events() << " \n"KNRM;
+		std::cout << "\t  [" << i->second->server_name << std::setw(15-i->second->server_name.size()) << ": Closed connection: "KRED << sock_fd << KNRM;
+		std::cout << " , remaining sockets: " << KBGR " "<< this->_kqueue.get_current_events() << " \n" << KNRM << "]";
 		this->_fd_to_server.erase(sock_fd);
 	}
 	this->_kqueue.SET_QUEUE(sock_fd, 0, 0);

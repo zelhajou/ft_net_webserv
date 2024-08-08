@@ -302,9 +302,9 @@ void	Request::set_body() {
 	if (this->_request.headers.transfer_encoding == "chunked")
 		handle_chunked();
 	else if (this->_request.headers.content_length > this->_max_body_size) {
-		setRequestState(BD_TOO_BIG, PAYLOAD_TOO_LARGE, ERROR);
+		setRequestState(BD_TOO_BIG, REQUEST_ENTITY_TOO_LARGE, ERROR);
 		this->_state = ERROR;
-		this->_status = PAYLOAD_TOO_LARGE;
+		this->_status = REQUEST_ENTITY_TOO_LARGE;
 	}
 	else if (this->_request.headers.content_length > 0)
 		handle_centent_length();
@@ -382,7 +382,6 @@ static bool is_hex(std::string str) {
 
 void Request::handle_centent_length() {
 
-	// std::cout << "Handling content length" << std::endl;
 	this->_request.raw_body.append(this->_request_buffer, 0, this->_recv_bytes);
 	this->_total_body_size += this->_recv_bytes;
 	this->_request_buffer.clear();
@@ -391,9 +390,9 @@ void Request::handle_centent_length() {
 		parse_body();
 	}
 	else if (this->_total_body_size > this->_request.headers.content_length) {
-		setRequestState(BD_TOO_BIG, PAYLOAD_TOO_LARGE, ERROR);
+		setRequestState(BD_TOO_BIG, REQUEST_ENTITY_TOO_LARGE, ERROR);
 		this->_state = ERROR;
-		this->_status = PAYLOAD_TOO_LARGE;
+		this->_status = REQUEST_ENTITY_TOO_LARGE;
 	}
 }
 
@@ -401,7 +400,6 @@ void Request::handle_chunked() {
 	size_t			pos;
 	std::string		tmp;
 
-	// std::cout << "Handling chunked" << std::endl;
 	while ((pos = this->_request_buffer.find("\r\n")) != std::string::npos || this->_chunk_size > 0) {
 		if (this->_chunk_size > 0) {
 			if (this->_chunk_size > this->_recv_bytes) {
@@ -430,16 +428,15 @@ void Request::handle_chunked() {
 			{setRequestState(LEN_NOT_MATCH, BAD_REQUEST, ERROR); return ;}
 	}
 	if (this->_total_body_size > this->_max_body_size) {
-		setRequestState(BD_TOO_BIG, PAYLOAD_TOO_LARGE, ERROR);
+		setRequestState(BD_TOO_BIG, REQUEST_ENTITY_TOO_LARGE, ERROR);
 		this->_state = ERROR;
-		this->_status = PAYLOAD_TOO_LARGE;
+		this->_status = REQUEST_ENTITY_TOO_LARGE;
 		return ;
 	}
 }
 
 void Request::parse_body() {
 
-	// std::cout << "Parsing body" << std::endl;
 	if (this->_request.body.size() == 0)
 		this->_request.body = this->_request.raw_body;
 	if (this->_total_body_size == 0)
@@ -595,7 +592,6 @@ static std::string get_field_value(std::string line, std::string field) {
 
 void	Request::handle_post_file(std::string section) {
 
-	// std::cout << "Handling post file" << std::endl;
 	size_t pos = section.find("\r\n");
 	std::string line = section.substr(0, pos);
 
@@ -613,7 +609,6 @@ void	Request::handle_post_file(std::string section) {
 
 void	Request::handle_post_fields(std::string section) {
 
-	// std::cout << "Handling post fields" << std::endl;
 	size_t pos = section.find("\r\n");
 	std::string line = section.substr(0, pos);
 	std::string name = get_field_value(line, "name=");

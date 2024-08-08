@@ -36,6 +36,8 @@ static	std::string	http_code_msg(e_status code)
 		case URI_TOO_LONG:			return "Url Too Long";
 		case LENGTH_REQUIRED:		return "Length Required";
 		case REQUEST_TIMEOUT:		return "Request Timeout";
+		case NOT_ACCEPTABLE:		return "Not Acceptable";
+		case METHOD_NOT_ALLOWED:		return "Method Not Allowed";
 		default:				return " ";
 	}
 }
@@ -418,7 +420,7 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		std::cout << "[ " << this->_request->get_first_line().method << std::setw(8-m_size) << " ]" << KNRM
 			<< " " << KUND << this->_request->get_first_line().uri << " " << std::setw(80-u_size) << KNRM
 			<< http_code_msg(print_Cstatus(this->_response_status)) << " " << KNRM << " : "
-			<< KUND << this->_sent[1] << "B" << KNRM << std::endl;
+			<< KUND << this->_sent[1] << " B" << KNRM << std::endl;
 	}
 }
 

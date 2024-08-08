@@ -310,7 +310,7 @@ void	Sockets::closeConn(int sock_fd) {
 	std::map<int, ServerConfig*>::iterator i = this->_fd_to_server.find(sock_fd);
 	if (i != this->_fd_to_server.end()) {
 		std::cout << "\t  [" << i->second->server_name << std::setw(15-i->second->server_name.size()) << ": Closed connection: "KRED << sock_fd << KNRM;
-		std::cout << " , remaining sockets: " << KBGR " "<< this->_kqueue.get_current_events() << " \n" << KNRM << "]";
+		std::cout << " , remaining sockets: " << KBGR " "<< this->_kqueue.get_current_events() << " " << KNRM << "]\n";
 		this->_fd_to_server.erase(sock_fd);
 	}
 	this->_kqueue.SET_QUEUE(sock_fd, 0, 0);

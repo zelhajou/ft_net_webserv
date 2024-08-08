@@ -413,10 +413,14 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 		this->_file.close();
 		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
 
-		std::cout << "[ " << this->_request->get_first_line().method << std::setw(8-m_size) << " ]" << KNRM
+		if (DEBUG) {
+			size_t	m_size = this->_request->get_first_line().method.size();
+			size_t	u_size = this->_request->get_first_line().uri.size();
+			std::cout << "[ " << this->_request->get_first_line().method << std::setw(8-m_size) << " ]" << KNRM
 			<< " " << KUND << this->_request->get_first_line().uri << " " << std::setw(80-u_size) << KNRM
 			<< http_code_msg(print_Cstatus(this->_response_status)) << " " << KNRM << " : "
 			<< KUND << this->_sent[1] << " B" << KNRM << std::endl;
+		}
 	}
 }
 

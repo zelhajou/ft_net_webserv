@@ -14,7 +14,12 @@ Request::Request() : _fd(-1), _max_body_size(0), _state(FIRST_LINE), _status(OK)
 Request::Request(const Request &R) { *this = R; }
 Request	&Request::operator = (const Request &R) { (void)R; return *this; }
 
-Request::~Request() {}
+Request::~Request() {
+	std::vector<LocationNode*>::iterator it;
+	for (it = this->_location_tree.begin(); it != this->_location_tree.end(); it++) {
+		delete *it;
+	}
+}
 
 void Request::setLocation() {
 	ServerConfig*	server = this->_servers[0];

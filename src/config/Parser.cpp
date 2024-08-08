@@ -343,7 +343,7 @@ void ServerConfig::closeConn(int s)
 {
 	std::map<int, std::pair<Request, Response> *>::iterator i = this->_requests.find(s);
 	if (i != this->_requests.end()) {
-		delete	i->second;
+		delete i->second;
 	 	this->_requests.erase(i);
 	}
 }
@@ -358,8 +358,9 @@ ServerConfig::~ServerConfig() {
 MainConfig::~MainConfig()
 {
 	std::cout << KRED << "cleaning " << KNRM << "configuration structure..\n";
-	for (std::vector<ServerConfig *>::iterator i = this->servers.begin(); i != this->servers.end(); ++i)
+	for (std::vector<ServerConfig *>::iterator i = this->servers.begin(); i != this->servers.end(); ++i) {
 	 	delete *i;
+	}
 }
 void Parser::displayMainConfig(const MainConfig& main_config)
 {

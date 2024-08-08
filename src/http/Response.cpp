@@ -64,16 +64,6 @@ std::string	Response::generate_status_file(e_status status_code, ServerConfig *s
 	return	status_file;
 }
 
-// static	bool	is_binary_data(std::string input) {
-// 	int	cha;
-// 	for (size_t i=0; i <input.size(); i++) {
-// 		cha = static_cast<int>(input[i]);
-// 		if (cha < 0 || cha > 126)
-// 			return	true;
-// 	}
-// 	return	false;
-// }
-
 static	std::string	replace_characters(std::string input, std::string from, std::string to) {
 	size_t	i;
 	while ((i = input.find(from)) != std::string::npos)
@@ -141,6 +131,7 @@ static	std::string	generate_auto_index(std::string uri, ServerConfig *server) {
 	///////////////
 	output <<	"</div></div></body></html>\n";
 	output.close();
+	closedir(dir);
 	return	target;
 }
 

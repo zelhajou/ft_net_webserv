@@ -1,9 +1,10 @@
-CXX = c++ -g -fsanitize=address 
+CXX = c++ #-g -fsanitize=address 
 CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude
 SRC_DIR = src
 BUILD_DIR = build
 TARGET = webserv
 CONDIRS = config/cgi_comm config/sockets config/html_default_error_files config/html_generated_files
+APP = www/cgi_scripts/py_login_app/database www/cgi_scripts/py_login_app/sessions www/cgi_scripts/py_login_app/uploads
 
 SRCS = $(wildcard $(SRC_DIR)/**/*.cpp $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
@@ -18,7 +19,8 @@ $(TARGET): $(OBJS)
 	$(CXX) $(OBJS) -o $(TARGET)
 
 rmdi:
-	rm -rf $(CONDIRS)
+	@rm -rf $(CONDIRS)
+	@rm -rf $(APP)
 
 mkdir:
 	@mkdir -p $(CONDIRS)

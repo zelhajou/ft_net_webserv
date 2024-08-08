@@ -33,6 +33,7 @@
 # define CGI_COMM CONFIG_PATH"/cgi_comm"
 # define SOCKETS_PATH CONFIG_PATH"/sockets"
 # define SERVER_ALL_ROOT PROJECT_PATH"www"
+# define DEFAULT_CONFIG CONFIG_PATH"/config_files/default.conf"
 # define _S_DEL "__S_"CRLF"_DEL__"
 # define _M_DEL "__M_"CRLF"_DEL__"
 # define CGI_TIME_LIMIT	10	// s

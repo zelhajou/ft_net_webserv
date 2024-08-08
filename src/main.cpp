@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/08 17:42:18 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/07 17:42:59 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/08 05:17:05 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,13 +31,18 @@ void	leaks_fun(void)
 
 std::string readFile(const std::string& filepath)
 {
-    std::ifstream file(filepath.c_str());
-    if (!file.is_open())
-        throw std::runtime_error("Unable to open file: " + filepath);
+	std::ifstream file(filepath.c_str());
+	if (!file.is_open()) {
+		std::cout << "Unable to open file: " + filepath << std::endl;
+		if (std::strcmp(filepath.c_str(), DEFAULT_CONFIG)) {
+			std::cout << "falling to default: " << DEFAULT_CONFIG << std::endl;
+			return	readFile(DEFAULT_CONFIG);
+		}
+	}
 
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    return buffer.str();
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	return buffer.str();
 }
 
 std::string get_cwd(char *buf, size_t size)
@@ -70,13 +75,9 @@ int main(int argc, char *argv[], char **env)
 		std::cerr << "\tUsage: " << argv[0] << " [config_file]" << std::endl;
 		return 1;
 	}
-
 	std::string config_file = argv[1];
-
-	try
-	{
-        std::string config_content = readFile(config_file);
-		
+	try {
+		std::string config_content = readFile(config_file);	
 		Tokenizer	tokenizer(config_content);
 		std::vector<Token>	tokens = tokenizer.tokenize();
 
@@ -85,8 +86,7 @@ int main(int argc, char *argv[], char **env)
 
 		std::string cwd = get_cwd(NULL, 0);
 		ConfigValidator validator(main_config, cwd);
-        validator.validate();
-
+		validator.validate();
 		MainConfig main_config_validated = push_valid_servers(main_config);
 
 		S.initiate_servers(main_config_validated, env);

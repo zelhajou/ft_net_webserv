@@ -212,7 +212,7 @@ Sockets::~Sockets() {
 		<< this->socket_path << std::endl;
 	//
 	this->check_and_remove(this->socket_path);
-	if (this->update_master_state()) {
+	if (this->active_master) {
 		std::cout << KRED"killing master process\n" << KNRM;
 		close(this->master_process);
 		close(this->cgi_controller);

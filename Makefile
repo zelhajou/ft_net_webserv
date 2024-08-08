@@ -1,5 +1,6 @@
+CURRENT_DIR := $(shell pwd)/
 CXX = c++ #-g -fsanitize=address 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -Iinclude -D PROJECT_PATH=\"$(CURRENT_DIR)\"
 SRC_DIR = src
 BUILD_DIR = build
 TARGET = webserv

@@ -24,7 +24,11 @@
 # define FILE_READ_BUFFER_SIZE	50
 # define CRLF			"\r\n"
 # define CLR_TERM			"\e[1;1H\e[2J"
-# define PROJECT_PATH "/Users/hsobane/projects/teamWeb/"
+
+# ifndef PROJECT_PATH
+	# define PROJECT_PATH "/Users/hsobane/projects/teamWeb/"
+# endif
+
 # define CONFIG_PATH PROJECT_PATH"config"
 # define CGI_COMM CONFIG_PATH"/cgi_comm"
 # define SOCKETS_PATH CONFIG_PATH"/sockets"

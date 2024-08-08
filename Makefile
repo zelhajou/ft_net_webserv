@@ -6,6 +6,13 @@ BUILD_DIR = build
 TARGET = webserv
 CONDIRS = config/cgi_comm config/sockets config/html_default_error_files config/html_generated_files
 APP = www/cgi_scripts/py_login_app/database www/cgi_scripts/py_login_app/sessions www/cgi_scripts/py_login_app/uploads
+DEBUG ?= 1
+
+ifeq ($(DEBUG), 1)
+	CXXFLAGS += -D DEBUG=1
+else
+	CXXFLAGS += -D DEBUG=0
+endif
 
 SRCS = $(wildcard $(SRC_DIR)/**/*.cpp $(SRC_DIR)/*.cpp)
 OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))

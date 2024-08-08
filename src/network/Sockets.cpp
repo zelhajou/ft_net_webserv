@@ -7,8 +7,8 @@ Sockets	&Sockets::operator = (const Sockets &S) { (void)S; return *this;}
 void	fix_up_signals(void (*f)(int)) {
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGTERM, f);
+	signal(SIGQUIT, f);
 	signal(SIGINT, f);
-	signal(SIGKILL, f);
 }
 
 static	void	child_ex(int sig_num) {
@@ -35,7 +35,7 @@ static	std::string	exec_job(char *executer, char *script, char **env, std::strin
 		}
 		dup2(pi[1], 1); close(pi[1]);
 		execve(argv[0], argv, env);
-		std::cout << KRED"EXECVE_FAILURE:" << strerror(errno) << KNRM << "\n";
+		std::cout << KRED << "execve: " << strerror(errno) << KNRM << "\n";
 		exit(EXIT_FAILURE);
 	}
 	close(pi[1]);
@@ -128,8 +128,6 @@ static	void	master_routine(std::string socket_path) {
 			}
 			output.clear();
 			FD_CLR(sock, &w_set); FD_SET(sock, &r_set);
-			std::cout << "\t" << KCYN"master_process:" << KNRM << " job done successfully ->"
-				<< " going back to sleep\n";
 		}
 	}
 	exit(0);
@@ -175,17 +173,17 @@ bool	Sockets::initiate_master_process() {
 	struct	sockaddr_un	address;
 	this->socket_path = SOCKETS_PATH"/unix_quick_private_socket";
 	this->check_and_remove(this->socket_path);
-	std::cout << "creating cgi master process.." << std::endl;
+	// std::cout << "creating cgi master process.." << std::endl;
 	if ((this->cgi_controller = geta_unix_socket(address, this->socket_path)) < 0) return	false;
 	if (bind(this->cgi_controller, (struct sockaddr*)&address, sizeof(address)) < 0) return	false;
 	if (listen(this->cgi_controller, 5) < 0) return	false;
-	std::cout << KCYN"initiating" << KNRM << " connection with master process over unix socket..\n";
+	// std::cout << KCYN"initiating" << KNRM << " connection with master process over unix socket..\n";
 	if ((this->master_PID = fork()) < 0)	return	false;
 	if (!this->master_PID)	master_routine(this->socket_path);
 	if ((this->master_process = ::accept(this->cgi_controller, NULL, NULL)) < 0) return	false;
 	close(this->cgi_controller);
-	std::cout << "child created" << KGRN << " successfully" << KNRM << " and waiting for jobs in: "
-		<< this->socket_path << std::endl;
+	// std::cout << "child created" << KGRN << " successfully" << KNRM << " and waiting for jobs in: "
+		// << this->socket_path << std::endl;
 	return	true;
 }
 
@@ -208,18 +206,20 @@ Sockets::Sockets( void ) : _sess_id(1234), active_master(0) {
 }
 
 Sockets::~Sockets() {
-	std::cout << KRED"cleaning...\n";
-	std::cout << "deleting unix socket: " << KNRM
+	if (DEBUG) {
+		std::cout << KRED"cleaning...\n";
+		std::cout << "deleting unix socket: " << KNRM
 		<< this->socket_path << std::endl;
-	//
+	}
 	this->check_and_remove(this->socket_path);
 	if (this->active_master) {
-		std::cout << KRED"killing master process\n" << KNRM;
+		if (DEBUG)
+			std::cout << KRED"killing master process\n" << KNRM;
 		close(this->master_process);
 		kill(this->master_PID, SIGKILL);
 	}
-	//
-	std::cout << KRED"closing active connections..\n" << KNRM;
+	if (DEBUG)
+		std::cout << KRED"closing active connections..\n" << KNRM;
 	for (std::map<int, ServerConfig*>::iterator i=this->_fd_to_server.begin(); i!=this->_fd_to_server.end();++i)
 		if (i->second && i->second->_socket == i->first)	close(i->first);
 }
@@ -261,7 +261,7 @@ void	Sockets::accept(int sock_fd) {
 	ServerConfig		*target = this->_fd_to_server.find(sock_fd)->second;
 	this->_fd_to_server[ new_s_fd ] = target;
 	this->_kqueue.SET_QUEUE(new_s_fd, EVFILT_READ, 1);
-	std::cout << "\t  [" << target->server_name << std::setw(15-target->server_name.size()) << ": Accept connection: " << KGRN << new_s_fd << KNRM << "]" << std::endl;
+	// std::cout << "\t  [" << target->server_name << std::setw(15-target->server_name.size()) << ": Accept connection: " << KGRN << new_s_fd << KNRM << "]" << std::endl;
 	////
 }
 
@@ -309,8 +309,10 @@ void	Sockets::closeConn(int sock_fd) {
 	this->resetConn(sock_fd);
 	std::map<int, ServerConfig*>::iterator i = this->_fd_to_server.find(sock_fd);
 	if (i != this->_fd_to_server.end()) {
-		std::cout << "\t  [" << i->second->server_name << std::setw(15-i->second->server_name.size()) << ": Closed connection: "KRED << sock_fd << KNRM;
-		std::cout << " , remaining sockets: " << KBGR " "<< this->_kqueue.get_current_events() << " \n" << KNRM << "]";
+		if (DEBUG) {
+			std::cout << "\t  [" << i->second->server_name << std::setw(15-i->second->server_name.size()) << ": Closed connection: " << KRED << sock_fd << KNRM;
+			std::cout << " , remaining sockets: " << KBGR " " << this->_kqueue.get_current_events() << " " << KNRM << "]\n";
+		}
 		this->_fd_to_server.erase(sock_fd);
 	}
 	this->_kqueue.SET_QUEUE(sock_fd, 0, 0);

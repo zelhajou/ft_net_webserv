@@ -36,6 +36,8 @@ static	std::string	http_code_msg(e_status code)
 		case URI_TOO_LONG:			return "Url Too Long";
 		case LENGTH_REQUIRED:		return "Length Required";
 		case REQUEST_TIMEOUT:		return "Request Timeout";
+		case NOT_ACCEPTABLE:		return "Not Acceptable";
+		case METHOD_NOT_ALLOWED:		return "Method Not Allowed";
 		default:				return " ";
 	}
 }
@@ -77,7 +79,7 @@ static	size_t		get_dir_size(std::string path) {
 	return	output.st_size;
 }
 
-static	e_status	print_Cstatus(e_status st) {
+e_status	print_Cstatus(e_status st) {
 	int	status = (int)st;
 	std::cout << KBGR;
 	if (status == 200)		std::cout << KGRN;
@@ -212,7 +214,8 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	std::string	uri = this->_request->get_first_line().uri;
 	if (!this->_request->_cgi_info.second.empty()) {
 		sock._enrg_env_var("PATH_INFO", this->_request->_cgi_info.second);
-		std::cout << "\t" << KCYN"PATH_INFO: " << KNRM << this->_request->_cgi_info.second << std::endl;
+		if (DEBUG)
+			std::cout << "\t" << KCYN"PATH_INFO: " << KNRM << this->_request->_cgi_info.second << std::endl;
 		uri = uri.substr(0, uri.find(this->_request->_cgi_info.second));
 	}	else	sock._enrg_env_var("PATH_INFO", "");
 	sock._enrg_env_var("REQUEST_URI", uri);
@@ -231,7 +234,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 			+ uri + _M_DEL
 			+ _file_name);
 	} catch (std::exception &l) {
-		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		// std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
 		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, l.what());
 	}
@@ -261,7 +264,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 			else	throw	std::runtime_error("invalid cgi output formatting");
 		}
 	} catch (std::exception &l) {
-		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		// std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
 		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, l.what());
 	}
@@ -286,18 +289,15 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			}
 		}
 		else if (this->_request->_location_type == CGI) {
-			std::cout << "\t"KWHT"--> CGI_REQUEST\n" << KNRM;
 			if (!this->_request->_cgi_info.second.empty()) {
 				size_t	pos = this->_request->_request.first_line.uri.rfind(this->_request->_cgi_info.second);
 				if (pos != std::string::npos)
 					this->_request->_request.first_line.uri = this->_request->_request.first_line.uri.substr(0, pos);
 			}
 			if (access(this->_request->get_first_line().uri.c_str(), R_OK) < 0) {
-				std::cout << KCYN"\tscript_path_not_found\n" << KNRM;
 				target_file = this->generate_status_file(NOT_FOUND, server, "CGI script NOT FOUND");
 			}
 			else	target_file = this->process_cgi_exec(sock, server);
-			std::cout << "\t"KWHT"<--\n" << KNRM;
 		}
 		else if (this->_request->get_first_line().method == "GET") target_file = this->_request->get_first_line().uri;
 		else if (this->_request->get_first_line().method == "POST") {
@@ -411,14 +411,15 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	}
 	if (this->status == DONE) {
 		this->_file.close();
-		int	m_size = this->_request->get_first_line().method.size();
-		int	u_size = this->_request->get_first_line().uri.size();
 		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
-
-		std::cout << "[ " << this->_request->get_first_line().method << std::setw(8-m_size) << " ]" << KNRM
-			<< " " << KUND << this->_request->get_first_line().uri << " " << std::setw(80-u_size) << KNRM
-			<< http_code_msg(print_Cstatus(this->_response_status)) << " " << KNRM << " : "
-			<< KUND << this->_sent[1] << "B" << KNRM << std::endl;
+		if (DEBUG) {
+			int	m_size = this->_request->get_first_line().method.size();
+			int	u_size = this->_request->get_first_line().uri.size();
+			std::cout << "[ " << this->_request->get_first_line().method << std::setw(8-m_size) << " ]" << KNRM
+				<< " " << KUND << this->_request->get_first_line().uri << " " << std::setw(80-u_size) << KNRM
+				<< http_code_msg(print_Cstatus(this->_response_status)) << " " << KNRM << " : "
+				<< KUND << this->_sent[1] << " B" << KNRM << std::endl;
+		}
 	}
 }
 

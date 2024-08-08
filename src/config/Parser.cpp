@@ -352,12 +352,14 @@ ServerConfig::ServerConfig()
 	: default_session_managment(false), is_duplicated(false) {}
 
 ServerConfig::~ServerConfig() {
-	std::cout << KRED << "cleaning " << KNRM << this->server_name << " configs\n";
+	if (DEBUG)
+		std::cout << KRED << "cleaning " << KNRM << this->server_name << " configs\n";
 }
 
 MainConfig::~MainConfig()
 {
-	std::cout << KRED << "cleaning " << KNRM << "configuration structure..\n";
+	if (DEBUG)
+		std::cout << KRED << "cleaning " << KNRM << "configuration structure..\n";
 	for (std::vector<ServerConfig *>::iterator i = this->servers.begin(); i != this->servers.end(); ++i) {
 	 	delete *i;
 	}

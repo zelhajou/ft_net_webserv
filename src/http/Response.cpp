@@ -411,9 +411,12 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	}
 	if (this->status == DONE) {
 		this->_file.close();
+		int	m_size = this->_request->get_first_line().method.size();
+		int	u_size = this->_request->get_first_line().uri.size();
 		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
-		std::cout << KBGR"  " << this->_request->get_first_line().method
-			<< " " << KNRM << " ["KUND << this->_request->get_first_line().uri << KNRM << "] : "
+
+		std::cout << "[ " << this->_request->get_first_line().method << std::setw(8-m_size) << " ]" << KNRM
+			<< " " << KUND << this->_request->get_first_line().uri << " " << std::setw(80-u_size) << KNRM
 			<< http_code_msg(print_Cstatus(this->_response_status)) << " " << KNRM << " : "
 			<< KUND << this->_sent[1] << "B" << KNRM << std::endl;
 	}

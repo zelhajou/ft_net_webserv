@@ -192,6 +192,12 @@ void Request::handle_uri() {
 			setRequestState(INV_LOC_DIR, FORBIDDEN, ERROR);
 	}
 	else if (this->_request.first_line.method == "DELETE") {
+		if (access(this->_request.first_line.uri.c_str(), F_OK) == -1) {
+			setRequestState(CANT_DELL, NOT_FOUND, ERROR);
+			this->_status = NOT_FOUND;
+			this->_state = ERROR;
+			return ;
+		}
 		if (access(this->_request.first_line.uri.c_str(), W_OK) == -1) {
 			setRequestState(CANT_DELL, FORBIDDEN, ERROR);
 			this->_status = FORBIDDEN;

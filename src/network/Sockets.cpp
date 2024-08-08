@@ -216,7 +216,6 @@ Sockets::~Sockets() {
 	if (this->active_master) {
 		std::cout << KRED"killing master process\n" << KNRM;
 		close(this->master_process);
-		close(this->cgi_controller);
 		kill(this->master_PID, SIGKILL);
 	}
 	//

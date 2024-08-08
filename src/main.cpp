@@ -45,7 +45,9 @@ std::string get_cwd(char *buf, size_t size)
 	char *cwd = getcwd(buf, size);
 	if (cwd == NULL)
 		return "";
-	return std::string(cwd);
+	std::string cwd_str(cwd);
+	free(cwd);
+	return cwd_str;
 }
 
 MainConfig push_valid_servers(MainConfig &main_config)
@@ -59,9 +61,9 @@ MainConfig push_valid_servers(MainConfig &main_config)
 	return main_config_validated;
 }
 
-
 int main(int argc, char *argv[], char **env)
 {
+	// atexit(leaks_fun);
 	fix_up_signals(sig_nan);
 	if (argc != 2) {
 		std::cerr << KRED"->\tmissing configuration file" << KNRM;

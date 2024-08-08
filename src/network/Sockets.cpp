@@ -71,7 +71,7 @@ static	std::string	prepare_launch_and_receive(std::string input, std::string del
 	pos = 0;
 	char	**env = new char*[ v_env.size() + 1 ];
 	std::vector<std::string>::iterator	it = v_env.begin();
-	for (; it!=v_env.end();++it, ++pos) {
+	for (; it!=v_env.end();++it, pos++) {
 		env[pos] = new char[ it->size() +1 ];
 		std::strcpy(env[pos], it->c_str()); }
 	env[pos] = 0;

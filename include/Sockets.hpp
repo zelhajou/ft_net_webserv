@@ -66,6 +66,7 @@ struct	MainConfig;
 struct	LocationConfig;
 
 typedef std::vector<ServerConfig *>::iterator mit;
+typedef std::map<int, std::pair<Request, Response> *>::iterator rr_it;
 
 class Sockets {
 public:
@@ -105,19 +106,20 @@ public:
 	std::string						format_env();
 	bool							is_valid_mime(std::string);
 	std::map<std::string, std::string>				env_variables;
+
 private:
-	MIME						_mime;
-	MainConfig					_main_config;
-	KQueue						_kqueue;
-	std::map<int, ServerConfig *>				_fd_to_server;
-	std::map<std::string, ServerConfig *>			_dup_servers;
+	MIME														_mime;
+	MainConfig													_main_config;
+	KQueue														_kqueue;
+	std::map<int, ServerConfig *>								_fd_to_server;
+	std::map<std::string, ServerConfig *>						_dup_servers;
 	std::map<std::string, std::map<std::string, std::string> >	_Cookies;
-	size_t						_sess_id;
-	pid_t						master_PID;
-	int						master_process;
-	int						cgi_controller;
-	std::string					socket_path;
-	bool						active_master;
+	size_t							_sess_id;
+	pid_t							master_PID;
+	int								master_process;
+	int								cgi_controller;
+	std::string						socket_path;
+	bool							active_master;
 };
 
 void		fix_up_signals(void (*)(int));

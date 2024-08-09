@@ -101,6 +101,8 @@ void Parser::parseServerDirective(ServerConfig& server)
     switch (token.getType())
     {
         case TOKEN_LISTEN:
+            if (server.listen_port != "")
+                reportError("Duplicate 'listen' directive at line " + std::to_string(line_number));
 		    if (values.empty())
                 reportError("Missing value for 'listen' at line " + std::to_string(line_number));
             if (values.size() != 1)
@@ -108,6 +110,8 @@ void Parser::parseServerDirective(ServerConfig& server)
             server.listen_port = values[0];
             break;
         case TOKEN_HOST:
+            if (server.host != "")
+                reportError("Duplicate 'host' directive at line " + std::to_string(line_number));
 		    if (values.empty())
                 reportError("Missing value for 'host' at line " + std::to_string(line_number));
             if (values.size() != 1)
@@ -115,6 +119,8 @@ void Parser::parseServerDirective(ServerConfig& server)
             server.host = values[0];
             break;
         case TOKEN_SERVER_NAME:
+            if (server.server_name != "")
+                reportError("Duplicate 'server_name' directive at line " + std::to_string(line_number));
 			if (values.empty())
                 reportError("Missing value for 'server_name' at line " + std::to_string(line_number));
           	if (values.size() != 1)
@@ -125,6 +131,8 @@ void Parser::parseServerDirective(ServerConfig& server)
             parseErrorPages(server, values, line_number);
             break;
         case TOKEN_CLIENT_MAX_BODY_SIZE:
+            if (server.client_max_body_size != "")
+                reportError("Duplicate 'client_max_body_size' directive at line " + std::to_string(line_number));
 			if (values.empty())
                 reportError("Missing value for 'client_max_body_size' at line " + std::to_string(line_number));
             if (values.size() != 1)
@@ -159,6 +167,8 @@ void Parser::parseLocationDirective(LocationConfig& location)
     switch (token.getType())
     {
         case TOKEN_ALLOWED_METHODS:
+            if (location.allowed_methods.size() != 0)
+                reportError("Duplicate 'allowed_methods' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'allowed_methods' at line " + std::to_string(line_number));
 			for (size_t i = 0; i < values.size(); ++i)
@@ -171,6 +181,8 @@ void Parser::parseLocationDirective(LocationConfig& location)
             location.allowed_methods = values;
             break;
         case TOKEN_INDEX:
+            if (location.index != "")
+                reportError("Duplicate 'index' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'index' at line " + std::to_string(line_number));
 			if (values.size() != 1)
@@ -178,6 +190,8 @@ void Parser::parseLocationDirective(LocationConfig& location)
             location.index = values[0];
             break;
         case TOKEN_ROOT:
+            if (location.root != "")
+                reportError("Duplicate 'root' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'root' at line " + std::to_string(line_number));
             if (values.size() != 1)
@@ -185,6 +199,8 @@ void Parser::parseLocationDirective(LocationConfig& location)
             location.root = values[0];
             break;
         case TOKEN_UPLOAD_STORE:
+            if (location.upload_store != "")
+                reportError("Duplicate 'upload_store' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'upload_store' at line " + std::to_string(line_number));
             if (values.size() != 1)
@@ -192,11 +208,15 @@ void Parser::parseLocationDirective(LocationConfig& location)
             location.upload_store = values[0];
             break;
         case TOKEN_CLIENT_BODY_TEMP_PATH:
+            if (location.client_body_temp_path != "")
+                reportError("Duplicate 'client_body_temp_path' directive at line " + std::to_string(line_number));
             if (values.size() != 1)
                 reportError("Unexpected multiple values for 'client_body_temp_path' at line " + std::to_string(line_number));
             location.client_body_temp_path = values[0];
             break;
         case TOKEN_RETURN:
+            if (location.return_url.first || !location.return_url.second.empty())
+                reportError("Duplicate 'return' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'return' at line " + std::to_string(line_number));
 			if (values.size () == 1)
@@ -215,6 +235,8 @@ void Parser::parseLocationDirective(LocationConfig& location)
             location.return_url.first = static_cast<e_status>(std::stoi(values[0]));
             break;
         case TOKEN_AUTOINDEX:
+            if (location.auto_index)
+                reportError("Duplicate 'autoindex' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'autoindex' at line " + std::to_string(line_number));
             if (values.size() != 1)
@@ -222,11 +244,20 @@ void Parser::parseLocationDirective(LocationConfig& location)
             location.auto_index = (values[0] == "on");
             break;
 		case TOKEN_ADD_CGI:
+            if (location.add_cgi.size() != 0)
+                reportError("Duplicate 'add_cgi' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'add_cgi' at line " + std::to_string(line_number));
+            for (size_t i = 0; i < values.size(); ++i)
+            {
+                if (values[i][0] != '.')
+                    reportError("Invalid CGI extension: " + values[i] + " at line " + std::to_string(line_number));
+            }
 			location.add_cgi = values;
 			break;
 		case TOKEN_CGI_PATH:
+            if (location.cgi_path != "")
+                reportError("Duplicate 'cgi_path' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'cgi_path' at line " + std::to_string(line_number));
 			if (values.size() != 1)
@@ -234,6 +265,8 @@ void Parser::parseLocationDirective(LocationConfig& location)
 			location.cgi_path = values[0];
 			break;
 		case TOKEN_CGI_ALLOWED_METHODS:
+            if (location.cgi_allowed_methods.size() != 0)
+                reportError("Duplicate 'cgi_allowed_methods' directive at line " + std::to_string(line_number));
 			if (values.empty())
 				reportError("Missing value for 'allow_cgi_methods' at line " + std::to_string(line_number));
 			for (size_t i = 0; i < values.size(); ++i)
@@ -252,6 +285,9 @@ void Parser::parseLocationDirective(LocationConfig& location)
 
 void Parser::parseErrorPages(ServerConfig& server, const std::vector<std::string>& values, int line_number)
 {
+    if (server.error_pages.size() != 0)
+        reportError("Duplicate 'error_page' directive at line " + std::to_string(line_number));
+    
     if (values.empty())
         reportError("Expected at least one error code for 'error_page', but none found at line " + std::to_string(line_number));
 

@@ -699,18 +699,9 @@ a SYN-ACK packet to the client.
 		3. Server sends a FIN packet to the client.
 		4. Client sends an ACK packet to the server.
 	- **TCP Header**:
-		- **Source Port**: 16 bits.
-		- **Destination Port**: 16 bits.
-		- **Sequence Number**: 32 bits.
-		- **Acknowledgment Number**: 32 bits.
-		- **Data Offset**: 4 bits.
-		- **Reserved**: 6 bits.
-		- **Flags**: 6 bits.
-		- **Window Size**: 16 bits.
-		- **Checksum**: 16 bits.
-		- **Urgent Pointer**: 16 bits.
-		- **Options**: Variable length.
-		- **Padding**: Variable length.
+
+		![tcp-header-format](https://github.com/user-attachments/assets/82afdbd2-75d6-4c5c-93ee-f653f23fb50c)
+
 	- **TCP Flags**:
 		- **SYN (Synchronize)**: Initiates a connection.
 		- **ACK (Acknowledgment)**: Acknowledges received data.

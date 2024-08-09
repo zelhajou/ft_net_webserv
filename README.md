@@ -12,11 +12,8 @@ This project involves developing a robust HTTP server in C++98, designed to hand
 - [Team Members and Roles](#team-members-and-roles)
 - [Task Assignments](#task-assignments)
 - [Team Composition and Initial Assignments](#team-composition-and-initial-assignments)
-- [Network Infrastructure and Server Setup](#network-infrastructure-and-server-setup)
-- [HTTP Protocol Handling](#http-protocol-handling)
-- [Configuration Management and Logging](#configuration-management-and-logging)
-- [Project Timeline](#project-timeline)
-- [Directory Structure](#directory-structure)
+- 
+
 - [Topics](#topics)
 
 ## Features
@@ -375,96 +372,6 @@ The configuration management and logging component are responsible for reading a
 </details>
 
 </details>
-
-#### Configuration File Format
-
-We used a format inspired by Nginx's nginx.conf.
-
-```nginx
-# server.conf
-
-server {
-    listen 8080;                    # Port number to listen on
-    server_name localhost;          # Server name
-
-    root /var/www/html;             # Root directory for serving files
-
-    error_page 404 /404.html;       # Default error page for 404 errors
-    client_max_body_size 1M;        # Maximum allowed size for client request bodies
-
-    location / {
-        index index.html;           # Default file to serve
-    }
-
-    location /upload {
-        allow_methods POST;         # Allow only POST method for uploads
-        upload_store /var/www/uploads; # Directory to store uploaded files
-    }
-
-    location /redirect {
-        return 301 http://example.com; # Redirect to another URL
-    }
-}
-```
-
-#### Configuration File Parsing
-
-Our team has developed a configuration file parser that reads and interprets a specific configuration format. This parser converts the configuration file into a structured format that our server can utilize.
-
-**Implementation Steps:**
-	
-1. **Defining the Configuration Data Structures**: We created data structures to hold the configuration values.
-
-2. **Implementing the Configuration Parser**: We developed a parser that reads the configuration file and populates the data structures with the appropriate values.
-
-<!-- 3. **Applying the Configuration**: We modified the server code to effectively utilize the configuration values. -->
-
-
-#### Step 1: Defining the Configuration Data Structures
-
-Our team defined a set of classes to represent the configuration settings
-
-
-
-<!-- ## Project Timeline
-
-|Phase|Timeline|Objectives
-|---|---|---|
-Planning | Week 1 |Define scope, architecture design, task breakdown.
-Development	| Week 2-6 |Core functionality implementation.
-Testing |Week 7-8 |Unit testing, integration testing, stress testing. -->
-
-## Directory Structure
-
-```
-webserv/
-│
-├── src/                     # Source files for the server
-│   ├── main.cpp             # Main application entry point
-│   │
-│   ├── server/              # Core server functionalities
-│   │
-│   ├── network/             # Networking and socket management
-│   │
-│   ├── http/                # HTTP protocol handling
-│   │
-│   ├── config/              # Server configuration management
-│   │
-│   └── utils/               # Utility functions and classes
-|
-├── tests/                   # Unit and integration tests
-│
-├── config/                  # Configuration files for the server
-│
-├── docs/                    # Documentation files
-│
-├── include/                 # Global header files
-│
-├── assets/                  # Static files served by the server
-│
-├── Makefile                 # Makefile for compiling the project
-└── README.md                # Project overview and setup instructions
-```
 
 ## Topics
 

@@ -377,7 +377,7 @@ The configuration management and logging component are responsible for reading a
 
 **Web server**: A computer program that serves requested HTML pages or files.
 
-- [What is a Server? (Deepdive)](https://youtu.be/VXmvM2QtuMU) **(Recommended)**
+- [What is a Server? (Deepdive)](https://youtu.be/VXmvM2QtuMU)
 - [Web Server Concepts and Examples](https://www.youtube.com/watch?v=9J1nJOivdyw&t=313s)
 
 - [Coding a Web Server in 25 Lines - Computerphile](https://www.youtube.com/watch?v=7GBlCinu9yg)

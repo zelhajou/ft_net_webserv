@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/24 10:58:44 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/09 14:05:39 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/09 14:10:11 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,43 +21,43 @@ std::vector<Token> Tokenizer::tokenize()
 
 	while (pos < input.length())
 	{
-				if (isspace(input[pos]))
-		{
-						if (input[pos] == '\n')
-				++line;
-						++pos;
-						continue;
-				}
-				if (input[pos] == '{')
-		{
-						tokens.push_back(Token(TOKEN_OPEN_BRACE, "{", line));
-						++pos;
-						continue;
-				}
-				if (input[pos] == '}')
-		{
-						tokens.push_back(Token(TOKEN_CLOSE_BRACE, "}", line));
-						++pos;
-						continue;
-				}
-				if (input[pos] == ';')
-		{
-						tokens.push_back(Token(TOKEN_SEMICOLON, ";", line));
-						++pos;
-						continue;
-				}
-				if (input[pos] == '#')
-		{
-						while (pos < input.length() && input[pos] != '\n')
-								++pos;
-						continue;
-				}
+			if (isspace(input[pos]))
+			{
+				if (input[pos] == '\n')
+					++line;
+				++pos;
+				continue;
+			}
+			if (input[pos] == '{')
+			{
+				tokens.push_back(Token(TOKEN_OPEN_BRACE, "{", line));
+					++pos;
+				continue;
+			}
+			if (input[pos] == '}')
+			{
+				tokens.push_back(Token(TOKEN_CLOSE_BRACE, "}", line));
+					++pos;
+				continue;
+			}
+			if (input[pos] == ';')
+			{
+				tokens.push_back(Token(TOKEN_SEMICOLON, ";", line));
+					++pos;
+				continue;
+			}
+			if (input[pos] == '#')
+			{
+				while (pos < input.length() && input[pos] != '\n')
+					++pos;
+				continue;
+			}
 
-				std::string word;
-				while (pos < input.length() && !isspace(input[pos]) && input[pos] != '{' && input[pos] != '}' && input[pos] != ';')
-						word += input[pos++];
+			std::string word;
+			while (pos < input.length() && !isspace(input[pos]) && input[pos] != '{' && input[pos] != '}' && input[pos] != ';')
+				word += input[pos++];
 	
-				tokens.push_back(tokenizeWord(word));
+			tokens.push_back(tokenizeWord(word));
 		}
 
 		return (tokens);

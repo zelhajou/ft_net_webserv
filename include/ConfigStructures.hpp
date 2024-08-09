@@ -43,22 +43,22 @@ struct LocationConfig
 
 // Structure to represent the main server configuration
 struct ServerConfig {
-	std::string									listen_port;
-	std::string								host;
-	std::string								server_name;
+	std::string										listen_port;
+	std::string										host;
+	std::string										server_name;
 	std::map<int, std::string>						error_pages;
-    std::string								client_max_body_size;
-    std::map<std::string, LocationConfig>					locations;
-    int				_socket;
-    bool		default_session_managment;
-    bool		is_duplicated;
-    std::map<int, std::pair<Request, Response> *>				_requests;
-	bool valid;
-    //
-    void	closeConn(int);	// remove entry from _requests
+    std::string										client_max_body_size;
+    std::map<std::string, LocationConfig>			locations;
+    int												_socket;
+    bool											default_session_managment;
+    bool											is_duplicated;
+    std::map<int, std::pair<Request, Response> *>	_requests;
+	bool											 valid;
+    void	closeConn(int);
 	public:
+	void	get_fd_iter(int, bool&, rr_it&);
     ServerConfig();
-		~ServerConfig();
+	~ServerConfig();
 };
 
 // Main configuration structure to hold multiple server blocks

@@ -3,15 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   ConfigValidator.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: zelhajou <zelhajou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/06 13:39:35 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/07 18:03:01 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/09 12:42:04 by zelhajou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ConfigValidator.hpp"
-#include <regex>
 #include <stdexcept>
 #include <set>
 #include <unistd.h>
@@ -74,8 +73,14 @@ void ConfigValidator::checkEssentialDirectives(const ServerConfig& server)
 
 void ConfigValidator::validatePort(const std::string& port)
 {
-    std::regex port_regex("^[0-9]{1,5}$");
-    if (!std::regex_match(port, port_regex) || std::stoi(port) > 65535)
+    if (port.empty() || port.size() > 5)
+        throw std::runtime_error("Invalid port: " + port);
+    for (size_t i = 0; i < port.size(); ++i) {
+        if (!isdigit(port[i]))
+            throw std::runtime_error("Invalid port: " + port);
+    }
+    int port_num = atoi(port.c_str());
+    if (port_num < 1 || port_num > 65535)
         throw std::runtime_error("Invalid port: " + port);
 }
 
@@ -87,23 +92,79 @@ void ConfigValidator::validateHost(const std::string& host)
 
 bool ConfigValidator::isValidIPAddress(const std::string& ip)
 {
-    std::regex ip_regex("^(\\d{1,3}\\.){3}\\d{1,3}$");
-    return std::regex_match(ip, ip_regex);
+	int num, dots = 0;
+	char *ptr;
+
+	if (ip.length() > 15 || ip.empty())
+		return false;
+
+	char *str = strdup(ip.c_str());
+	ptr = strtok(str, ".");
+	if (ptr == NULL)
+		return false;
+	while (ptr)
+	{
+		if (!isdigit(*ptr))
+			return false;
+		num = atoi(ptr);
+		if (num < 0 || num > 255)
+			return false;
+		ptr = strtok(NULL, ".");
+		if (ptr != NULL)
+			dots++;
+	}
+	free(str);
+	if (dots != 3)
+		return false;
+	return true;
 }
 bool ConfigValidator::isValidDomainName(const std::string& domain)
 {
-    std::regex domain_regex("(^([a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}$)|(^localhost$)");
-    return std::regex_match(domain, domain_regex);
+	if (domain.empty())
+		return false;
+	
+    if (domain == "localhost")
+        return true;
+
+	const std::string validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
+	
+	for (size_t i = 0; i < domain.length(); ++i)
+	{
+		if (validChars.find(domain[i]) == std::string::npos)
+			return false;
+	}
+
+	if (domain.find("..") != std::string::npos || domain.front() == '.' || domain.back() == '.')
+			return false;
+
+	if (domain.find(".-") != std::string::npos || domain.find("-.") != std::string::npos)
+		return false;
+	
+	size_t lastDotPos = domain.rfind('.');
+    if (lastDotPos == std::string::npos || lastDotPos == 0 || lastDotPos == (domain.size() - 1))
+        return false;
+
+    return true;
+
 }
 
 void ConfigValidator::validateClientMaxBodySize(const std::string& size)
 {
-    std::regex size_regex("^[0-9]+[KMG]?$");
-	if (!size.empty())
-	{
-    	if (!std::regex_match(size, size_regex))
-        	throw std::runtime_error("Invalid client_max_body_size: " + size);
-	}
+    if (size.empty())
+        return;
+
+    size_t len = size.length();
+    if (len == 0 || len > 20)
+        throw std::runtime_error("Invalid client_max_body_size: " + size);
+
+    char last_char = size[len - 1];
+    if (!isdigit(last_char) && last_char != 'K' && last_char != 'M' && last_char != 'G')
+        throw std::runtime_error("Invalid client_max_body_size: " + size);
+
+    for (size_t i = 0; i < len - 1; ++i) {
+        if (!isdigit(size[i]))
+            throw std::runtime_error("Invalid client_max_body_size: " + size);
+    }
 }
 
 void ConfigValidator::validateLocationConfig(const LocationConfig& location, const std::string& project_root)
@@ -130,7 +191,6 @@ void ConfigValidator::validateCGI(std::vector<std::string> add_cgi, std::string 
 	(void)project_root;
 	if (!add_cgi.empty())
 	{
-		// check extensions	are valid .py .php
 		std::vector<std::string>::const_iterator it;
 		for (it = add_cgi.begin(); it != add_cgi.end(); ++it)
 		{

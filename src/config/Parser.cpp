@@ -24,6 +24,7 @@ void Parser::parseServerBlock(MainConfig& config)
     expect(TOKEN_OPEN_BRACE);
 
     ServerConfig* server = new ServerConfig;
+	std::cout << "server ptr: " << server << std::endl;
     while (pos < tokens.size())
     {
         if (tokens[pos].getType() == TOKEN_CLOSE_BRACE)
@@ -36,6 +37,7 @@ void Parser::parseServerBlock(MainConfig& config)
 
     if (pos >= tokens.size() || tokens[pos].getType() != TOKEN_CLOSE_BRACE)
     {
+		std::cout << "delete server ptr: " << server << std::endl;
         delete server;
         reportError("Missing closing brace for server block");
     }
@@ -413,6 +415,7 @@ MainConfig::~MainConfig()
 		std::cout << KRED << "cleaning " << KNRM << "configuration structure..\n";
 	for (std::vector<ServerConfig *>::iterator i = this->servers.begin(); i != this->servers.end(); ++i) {
 	 	delete *i;
+	}
 	}
 }
 void Parser::displayMainConfig(const MainConfig& main_config)

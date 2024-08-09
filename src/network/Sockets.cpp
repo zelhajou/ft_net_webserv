@@ -70,9 +70,11 @@ static	std::string	prepare_launch_and_receive(std::string input, std::string del
 		s_env = s_env.substr(pos + semi_del.size()); }
 	pos = 0;
 	char	**env = new char*[ v_env.size() + 1 ];
+	std::cout << "env ptr: " << (void *)env << std::endl;
 	std::vector<std::string>::iterator	it = v_env.begin();
 	for (; it!=v_env.end();++it, pos++) {
 		env[pos] = new char[ it->size() +1 ];
+		std::cout << "env[" << pos << "] ptr: " << (void *)env[pos] << std::endl;
 		std::strcpy(env[pos], it->c_str()); }
 	env[pos] = 0;
 	pos = input.find(del);
@@ -85,7 +87,7 @@ static	std::string	prepare_launch_and_receive(std::string input, std::string del
 			env,
 			input.substr(pos + del.size()));
 	//////////////////////
-	for (int i=0; env[i]; i++)	delete	env[i];
+	for (int i=0; env[i]; i++)	{delete	env[i]; std::cout << "deleting env[" << i << "]\n";}
 	delete	[] env;
 	return	output;
 }
@@ -280,6 +282,7 @@ void	Sockets::recvFrom(int sock_fd) {
 			for (std::map<std::string, ServerConfig*>::iterator it = this->_dup_servers.begin(); it != this->_dup_servers.end(); ++it) 
 				if (it->first == serv->host+":"+serv->listen_port)	servs.push_back(it->second);
 		std::pair<Request, Response>	*new_pair = new std::pair<Request, Response>;
+		std::cout << "PAIR ptr: " << (void *)new_pair << std::endl;
 		serv->_requests[ sock_fd ] = new_pair;
 		serv->_requests[ sock_fd ]->first.set_servers( servs );
 		serv->_requests[ sock_fd ]->first.set_fd( sock_fd );

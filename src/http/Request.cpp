@@ -21,6 +21,13 @@ Request	&Request::operator = (const Request &R) { (void)R; return *this; }
 Request::~Request() {
 	std::vector<LocationNode*>::iterator it;
 	for (it = this->_location_tree.begin(); it != this->_location_tree.end(); it++) {
+		std::cout << "deleted Location ptr: " << (void *)*it << std::endl;
+		delete *it;
+	}
+}
+Request::~Request() {
+	std::vector<LocationNode*>::iterator it;
+	for (it = this->_location_tree.begin(); it != this->_location_tree.end(); it++) {
 		delete *it;
 	}
 }
@@ -40,6 +47,7 @@ void Request::setLocation() {
 	std::map<std::string, LocationConfig>::iterator itm;
 	for (itm = server->locations.begin(); itm != server->locations.end(); itm++) {
 		LocationNode*	node = new LocationNode;
+		std::cout << "Location ptr: " << (void *)node << std::endl;
 		node->name = itm->first;
 		node->location = &itm->second;
 		::insert(this->_location_tree, node, ::cmp);

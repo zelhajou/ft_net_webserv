@@ -24,9 +24,7 @@ public:
 	size_t		form_headers(ServerConfig*);
 	e_parser_state	get_status();
 	size_t		get_file_size();
-	void		set_session_id(std::string);
 	bool		_new_session;
-	std::string	process_cgi_exec(Sockets&, ServerConfig*);
 	std::string	generate_status_file(e_status, ServerConfig*, std::string);
 	std::string	_connection_type;
 //private:
@@ -36,8 +34,8 @@ public:
 	std::string		_file_type;
 	std::string		_cgi_cookie;
 	bool			_has_cookies;
-
 	std::string		_session_id;
+
 	std::vector<size_t>		_sent;
 	Request			*_request;
 	e_parser_state		status;

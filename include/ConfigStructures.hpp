@@ -6,7 +6,7 @@
 /*   By: zelhajou <zelhajou@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/07/10 14:11:47 by zelhajou          #+#    #+#             */
-/*   Updated: 2024/08/07 17:04:35 by zelhajou         ###   ########.fr       */
+/*   Updated: 2024/08/09 23:46:12 by beddinao         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,6 @@ struct ServerConfig {
     std::string								client_max_body_size;
     std::map<std::string, LocationConfig>					locations;
     int				_socket;
-    bool		default_session_managment;
     bool		is_duplicated;
     std::map<int, std::pair<Request, Response> *>				_requests;
 	bool valid;

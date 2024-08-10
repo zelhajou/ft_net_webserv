@@ -18,7 +18,8 @@ public:
 	Response	&operator = (const Response &);
 	~Response();
 
-	void		_initiate_response(Request *, Sockets &, ServerConfig*);
+	void		_initiate_response(Sockets &, ServerConfig*);
+	void		_begin_response(Sockets &, ServerConfig*);
 	void		sendResponse(int, ServerConfig*);
 	size_t		form_headers(ServerConfig*);
 	e_parser_state	get_status();

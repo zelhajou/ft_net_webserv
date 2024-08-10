@@ -192,9 +192,13 @@ static	std::string	get_executer(std::pair<std::string, std::string> cgi_info, st
 }
 
 std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
+	(void)sock; (void)server; return "almost";
+} /*{
+	////
 	std::string		out_file = CGI_COMM"/"+ _generate_random_string(this->_request->get_headers().host, 15) +".html";
 	std::fstream	_file(out_file, std::ios::out);
 	if (!_file.is_open())	return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, http_code_msg(INTERNAL_SERVER_ERROR));
+	///////
 	std::string	input, to_stdin_input, output, _file_name;
 	if (this->_request->get_first_line().method == "GET" && this->_request->_query_string.size()) {
 		for (std::vector<std::pair<std::string, std::string> >::iterator it = this->_request->_query_string.begin();
@@ -234,10 +238,14 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 			+ uri + _M_DEL
 			+ _file_name);
 	} catch (std::exception &l) {
-		// std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
 		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, l.what());
 	}
+	////////////////////
+	///
+	///			half
+	///////
 	size_t		pos = output.find("webserv_cgi_status=");
 	if (pos != std::string::npos) {
 		int	cgi_status = std::atoi(output.substr(pos+19, pos+22).c_str());
@@ -264,7 +272,7 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 			else	throw	std::runtime_error("invalid cgi output formatting");
 		}
 	} catch (std::exception &l) {
-		// std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
+		std::cout << KRED << "\tResponse::process_cgi_exec(): just catched:" << l.what() << KNRM << std::endl;
 		if (_file.is_open())	_file.close();
 		return	this->generate_status_file(INTERNAL_SERVER_ERROR, server, l.what());
 	}
@@ -272,34 +280,22 @@ std::string	Response::process_cgi_exec(Sockets &sock, ServerConfig *server) {
 	_file << output;
 	_file.close();
 	return	out_file;
-}
+}*/
 
-void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *server) {
-	this->_request = req;
-	this->_response_status = this->_request->getStatus();
+void	Response::_initiate_response(Sockets &sock, ServerConfig *server) {
 	if (this->_request->getStatus() == OK && !this->_request->_is_return) {
-		if (this->_request->_location_type == AUTOINDEX) {
+		if (this->_request->_location_type == CGI) {/*hold_it*/}
+		else if (this->_request->_location_type == AUTOINDEX) {
 			struct	stat	output;
 			std::string	uri = this->_request->get_first_line().uri;
 			std::memset(&output, 0, sizeof(output));
 			if (stat(uri.c_str(), &output) == -1 || !S_ISDIR(output.st_mode)
-				|| !(target_file = generate_auto_index(uri, server)).size()) {
+				|| !(this->target_file = generate_auto_index(uri, server)).size()) {
 				this->_request->setStatus(FORBIDDEN);
 				this->_has_body = false;
 			}
 		}
-		else if (this->_request->_location_type == CGI) {
-			if (!this->_request->_cgi_info.second.empty()) {
-				size_t	pos = this->_request->_request.first_line.uri.rfind(this->_request->_cgi_info.second);
-				if (pos != std::string::npos)
-					this->_request->_request.first_line.uri = this->_request->_request.first_line.uri.substr(0, pos);
-			}
-			if (access(this->_request->get_first_line().uri.c_str(), R_OK) < 0) {
-				target_file = this->generate_status_file(NOT_FOUND, server, "CGI script NOT FOUND");
-			}
-			else	target_file = this->process_cgi_exec(sock, server);
-		}
-		else if (this->_request->get_first_line().method == "GET") target_file = this->_request->get_first_line().uri;
+		else if (this->_request->get_first_line().method == "GET") this->target_file = this->_request->get_first_line().uri;
 		else if (this->_request->get_first_line().method == "POST") {
 			bool	post_status(true);	int	mini_post_status(1);
 			if (this->_request->get_headers().content_type.find("multipart/form-data") != std::string::npos) {
@@ -310,35 +306,36 @@ void	Response::_initiate_response(Request *req, Sockets &sock, ServerConfig *ser
 			target_file = this->generate_status_file(post_status ? this->_request->getStatus() : INTERNAL_SERVER_ERROR, server, "");
 		}
 		else if (this->_request->get_first_line().method == "DELETE")
-			target_file = this->generate_status_file((std::remove(this->_request->get_first_line().uri.c_str()))
+			this->target_file = this->generate_status_file((std::remove(this->_request->get_first_line().uri.c_str()))
 					? INTERNAL_SERVER_ERROR
 					: this->_request->getStatus(), server, "");
 	}
-	else	target_file = this->generate_status_file(this->_request->getStatus(), server, "");
-	
+	else	this->target_file = this->generate_status_file(this->_request->getStatus(), server, "");
+	////
+	this->_begin_response(sock, server);
+}
+
+void	Response::_begin_response(Sockets &sock, ServerConfig *server) {
 	if (this->_has_body) {
-		this->_file.open(target_file, std::ios::in|std::ios::binary);
+		this->_file.open(this->target_file, std::ios::in|std::ios::binary);
 		if (!this->_file) {
 			e_status	tempS = this->_request->getStatus();
 			this->_request->setStatus(FORBIDDEN);
 			if (tempS == OK) {
-				this->_initiate_response(req, sock, server);
+				this->_initiate_response(sock, server);
 				return ;
 			}
 			else	this->_has_body = false;
 		}
 		else {
 			this->_file_size = this->get_file_size();
-			size_t	ppos = target_file.rfind(".");
-			if (ppos == target_file.npos)	ppos = 0;
+			size_t	ppos = this->target_file.rfind(".");
+			if (ppos == this->target_file.npos)	ppos = 0;
 			if (this->_file_type == "NONE")
-				this->_file_type = sock.get_mime_type(target_file.substr(ppos));
+				this->_file_type = sock.get_mime_type(this->target_file.substr(ppos));
 		}
 	}
-	this->_connection_type = (/*this->_request->getState() != ERROR
-		&& */this->_request->get_headers().connection == "keep-alive") ? "keep-alive" : "close";
-	if (server->default_session_managment)
-		sock.check_session(*this);
+	this->_connection_type = (this->_request->get_headers().connection == "keep-alive") ? "keep-alive" : "close";
 }
 
 e_parser_state	Response::get_status() { return this->status; }
@@ -412,7 +409,6 @@ void	Response::sendResponse(int sock_fd, ServerConfig *server) {
 	if (this->status == DONE) {
 		this->_file.close();
 		if (this->_request->_location_type == CGI) std::remove(target_file.c_str());
-
 		if (DEBUG) {
 			size_t	m_size = this->_request->get_first_line().method.size();
 			size_t	u_size = this->_request->get_first_line().uri.size();
